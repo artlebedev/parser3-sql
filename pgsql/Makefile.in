@@ -139,7 +139,7 @@ libparser3pgsql_la_SOURCES = parser3pgsql.C
 libparser3pgsql_la_LIBADD = $(LIBLTDL)
 libparser3pgsql_la_LDFLAGS = -module -avoid-version
 
-EXTRA_DIST = config_fixed.h
+EXTRA_DIST = config_fixed.h parser3pgsql.sln parser3pgsql.vcproj
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
