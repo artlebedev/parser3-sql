@@ -8,6 +8,8 @@
   As most UNIX libraries Parser3 Oracle driver follows the "standard":
 
   cd $D/parser3project
+  mkdir sql
+  cd sql
   gunzip -c parser3oracle-x.x.tar.gz | tar xvf -
   cd parser3oracle-x.x
   ./configure --prefix=/usr/local
@@ -47,4 +49,4 @@ oracle	$sqldriversdir/libparser3oracle.so	/u01/app/oracle/product/8.1.5/lib/libc
  
 Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
-$Id: INSTALL,v 1.2 2002/02/08 11:14:00 paf Exp $
+$Id: INSTALL,v 1.3 2002/10/07 10:51:02 paf Exp $

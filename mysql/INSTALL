@@ -8,6 +8,8 @@
   As most UNIX libraries Parser3 MySQL driver follows the "standard":
 
   cd $D/parser3project
+  mkdir sql
+  cd sql
   gunzip -c parser3mysql-x.x.tar.gz | tar xvf -
   cd parser3mysql-x.x
   ./configure --prefix=/usr/local
@@ -43,4 +45,4 @@ mysql	$sqldriversdir/libparser3mysql.so	/usr/local/lib/mysql/libmysqlclient.so
  
 Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
-$Id: INSTALL,v 1.4 2002/02/08 11:13:41 paf Exp $
+$Id: INSTALL,v 1.5 2002/10/07 10:51:01 paf Exp $
