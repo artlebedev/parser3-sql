@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.35 2003/09/29 06:15:27 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.36 2003/10/02 09:40:51 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -663,8 +663,9 @@ private: // private funcs
 				
 				{
 					size_t size=(size_t)col_name_len;
-					char *ptr=(char *)services.malloc_atomic(size);
+					char *ptr=(char *)services.malloc_atomic(size+1);
 					tolower(ptr, (char *)col_name, size);
+					ptr[size]=0;
 					check(cs, handlers.add_column(cs.sql_error, ptr, size));
 				}
 				
@@ -736,7 +737,7 @@ private: // private funcs
 								}
 							default:
 								if(const char *value=cols[i].str) {
-									size=strlen(str);
+									size=strlen(value);
 									str=(char*)services.malloc_atomic(size+1);
 									memcpy(str, value, size+1);
 								} else {
