@@ -1,3 +1,20 @@
+2002-06-03  paf
+	* parser3odbc.dsp:
+		fixed .dsp-s along with reorganized cvs modules dirs structure
+
+	* parser3odbc.dsp:
+		reorganized cvs modules
+
+2002-05-15  paf
+	* MFCpatches/DBCORE.CPP:
+	* parser3odbc.C:
+	* parser3odbc.dsp:
+		EXEC, call, {
+		sql statement starts now considered as stored procedure call and cause table result extraction
+
+	* parser3odbc.C:
+		not-returning-tables sp execs checked
+
 2002-04-25  paf
 	* MFCpatches/DBCORE.CPP:
 	* parser3odbc.C:

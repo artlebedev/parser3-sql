@@ -1,3 +1,17 @@
+2002-06-04  paf
+	* Makefile.am:
+	* Makefile.am:
+	* Makefile.in:
+	* Makefile.in:
+		*** empty log message ***
+
+2002-06-03  paf
+	* parser3pgsql.dsp:
+		fixed .dsp-s along with reorganized cvs modules dirs structure
+
+	* parser3pgsql.dsp:
+		reorganized cvs modules
+
 2002-03-22  paf
 	* parser3pgsql.C:
 		checked empty host
