@@ -1,4 +1,74 @@
-2003-10-24  paf
+2004-07-28	paf
+	* parser3mysql.C 1.25:
+		beauty: detailed error message on lt_dlopen failure
+
+2004-06-23	paf
+	* parser3mysql.C 1.24:
+	* parser3mysql.vcproj 1.2:
+		new api supported, not implemented yet:
+			^void:sql{call paf(:a)}[
+				$.bind[hash]
+			]
+
+2004-05-28	paf
+	* Makefile.in 1.19:
+	* configure 1.24:
+	* configure.in 1.24:
+		merged: from 3.1.3 configure.in changes
+
+2004-05-25	paf
+	* parser3mysql.C 1.23:
+		beauty: param renamed to reflect it's nature
+
+2004-04-01	paf
+	* parser3mysql.C 1.22:
+		merged: bugfixes from 3.1.2
+
+2004-03-30	paf
+	* config_fixed.h 1.6:
+	* parser3mysql.C 1.21:
+		merged bugfixes from 3.1.2
+
+2004-03-26	paf
+	* parser3mysql.C [release_3_1_2] 1.19.2.2:
+		bugfix: tolower/toupper named with _str suffix to work around 
+		cases when they are macros [freebsd]
+
+	* config_auto.h.in [release_3_1_2] 1.3.14.1:
+	* config_fixed.h [release_3_1_2] 1.4.14.1:
+	* config_includes.h [release_3_1_2] 1.4.14.1:
+	* parser3mysql.C [release_3_1_2] 1.19.2.1:
+		beauty: merged from HEAD [mistakenly commited there]
+
+	* config_auto.h.in 1.4:
+	* config_fixed.h 1.5:
+	* config_includes.h 1.5:
+	* parser3mysql.C 1.20:
+		ctype configured, gcc const wonders worked around
+
+2004-03-04	paf
+	* parser3mysql.C 1.19:
+		new: mysql option [like that recently added to oracle driver]
+		            ClientCharset=parser-charset << charset in which parser thinks client works
+
+2004-01-30	paf
+	* parser3mysql.C 1.18:
+		bugfix: connection struct mem to be controlled by libgc [oracle 
+		already fixed before]
+
+2004-01-26	paf
+	* parser3mysql.C 1.15:
+		change: moved to new interface [without extra 'services' passing 
+		back/forth]
+
+	* parser3mysql.C 1.17:
+		beauty: connection handle=0 after close
+
+2003-11-10	paf
+	* parser3mysql.C 1.14:
+		mysql: transaction support: ?autocommit=0
+
+2003-10-24	paf
 	* Makefile.am 1.15:
 		sln
 

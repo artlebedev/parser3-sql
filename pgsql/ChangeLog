@@ -1,4 +1,64 @@
-2003-10-24  paf
+2004-06-23	paf
+	* parser3pgsql.C 1.22:
+		new api supported, not implemented yet:
+			^void:sql{call paf(:a)}[
+				$.bind[hash]
+			]
+
+2004-05-28	paf
+	* Makefile.in 1.14:
+	* configure 1.15:
+	* configure.in 1.18:
+		merged: from 3.1.3 configure.in changes
+
+2004-05-25	paf
+	* parser3pgsql.C 1.21:
+		beauty: param renamed to reflect it's nature
+
+2004-03-30	paf
+	* config_fixed.h 1.6:
+	* parser3pgsql.C 1.20:
+		merged bugfixes from 3.1.2
+
+2004-03-29	paf
+	* parser3pgsql.C [release_3_1_2] 1.18.2.2:
+		bugfix: toupper wonders
+
+2004-03-26	paf
+	* config_auto.h.in [release_3_1_2] 1.3.14.1:
+	* config_fixed.h [release_3_1_2] 1.4.14.1:
+	* config_includes.h [release_3_1_2] 1.4.14.1:
+	* parser3pgsql.C [release_3_1_2] 1.18.2.1:
+		beauty: merged from HEAD [mistakenly commited there]
+
+	* config_auto.h.in 1.4:
+	* config_fixed.h 1.5:
+	* config_includes.h 1.5:
+	* configure 1.13:
+	* configure.in 1.16:
+	* parser3pgsql.C 1.19:
+		cstrClientCharset localized, gcc const wonders worked around
+
+2004-03-05	paf
+	* parser3pgsql.C 1.18:
+		new: pgsql option [like that recently added to oracle driver]
+		            ClientCharset=parser-charset << charset in which parser thinks client works
+
+2004-01-30	paf
+	* parser3pgsql.C 1.17:
+		bugfix: connection struct mem to be controlled by libgc [oracle 
+		already fixed before]
+
+2004-01-26	paf
+	* parser3pgsql.C 1.16:
+		change: moved to new interface [without extra 'services' passing 
+		back/forth]
+
+2003-10-31	paf
+	* libltdl/config_auto.h.in [release_3_1_1] 1.3.10.1:
+		*** empty log message ***
+
+2003-10-24	paf
 	* Makefile.am 1.11:
 		sln
 

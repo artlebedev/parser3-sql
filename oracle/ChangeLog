@@ -1,9 +1,48 @@
-2004-05-28  paf
+2004-08-03	paf
+	* parser3oracle.C 1.63:
+		bugfix: empty input variables can be replaced by output
+		[forgot to allocate proper buffer, oracle _server_ died with
+		kgepop: no error frame to pop to for error 21500
+		message]
+
+2004-07-28	paf
+	* parser3oracle.C 1.62:
+		bugfix: isspace((unsigned char)c) everywhere. failed on russian 
+		letters
+
+2004-06-22	paf
+	* parser3oracle.C 1.61:
+	* parser3oracle.vcproj 1.3:
+		new:
+			^void:sql{call paf(:a)}[
+				$.bind[
+					$.a[2]
+				]
+			]
+		output variables work.
+		todo: check in out variables
+
+2004-06-18	paf
+	* parser3oracle.C 1.60:
+		started:
+			^void:sql{call paf(:a)}[
+				$.bind[
+					$.a[2]
+				]
+			]
+		input variables work.
+		todo:output
+
+	* parser3oracle.C 1.59:
+		change: "returning" placeholders now bound by name
+		[preparing to general placeholders]
+
+2004-05-28	paf
 	* Makefile.in 1.15:
 	* configure 1.15:
 	* configure.in 1.17:
-		bugfix: configure.in language to compile tests set to C (were c
-		+)
+		bugfix: configure.in language to compile tests set to C (were c++
+		)
 
 2004-05-25  paf
 	* parser3oracle.C 1.58:
