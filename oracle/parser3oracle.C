@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.59 2004/06/18 11:29:55 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.60 2004/06/18 15:55:52 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -129,7 +129,7 @@ struct Connection {
 	} options;
 };
 
-struct OracleSQL_query_lobs {
+struct Query_lobs {
 	struct return_rows {
 		struct return_row {
 			OCILobLocator *locator; ub4 len;
@@ -148,11 +148,13 @@ struct OracleSQL_query_lobs {
 	} items[MAX_IN_LOBS];
 	int count;
 };
+
 #endif
 
 // forwards
-void check(Connection& connection, const char *step, sword status);
-void check(Connection& connection, bool error);
+static void faile(Connection& connection, const char *msg);
+static void check(Connection& connection, const char *step, sword status);
+static void check(Connection& connection, bool error);
 static sb4 cbf_no_data(
 					   dvoid *ctxp, 
 					   OCIBind *bindp, 
@@ -416,22 +418,24 @@ public:
 		*to=0;
 		return result;
 	}
-	void query(void *aconnection, 
-		const char *astatement, unsigned long offset, unsigned long limit, 
+	void query(void* aconnection, 
+		const char* astatement, 
+		size_t placeholders_count, Placeholder* placeholders, 
+		unsigned long offset, unsigned long limit,
 		SQL_Driver_query_event_handlers& handlers) 
 	{
 		Connection& connection=*static_cast<Connection *>(aconnection);
 		const char* cstrClientCharset=connection.options.cstrClientCharset;
-		OracleSQL_query_lobs lobs={{0}, 0};
+		Query_lobs lobs={{0}, 0};
 		OCIStmt *stmthp=0;
 
 		SQL_Driver_services& services=*connection.services;
 
 		// transcode from $request:charset to connect-string?client_charset
 		if(cstrClientCharset) {
-			size_t transcoded_statement_size;
+			size_t transcoded_xxx_size;
 			services.transcode(astatement, strlen(astatement),
-				astatement, transcoded_statement_size,
+				astatement, transcoded_xxx_size,
 				services.request_charset(),
 				cstrClientCharset);
 		}
@@ -449,9 +453,50 @@ public:
 				OCIStmtPrepare(stmthp, connection.errhp, (unsigned char *)statement, 
 				(ub4)strlen((char *)statement), 
 				(ub4)OCI_NTV_SYNTAX, (ub4)OCI_DEFAULT));
+
+			struct Bind_info {
+					OCIBind *bind;
+					sb2 indicator;
+			};
+
+			int binds_size=sizeof(Bind_info) * placeholders_count;
+			Bind_info* binds=static_cast<Bind_info*>(services.malloc_atomic(binds_size));
 			{
+				for(size_t i=0; i<placeholders_count; i++) {
+					Placeholder& ph=placeholders[i];
+					Bind_info& bi=binds[i];
+					bi.bind=0;
+					bi.indicator=ph.is_null? -1: 0/*9999*/;
+
+					size_t value_length;
+
+					if(cstrClientCharset) {
+						size_t name_length;
+						services.transcode(ph.name, strlen(ph.name),
+							ph.name, name_length,
+							services.request_charset(),
+							cstrClientCharset);
+
+						if(ph.value)
+							services.transcode(ph.value, strlen(ph.value),
+								ph.value, value_length,
+								services.request_charset(),
+								cstrClientCharset);
+					} else {
+						value_length=ph.value? strlen(ph.value): 0;
+					}
+
+					char placeholder_buf[MAX_STRING];
+					sb4 placeh_len=snprintf(placeholder_buf, sizeof(placeholder_buf), ":%s", ph.name);
+					check(connection, "bind name", OCIBindByName(stmthp, 
+						&bi.bind, connection.errhp, 
+						(text*)placeholder_buf, placeh_len,
+						(dvoid *)ph.value, (sword)value_length, SQLT_CHR/*SQLT_STR*/, (dvoid *)&bi.indicator, 
+						(ub2 *)0, (ub2 *)0, (ub4)0, (ub4 *)0, OCI_DEFAULT));
+				}
+
 				for(int i=0; i<lobs.count; i++) {
-					OracleSQL_query_lobs::Item &item=lobs.items[i];
+					Query_lobs::Item &item=lobs.items[i];
 					check(connection, "alloc output var desc", OCIDescriptorAlloc(
 						(dvoid *)connection.envhp, (dvoid **)&item.locator, (ub4)OCI_DTYPE_LOB, 0, 0));
 
@@ -477,6 +522,38 @@ public:
 			execute_prepared(connection, 
 				statement, stmthp, lobs, 
 				offset, limit, handlers);
+
+			{
+				for(size_t i=0; i<placeholders_count; i++) {
+					Placeholder& ph=placeholders[i];
+					Bind_info& bi=binds[i];
+
+					if(bi.indicator==9999 /*unchanged*/)
+						continue;
+
+					if(bi.indicator==-1)
+						ph.is_null=true;
+					else
+						if(bi.indicator==0)
+							ph.is_null=false;
+						else
+							fail(connection, bi.indicator<0?
+								"column return buffer overflow, additionally size too big to be returned in 'indicator'"
+								: "column return buffer overflow");
+
+					ph.were_updated=true;
+
+					if(cstrClientCharset) {
+						if(ph.value) {
+							size_t value_length;
+							services.transcode(ph.value, strlen(ph.value),
+								ph.value, value_length,
+								cstrClientCharset,
+								services.request_charset());
+						}
+					}
+				}
+			}
 		}
 cleanup: // no check call after this point!
 		{
@@ -486,7 +563,7 @@ cleanup: // no check call after this point!
 					OCIDescriptorFree((dvoid *)locator, (ub4)OCI_DTYPE_LOB);
 
 				/* free rows descriptors */
-				OracleSQL_query_lobs::return_rows &rows=lobs.items[i].rows;
+				Query_lobs::return_rows &rows=lobs.items[i].rows;
 				for(int r=0; r<rows.count; r++)
 					OCIDescriptorFree((dvoid *)rows.row[r].locator, (ub4)OCI_DTYPE_LOB);
 			}
@@ -504,7 +581,7 @@ cleanup: // no check call after this point!
 private: // private funcs
 
 	const char *preprocess_statement(Connection& connection, 
-		const char *astatement, OracleSQL_query_lobs &lobs) {
+		const char *astatement, Query_lobs &lobs) {
 		size_t statement_size=strlen(astatement);
 		SQL_Driver_services& services=*connection.services;
 
@@ -533,7 +610,7 @@ private: // private funcs
 						saved_o=0; // found, marking that
 						const char *name_end=o;
 						o+=4;
-						OracleSQL_query_lobs::Item &item=lobs.items[lobs.count++];
+						Query_lobs::Item &item=lobs.items[lobs.count++];
 						item.name_ptr=name_begin; item.name_size=name_end-name_begin;
 						item.data_ptr=(char *)services.malloc_atomic(statement_size/*max*/); item.data_size=0;
 
@@ -592,7 +669,7 @@ private: // private funcs
 
 	void execute_prepared(
 		Connection& connection, 
-		const char *statement, OCIStmt *stmthp, OracleSQL_query_lobs &lobs, 
+		const char *statement, OCIStmt *stmthp, Query_lobs &lobs, 
 		unsigned long offset, unsigned long limit, 
 		SQL_Driver_query_event_handlers& handlers) {
 
@@ -625,7 +702,7 @@ private: // private funcs
 		{
 			for(int i=0; i<lobs.count; i++) 
 				if(ub4 bytes_to_write=lobs.items[i].data_size) {
-					OracleSQL_query_lobs::return_rows *rows=&lobs.items[i].rows;
+					Query_lobs::return_rows *rows=&lobs.items[i].rows;
 					for(int r=0; r<rows->count; r++) {
 						OCILobLocator *locator=rows->row[r].locator;
 						check(connection, "lobwrite", OCILobWrite (
@@ -786,7 +863,14 @@ private: // private funcs
 					for(int i=0; i<column_count; i++) {
 						size_t length=0;
 						char* strm=0;
-						if(!cols[i].indicator) // not NULL
+
+						sb2 indicator=cols[i].indicator;
+						if(indicator!=-1) { // not NULL
+							if(indicator!=0)
+								fail(connection, indicator<0?
+									"column return buffer overflow, additionally size too big to be returned in 'indicator'"
+									: "column return buffer overflow");
+
 							switch(cols[i].type) {
 							case SQLT_CLOB: 
 								{
@@ -827,6 +911,7 @@ private: // private funcs
 								}
 								break;
 							}
+						}
 
 						const char* str=strm;
 						if(str && length)
@@ -863,6 +948,7 @@ cleanup: // no check call after this point!
 
 private: // conn client library funcs
 	
+	friend void fail(Connection& connection, const char *msg);
 	friend void check(Connection& connection, const char *step, sword status);
 	friend sb4 cbf_get_data(dvoid *ctxp, 
 		OCIBind *bindp, 
@@ -1062,6 +1148,11 @@ void check(Connection& connection, const char *step, sword status) {
 	longjmp(connection.mark, 1);
 }
 
+void fail(Connection& connection, const char* msg) {
+	snprintf(connection.error, sizeof(connection.error), "%s", msg);
+	longjmp(connection.mark, 1);
+}
+
 void check(Connection& connection, bool error) {
 	if(error)
 		longjmp(connection.mark, 1);
@@ -1070,7 +1161,7 @@ void check(Connection& connection, bool error) {
 /* ----------------------------------------------------------------- */
 /* Intbind callback that does not do any data input.                 */
 /* ----------------------------------------------------------------- */
-static sb4 cbf_no_data(
+sb4 cbf_no_data(
 				dvoid* /*ctxp*/, 
 				OCIBind* /*bindp*/, 
 				ub4 /*iter*/, ub4 /*index*/, 
@@ -1098,7 +1189,7 @@ static sb4 cbf_get_data(dvoid *ctxp,
 				 ub1 *piecep, 
 				 dvoid **indpp, 
 				 ub2 **rcodepp) {
-	OracleSQL_query_lobs::Item& context=*static_cast<OracleSQL_query_lobs::Item*>(ctxp);
+	Query_lobs::Item& context=*static_cast<Query_lobs::Item*>(ctxp);
 
 	if(index==0) {
 		static ub4  rows;
@@ -1107,11 +1198,11 @@ static sb4 cbf_get_data(dvoid *ctxp,
 				(CONST dvoid *) bindp, OCI_HTYPE_BIND, (dvoid *)&rows, 
 				(ub4 *)sizeof(ub2), OCI_ATTR_ROWS_RETURNED, context.connection->errhp))	;
 		context.rows.count=(ub2)rows;
-		context.rows.row=(OracleSQL_query_lobs::return_rows::return_row *)
-			context.connection->services->malloc_atomic(sizeof(OracleSQL_query_lobs::return_rows::return_row)*rows);
+		context.rows.row=(Query_lobs::return_rows::return_row *)
+			context.connection->services->malloc_atomic(sizeof(Query_lobs::return_rows::return_row)*rows);
 	}
 
-	OracleSQL_query_lobs::return_rows::return_row &var=context.rows.row[index];
+	Query_lobs::return_rows::return_row &var=context.rows.row[index];
 
 	check(*context.connection, "alloc output var desc dynamic", OracleSQL_driver->OCIDescriptorAlloc(
 		(dvoid *) context.connection->envhp, (dvoid **)&var.locator, 
