@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.36 2003/10/02 09:40:51 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.37 2003/10/07 05:58:04 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -184,7 +184,7 @@ static sb4 cbf_get_data(dvoid *ctxp,
 						ub1 *piecep, 
 						dvoid **indpp, 
 						ub2 **rcodepp);
-void tolower(char *out, const char *in, size_t size);
+void tolower(char *out, const char *in);
 
 /**
 	OracleSQL server driver
@@ -662,11 +662,9 @@ private: // private funcs
 					(OCIError *)cs.errhp));
 				
 				{
-					size_t size=(size_t)col_name_len;
-					char *ptr=(char *)services.malloc_atomic(size+1);
-					tolower(ptr, (char *)col_name, size);
-					ptr[size]=0;
-					check(cs, handlers.add_column(cs.sql_error, ptr, size));
+					char *ptr=(char *)services.malloc_atomic(col_name_len+1);
+					tolower(ptr, (char *)col_name);
+					check(cs, handlers.add_column(cs.sql_error, ptr, col_name_len));
 				}
 				
 				ub2 coerce_type=dtype;
@@ -712,7 +710,7 @@ private: // private funcs
 				if(row>=offset) {
 					check(cs, handlers.add_row(cs.sql_error));
 					for(int i=0; i<column_count; i++) {
-						size_t size=0;
+						size_t length=0;
 						char* str=0;
 						if(!cols[i].indicator) // not NULL
 							switch(cols[i].type) {
@@ -724,29 +722,29 @@ private: // private funcs
 									OCILobLocator *var=(OCILobLocator *)cols[i].var;
 									OCILobGetLength(cs.svchp, cs.errhp, var, &loblen);
 									if(loblen) {
-										size=(size_t)loblen;
-										str=(char*)services.malloc_atomic(size+1);
+										length=(size_t)loblen;
+										str=(char*)services.malloc_atomic(length+1);
 										check(cs, "lobread", OCILobRead(cs.svchp, cs.errhp, 
 											var, &amtp, offset, (dvoid *) str, 
 											loblen, (dvoid *)0, 
 											0, 
 											(ub2)0, (ub1) SQLCS_IMPLICIT));
-										str[size]=0;
+										str[length]=0;
 									}
 									break;
 								}
 							default:
 								if(const char *value=cols[i].str) {
-									size=strlen(value);
-									str=(char*)services.malloc_atomic(size+1);
-									memcpy(str, value, size+1);
+									length=strlen(value);
+									str=(char*)services.malloc_atomic(length+1);
+									memcpy(str, value, length+1);
 								} else {
-									size=0;
+									length=0;
 									str=0;
 								}
 								break;
 							}
-						check(cs, handlers.add_row_cell(cs.sql_error, str, size));
+						check(cs, handlers.add_row_cell(cs.sql_error, str, length));
 					}
 				}
 			}
@@ -1019,12 +1017,12 @@ static sb4 cbf_get_data(dvoid *ctxp,
 	return OCI_CONTINUE;
 }
 
-void tolower(char *out, const char *in, size_t size) {
-	while(size--)
-		*out++=tolower(*in++);
+void tolower(char *out, const char *in) {
+	while(char c=*in++)
+		*out++=tolower(c);
+	*out=0;
 }
 
 extern "C" SQL_Driver *SQL_DRIVER_CREATE() {
-	//_asm int 3;
 	return OracleSQL_driver=new OracleSQL_Driver();
 }
