@@ -21,15 +21,18 @@ AC_ARG_WITH(mysql-inc,[  --with-mysql-inc=DIR        DIR is the MySQL includes d
 		AC_MSG_ERROR($MYSQL_INC does not seem to be valid MySQL includes directory)
     fi
 ,
+	AC_MSG_CHECKING(for MYSQL_INC directory)
 	for d in \
-		/usr/local/include/mysqlZ
-		/usr/include/mysqlZ do
+		/usr/local/include/mysql \
+		/usr/include/mysql ; do
 		MYSQL_INC_CHK($d)
 	done
 
     if test -z "$MYSQL_INC"; then
     	AC_MSG_ERROR(use --with-mysql-inc=DIR to specify MySQL includes directory)
     fi
+
+	AC_MSG_RESULT($MYSQL_INC)
 )
 
 AC_SUBST(MYSQL_INC)
