@@ -7,6 +7,10 @@ Project: "parser3odbc"=.\parser3odbc.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
+    begin source code control
+    parser3odbc
+    .
+    end source code control
 }}}
 
 Package=<4>
