@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.2 2001/10/28 14:51:30 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.3 2001/11/10 13:35:52 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -126,7 +126,7 @@ public:
 		if(!error) {
 
 //			error="OCIInitialize replacer";/*
-			OCIInitialize((ub4)OCI_THREADED, (dvoid *)0, 
+			OCIInitialize((ub4)OCI_THREADED/*| OCI_OBJECT*/, (dvoid *)0, 
 				(dvoid * (*)(void *, unsigned int))0, 
 				(dvoid * (*)(void*, void*, unsigned int))0,  
 				(void (*)(void*, void*))0 );
@@ -535,8 +535,10 @@ private: // private funcs
 			while(++column_count<=MAX_COLS) {
 				/* get next descriptor, if there is one */
 				if(OCIParamGet(stmthp, OCI_HTYPE_STMT, cs.errhp, (void **)&mypard, 
-					(ub4) column_count)!=OCI_SUCCESS)
+					(ub4) column_count)!=OCI_SUCCESS) {
+					--column_count;
 					break;
+				}
 				
 				/* Retrieve the data type attribute */
 				check(services, cs, "get type", OCIAttrGet(
@@ -594,11 +596,10 @@ private: // private funcs
 			for(unsigned long row=0; !limit||row<limit+offset; row++) {
 				sword status=OCIStmtFetch(stmthp, cs.errhp, (ub4)1,  (ub4)OCI_FETCH_NEXT, 
 					(ub4)OCI_DEFAULT);
-				if(status!=OCI_SUCCESS) {
-					if(status!=OCI_NO_DATA)
-						check(services, cs, "fetch", status);
+				if(status==OCI_NO_DATA)
 					break;
-				}
+				check(services, cs, "fetch", status);
+
 				if(row>=offset) {
 					handlers.add_row();
 					for(int i=0; i<column_count; i++) {
