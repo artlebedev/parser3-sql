@@ -59,4 +59,4 @@ dnl Checks for library functions.
 
 dnl Output makefiles
 
-AC_OUTPUT(libltdl/Makefile Makefile)
+AC_OUTPUT(Makefile)
