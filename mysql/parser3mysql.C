@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.20 2004/03/26 13:24:26 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.21 2004/03/30 08:18:24 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -46,7 +46,7 @@ static char *lsplit(char **string_ref, char delim) {
     return result;
 }
 
-static void toupper(char *out, const char *in, size_t size) {
+static void toupper_str(char *out, const char *in, size_t size) {
 	while(size--)
 		*out++=(char)toupper(*in++);
 }
@@ -122,7 +122,7 @@ public:
 				if(*key) {
 					if(char *value=lsplit(key, '=')) {
 						if(strcmp(key, "ClientCharset" ) == 0) {
-							toupper(value, value, strlen(value));
+							toupper_str(value, value, strlen(value));
 							connection.cstrClientCharset=value;
 						} else if(strcasecmp(key, "charset")==0) { // left for backward compatibility, consider using ClientCharset
 							cstrBackwardCompAskServerToTranscode=value;

@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.54 2004/03/26 13:26:41 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.55 2004/03/30 08:18:24 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -173,8 +173,8 @@ static sb4 cbf_get_data(dvoid *ctxp,
 						ub1 *piecep, 
 						dvoid **indpp, 
 						ub2 **rcodepp);
-static void tolower(char *out, const char *in, size_t size);
-static void toupper(char *out, const char *in, size_t size);
+static void tolower_str(char *out, const char *in, size_t size);
+static void toupper_str(char *out, const char *in, size_t size);
 
 static const char *options2env(char *s, Connection::Options* options) {
 	while(s) {
@@ -183,7 +183,7 @@ static const char *options2env(char *s, Connection::Options* options) {
 				if(char *value=lsplit(key, '=')) {
 					if( strcmp( key, "ClientCharset" ) == 0 ) {
 						if(options) {
-							toupper(value, value, strlen(value));
+							toupper_str(value, value, strlen(value));
 							options->cstrClientCharset = value;
 						}
 						continue;
@@ -720,7 +720,7 @@ private: // private funcs
 					size_t length=(size_t)col_name_len;
 					char *ptr=(char *)services.malloc_atomic(length+1);
 					if( connection.options.bLowerCaseColumnNames ) 
-						tolower(ptr, col_name, length);
+						tolower_str(ptr, col_name, length);
 					else
 						memcpy(ptr, col_name, length);						
 					ptr[length]=0;
@@ -1118,11 +1118,11 @@ static sb4 cbf_get_data(dvoid *ctxp,
 	return OCI_CONTINUE;
 }
 
-static void tolower(char *out, const char *in, size_t size) {
+static void tolower_str(char *out, const char *in, size_t size) {
 	while(size--)
 		*out++=(char)tolower(*in++);
 }
-static void toupper(char *out, const char *in, size_t size) {
+static void toupper_str(char *out, const char *in, size_t size) {
 	while(size--)
 		*out++=(char)toupper(*in++);
 }
