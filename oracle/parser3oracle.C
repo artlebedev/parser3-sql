@@ -7,20 +7,8 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-/*
-prob:
-	kgepop: no error frame to pop to for error 21500
 
-
-> I happy to tell you that I have solved the problem.
-
-Excellent news.
-
-> By allocating a separate
-> environment handle for every database handle I share
-*/
-
-static const char *RCSId="$Id: parser3oracle.C,v 1.63 2004/08/03 11:15:27 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.64 2004/08/03 11:20:13 paf Exp $"; 
 
 #include "config_includes.h"
 
