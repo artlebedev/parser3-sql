@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.9 2001/11/13 14:37:28 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.10 2001/11/14 09:30:30 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -39,12 +39,21 @@ inline int min(int a, int b){ return a<b?a:b; }
 #endif
 
 /// @test setenv version memory. maybe key/value needs ::malloc?
-static int pa_setenv(const char *name, const char *value) {
+static int pa_setenv(const char *name, const char *value, bool do_append) {
+	const char *prev_value=0;
+	if(do_append)
+		prev_value=getenv(name);
 #ifdef HAVE_PUTENV
     // MEM_LEAK_HERE. refer to EOF man putenv
-	char *buf=(char *)::malloc(strlen(name)+1+strlen(value)+1);
+	char *buf=(char *)::malloc(strlen(name)
+		+1
+		+(prev_value?strlen(prev_value):0)
+		+strlen(value)
+		+1);
 	strcpy(buf, name);
 	strcat(buf, "=");
+	if(prev_value)
+		strcat(buf, prev_value);
 	strcat(buf, value);
 /*
 	if(FILE *f=fopen("f", "at")) {
@@ -58,9 +67,20 @@ static int pa_setenv(const char *name, const char *value) {
 	return putenv(buf);
 #else 
 	//#ifdef HAVE_SETENV
-	if(value) 
-		return setenv(name, value, 1/*overwrite*/); 
-	else {
+	if(value) {
+		char *buf;
+		if(prev_value) {
+			// MEM_LEAK_HERE
+			buf=(char *)::malloc(strlen(prev_value)
+				+strlen(value)
+				+1);
+			strcpy(buf, prev_value);
+			strcat(buf, value);
+		} else
+			buf=value;
+
+		return setenv(name, buf, 1/*overwrite*/); 
+	} else {
 		unsetenv(name);
 		return 0;
 	}
@@ -85,21 +105,25 @@ static char *lsplit(char **string_ref, char delim) {
     return result;
 }
 
-static const char *pa_setenv(char *options) {
+static const char *options2env(char *options) {
 	while(options) {
 		if(char *key=lsplit(&options, '&')) {
 			if(*key) {
 				if(char *value=lsplit(key, '=')) {
+					bool do_append=key[strlen(key)-1]=='+'; // PATH+=
+					if(do_append)
+						key[strlen(key)-1]=0; // remove trailing +
 					if(strncmp(key, "ORACLE_", 7)==0  // ORACLE_HOME & co
 						|| strncmp(key, "ORA_", 4)==0 // ORA_ENCRYPT_LOGIN & co
 						|| strncmp(key, "NLS_", 4)==0 // NLS_LANG & co
+						|| do_append
 						) {
-						if(pa_setenv(key, value)!=0)
+						if(pa_setenv(key, value, do_append)!=0)
 							return "problem changing process environment" /*key*/;
 					} else
-						return "unknown connect option (option must start with ORACLE_, ORA_ or NLS_)" /*key*/;
+						return "unknown option (option must start with ORACLE_, ORA_ or NLS_)" /*key*/;
 				} else 
-					return "connect option without =value" /*key*/;
+					return "option without =value" /*key*/;
 			}
 		}
 	}
@@ -184,7 +208,7 @@ public:
 		const char *error=dlopen_file_spec?
 			dlink(dlopen_file_spec):"client library column is empty";
 		if(!error) {
-			error=pa_setenv(options);
+			error=options2env(options);
 
 			if(!error)
 				OCIInitialize((ub4)OCI_THREADED/*| OCI_OBJECT*/, (dvoid *)0, 
@@ -224,7 +248,7 @@ public:
 		if(!(user && pwd && service))
 			services._throw("mailformed connect part, must be 'user:pass@service'");
 
-		if(const char *error=pa_setenv(options))
+		if(const char *error=options2env(options))
 			services._throw(error);
 
 		if(setjmp(cs.mark))
@@ -582,19 +606,19 @@ private: // private funcs
 	void fetch_table(SQL_Driver_services& services, OracleSQL_connection_struct &cs, 
 		OCIStmt *stmthp, unsigned long offset, unsigned long limit, 
 		SQL_Driver_query_event_handlers& handlers) {
-
-		dword prefetch_rows=100;
+/*
+		ub4 prefetch_rows=100;
 		check(services, cs, "AttrSet prefetch-rows", OCIAttrSet( 
 			(dvoid *)stmthp, (ub4)OCI_HTYPE_STMT, 
 			(dvoid *)&prefetch_rows, (ub4)0, 
 			(ub4)OCI_ATTR_PREFETCH_ROWS, (OCIError *)cs.errhp));
 
-		dword prefetch_mem_size=100*1024;
+		ub4 prefetch_mem_size=100*1024;
 		check(services, cs, "AttrSet prefetch-memory", OCIAttrSet( 
 			(dvoid *)stmthp, (ub4)OCI_HTYPE_STMT, 
 			(dvoid *)&prefetch_mem_size, (ub4)0, 
 			(ub4)OCI_ATTR_PREFETCH_MEMORY, (OCIError *)cs.errhp));
-
+*/
 
 		OCIParam          *mypard;
 		ub2                    dtype;
