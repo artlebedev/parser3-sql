@@ -82,10 +82,10 @@ LIBTOOL_DEPS = @LIBTOOL_DEPS@
 
 INCLUDES = -I../parser3/src/sql $(INCLTDL) -I$(PGSQL_INC)
 
-lib_LTLIBRARIES = parser3pgsql.la
-parser3pgsql_la_SOURCES = parser3pgsql.C config_includes.h
-parser3pgsql_la_LIBADD = $(LIBLTDL)
-parser3pgsql_la_LDFLAGS = -module -avoid-version
+lib_LTLIBRARIES = libparser3pgsql.la
+libparser3pgsql_la_SOURCES = parser3pgsql.C config_includes.h
+libparser3pgsql_la_LIBADD = $(LIBLTDL)
+libparser3pgsql_la_LDFLAGS = -module -avoid-version
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config_auto.h
@@ -97,8 +97,8 @@ DEFS = @DEFS@ -I. -I$(srcdir) -I.
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
-parser3pgsql_la_DEPENDENCIES = 
-parser3pgsql_la_OBJECTS =  parser3pgsql.lo
+libparser3pgsql_la_DEPENDENCIES = 
+libparser3pgsql_la_OBJECTS =  parser3pgsql.lo
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 LTCXXCOMPILE = $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -120,8 +120,8 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 TAR = tar
 GZIP_ENV = --best
 DEP_FILES =  .deps/parser3pgsql.P
-SOURCES = $(parser3pgsql_la_SOURCES)
-OBJECTS = $(parser3pgsql_la_OBJECTS)
+SOURCES = $(libparser3pgsql_la_SOURCES)
+OBJECTS = $(libparser3pgsql_la_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
@@ -226,8 +226,8 @@ distclean-libtool:
 
 maintainer-clean-libtool:
 
-parser3pgsql.la: $(parser3pgsql_la_OBJECTS) $(parser3pgsql_la_DEPENDENCIES)
-	$(CXXLINK) -rpath $(libdir) $(parser3pgsql_la_LDFLAGS) $(parser3pgsql_la_OBJECTS) $(parser3pgsql_la_LIBADD) $(LIBS)
+libparser3pgsql.la: $(libparser3pgsql_la_OBJECTS) $(libparser3pgsql_la_DEPENDENCIES)
+	$(CXXLINK) -rpath $(libdir) $(libparser3pgsql_la_LDFLAGS) $(libparser3pgsql_la_OBJECTS) $(libparser3pgsql_la_LIBADD) $(LIBS)
 .C.o:
 	$(CXXCOMPILE) -c $<
 .C.lo:

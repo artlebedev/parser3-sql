@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.2 2001/10/29 08:57:58 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.3 2001/11/11 11:01:47 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -63,7 +63,7 @@ public:
 	/// get api version
 	int api_version() { return SQL_DRIVER_API_VERSION; }
 	/// initialize driver by loading sql dynamic link library
-	const char *initialize(const char *dlopen_file_spec) {
+	const char *initialize(char *dlopen_file_spec) {
 		return dlopen_file_spec?
 			dlink(dlopen_file_spec):"client library column is empty";
 	}
