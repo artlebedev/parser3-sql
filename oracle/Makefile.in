@@ -83,10 +83,10 @@ LIBTOOL_DEPS = @LIBTOOL_DEPS@
 
 INCLUDES = -I../parser3/src/sql $(INCLTDL) -I$(ORACLE_OCI_INC) -I$(ORACLE_PUBLIC_INC)
 
-lib_LTLIBRARIES = parser3oracle.la
-parser3oracle_la_SOURCES = parser3oracle.C config_includes.h
-parser3oracle_la_LIBADD = $(LIBLTDL)
-parser3oracle_la_LDFLAGS = -module -avoid-version
+lib_LTLIBRARIES = libparser3oracle.la
+libparser3oracle_la_SOURCES = parser3oracle.C config_includes.h
+libparser3oracle_la_LIBADD = $(LIBLTDL)
+libparser3oracle_la_LDFLAGS = -module -avoid-version
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config_auto.h
@@ -98,8 +98,8 @@ DEFS = @DEFS@ -I. -I$(srcdir) -I.
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
-parser3oracle_la_DEPENDENCIES = 
-parser3oracle_la_OBJECTS =  parser3oracle.lo
+libparser3oracle_la_DEPENDENCIES = 
+libparser3oracle_la_OBJECTS =  parser3oracle.lo
 CXXFLAGS = @CXXFLAGS@
 CXXCOMPILE = $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 LTCXXCOMPILE = $(LIBTOOL) --mode=compile $(CXX) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -121,8 +121,8 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 TAR = tar
 GZIP_ENV = --best
 DEP_FILES =  .deps/parser3oracle.P
-SOURCES = $(parser3oracle_la_SOURCES)
-OBJECTS = $(parser3oracle_la_OBJECTS)
+SOURCES = $(libparser3oracle_la_SOURCES)
+OBJECTS = $(libparser3oracle_la_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
@@ -227,8 +227,8 @@ distclean-libtool:
 
 maintainer-clean-libtool:
 
-parser3oracle.la: $(parser3oracle_la_OBJECTS) $(parser3oracle_la_DEPENDENCIES)
-	$(CXXLINK) -rpath $(libdir) $(parser3oracle_la_LDFLAGS) $(parser3oracle_la_OBJECTS) $(parser3oracle_la_LIBADD) $(LIBS)
+libparser3oracle.la: $(libparser3oracle_la_OBJECTS) $(libparser3oracle_la_DEPENDENCIES)
+	$(CXXLINK) -rpath $(libdir) $(libparser3oracle_la_LDFLAGS) $(libparser3oracle_la_OBJECTS) $(libparser3oracle_la_LIBADD) $(LIBS)
 .C.o:
 	$(CXXCOMPILE) -c $<
 .C.lo:
