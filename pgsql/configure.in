@@ -12,6 +12,9 @@ AC_ARG_WITH(pgsql_inc,[  --with-pgsql_inc[=DIR]      DIR is the PgSQL includes d
 PGSQL_INC=$withval
 AC_SUBST(PGSQL_INC)
 
+if test \! -f "$PGSQL_INC/libpq-fe.h"; then
+	AC_MSG_ERROR($PGSQL_INC does not seem to be valid PgSQL includes directory)
+fi
 
 dnl Checks for programs.
 AC_PROG_INSTALL

@@ -9,8 +9,13 @@ dnl Arguments
 AC_ARG_WITH(mysql_inc,[  --with-mysql_inc[=DIR]      DIR is the MySQL includes directory],,
 	withval="/usr/include/mysql"
 )
+
 MYSQL_INC=$withval
 AC_SUBST(MYSQL_INC)
+
+if test \! -f "$MYSQL_INC/mysql.h"; then
+	AC_MSG_ERROR($MYSQL_INC does not seem to be valid MySQL includes directory)
+fi
 
 
 dnl Checks for programs.
