@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.32 2003/07/24 10:09:40 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.33 2003/08/19 10:33:10 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -38,7 +38,7 @@ inline int max(int a, int b) { return a>b?a:b; }
 inline int min(int a, int b){ return a<b?a:b; }
 #endif
 
-/// @test setenv version memory. maybe key/value needs ::malloc_atomic?
+/// @todo small memory leaks here
 static int pa_setenv(const char *name, const char *value, bool do_append) {
 	const char *prev_value=0;
 	if(do_append)
@@ -70,7 +70,7 @@ static int pa_setenv(const char *name, const char *value, bool do_append) {
 	if(value) {
 		if(prev_value) {
 			// MEM_LEAK_HERE
-			char *buf=(char *)::malloc_atomic(strlen(prev_value)
+			char *buf=(char *)::malloc(strlen(prev_value)
 				+strlen(value)
 				+1);
 			strcpy(buf, prev_value);
