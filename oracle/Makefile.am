@@ -5,7 +5,7 @@ libtool: $(LIBTOOL_DEPS)
 	$(SHELL) ./config.status --recheck
 
 
-INCLUDES = -I../parser3/src/sql $(INCLTDL) -I$(ORACLE_OCI_INC) -I$(ORACLE_PUBLIC_INC)
+INCLUDES = -I../../parser3/src/sql $(INCLTDL) -I$(ORACLE_OCI_INC) -I$(ORACLE_PUBLIC_INC)
 
 noinst_HEADERS = config_includes.h
 lib_LTLIBRARIES = libparser3oracle.la
