@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.3 2001/11/08 10:21:23 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.4 2001/11/11 10:43:22 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -58,7 +58,7 @@ public:
 	/// get api version
 	int api_version() { return SQL_DRIVER_API_VERSION; }
 	/// initialize driver by loading sql dynamic link library
-	const char *initialize(const char *dlopen_file_spec) {
+	const char *initialize(char *dlopen_file_spec) {
 		return dlopen_file_spec?
 			dlink(dlopen_file_spec):"client library column is empty";
 	}
