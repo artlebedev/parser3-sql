@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.52 2004/03/04 09:10:13 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.53 2004/03/04 10:35:53 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -426,12 +426,13 @@ public:
 		SQL_Driver_services& services=*connection.services;
 
 		// transcode from $request:charset to connect-string?client_charset
-		size_t transcoded_statement_size;
-		if(const char* cstrClientCharset=connection.options.cstrClientCharset)
+		if(const char* cstrClientCharset=connection.options.cstrClientCharset) {
+			size_t transcoded_statement_size;
 			services.transcode(astatement, strlen(astatement),
 				astatement, transcoded_statement_size,
 				services.request_charset(),
 				cstrClientCharset);
+		}
 
 		bool failed=false;
 		if(setjmp(connection.mark)) {
@@ -824,16 +825,11 @@ private: // private funcs
 						if(str && length)
 						{
 							// transcode to $request:charset from connect-string?client_charset
-							if(const char* cstrClientCharset=connection.options.cstrClientCharset) {
-								const char* dest;
-								size_t dest_length;
+							if(const char* cstrClientCharset=connection.options.cstrClientCharset)
 								services.transcode(str, length,
-									dest, dest_length,
+									str, length,
 									cstrClientCharset,
 									services.request_charset());
-								str=dest;
-								length=dest_length;
-							}
 						}
 
 						check(connection, handlers.add_row_cell(connection.sql_error, str, length));
