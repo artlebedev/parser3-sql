@@ -67,7 +67,7 @@ setjmp.h
 )
 
 AC_MSG_CHECKING(for BSD setenv/getenv/unsetenv)
-AC_TRY_COMPILE(
+AC_TRY_LINK(
 #ifdef HAVE_STDLIB_H
 #	include <stdlib.h>
 #endif
@@ -91,7 +91,7 @@ unsetenv(TEST_NAME);
     AC_MSG_RESULT(no)
 
     AC_MSG_CHECKING(for POSIX putenv/getenv)
-    AC_TRY_COMPILE(
+    AC_TRY_LINK(
     #ifdef HAVE_STDLIB_H
     #	include <stdlib.h>
     #endif
