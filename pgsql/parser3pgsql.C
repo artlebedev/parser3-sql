@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.24 2004/12/23 16:18:21 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.25 2004/12/23 16:54:52 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -58,6 +58,17 @@ static char *lsplit(char **string_ref, char delim) {
     return result;
 }
 
+static char* rsplit(char* string, char delim) {
+    if(string) {
+		char* v=strrchr(string, delim); 
+		if(v) {
+			*v=0;
+			return v+1;
+		}
+    }
+    return NULL;	
+}
+
 static void toupper_str(char *out, const char *in, size_t size) {
 	while(size--)
 		*out++=(char)toupper(*in++);
@@ -104,7 +115,7 @@ public:
 		void **connection_ref ///< output: Connection*
 		) {
 		char *user=url;
-		char *host=lsplit(user, '@');
+		char *host=rsplit(user, '@');
 		char *db=lsplit(host, '/');
 		char *pwd=lsplit(user, ':');
 		char *port=lsplit(host, ':');

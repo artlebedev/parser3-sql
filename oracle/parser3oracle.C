@@ -8,7 +8,7 @@
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
 
-static const char *RCSId="$Id: parser3oracle.C,v 1.66 2004/10/11 14:30:24 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.67 2004/12/23 16:54:52 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -111,6 +111,17 @@ static char *lsplit(char **string_ref, char delim) {
 	char *next=lsplit(*string_ref, delim);
     *string_ref=next;
     return result;
+}
+
+static char* rsplit(char* string, char delim) {
+    if(string) {
+		char* v=strrchr(string, delim); 
+		if(v) {
+			*v=0;
+			return v+1;
+		}
+    }
+    return NULL;	
 }
 
 #ifndef DOXYGEN
@@ -275,7 +286,7 @@ public:
 		*connection_ref=&connection;
 
 		char *user=url;
-		char *service=lsplit(user, '@');
+		char *service=rsplit(user, '@');
 		char *pwd=lsplit(user, ':');
 		char *options=lsplit(service, '?');
 

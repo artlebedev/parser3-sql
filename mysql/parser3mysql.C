@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.25 2004/07/28 14:32:05 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.26 2004/12/23 16:54:52 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -44,6 +44,17 @@ static char *lsplit(char **string_ref, char delim) {
 	char *next=lsplit(*string_ref, delim);
     *string_ref=next;
     return result;
+}
+
+static char* rsplit(char* string, char delim) {
+    if(string) {
+		char* v=strrchr(string, delim); 
+		if(v) {
+			*v=0;
+			return v+1;
+		}
+    }
+    return NULL;	
 }
 
 static void toupper_str(char *out, const char *in, size_t size) {
@@ -92,7 +103,7 @@ public:
 		void **connection_ref ///< output: Connection*
 		) {
 		char *user=url;
-		char *s=lsplit(user, '@');
+		char *s=rsplit(user, '@');
 		char *host=0;
 		char *unix_socket=0;
 		if(s && s[0]=='[') { // unix socket
