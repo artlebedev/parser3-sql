@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.22 2004/06/23 07:32:07 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.23 2004/12/23 15:57:41 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -127,6 +127,7 @@ public:
 
 		char *charset=0;
 		char *datestyle=0;
+		isDefaultTransaction = true;
 
 		while(options) {
 			if(char *key=lsplit(&options, '&')) {
@@ -139,6 +140,8 @@ public:
 							cstrBackwardCompAskServerToTranscode=value;
 						} else if(strcasecmp(key, "datestyle")==0) {
 							datestyle=value;
+						} else if(strcmp(key, "WithoutDefaultTransaction")==0) {
+							isDefaultTransaction = false;
 						} else
 							services._throw("unknown connect option" /*key*/);
 					} else 
@@ -182,22 +185,28 @@ public:
 		connection.conn=0;
 	}
 	void commit(void *aconnection) {
-		Connection& connection=*static_cast<Connection*>(aconnection);
+		if(isDefaultTransaction)
+		{
+			Connection& connection=*static_cast<Connection*>(aconnection);
 
-		if(PGresult *res=PQexec(connection.conn, "COMMIT"))
-			PQclear(res);
-		else
-			throwPQerror;
-		begin_transaction(connection);
+			if(PGresult *res=PQexec(connection.conn, "COMMIT"))
+				PQclear(res);
+			else
+				throwPQerror;
+			begin_transaction(connection);
+		}
 	}
 	void rollback(void *aconnection) {
-		Connection& connection=*static_cast<Connection*>(aconnection);
+		if(isDefaultTransaction)
+		{
+			Connection& connection=*static_cast<Connection*>(aconnection);
 
-		if(PGresult *res=PQexec(connection.conn, "ROLLBACK"))
-			PQclear(res);
-		else
-			throwPQerror;
-		begin_transaction(connection);
+			if(PGresult *res=PQexec(connection.conn, "ROLLBACK"))
+				PQclear(res);
+			else
+				throwPQerror;
+			begin_transaction(connection);
+		}
 	}
 
 	bool ping(void *aconnection) {
@@ -373,10 +382,13 @@ cleanup:
 private: // private funcs
 
 	void begin_transaction(Connection& connection) {
-		if(PGresult *res=PQexec(connection.conn, "BEGIN"))
-			PQclear(res);
-		else
-			throwPQerror;
+		if(isDefaultTransaction)
+		{
+			if(PGresult *res=PQexec(connection.conn, "BEGIN"))
+				PQclear(res);
+			else
+				throwPQerror;
+		}
 	}
 
 	const char *preprocess_statement(Connection& connection,
@@ -560,6 +572,8 @@ private: // conn client library funcs linking
 		return 0;
 	}
 
+	// Default transaction flag, if true make it.
+	bool isDefaultTransaction;
 };
 
 extern "C" SQL_Driver *SQL_DRIVER_CREATE() {
