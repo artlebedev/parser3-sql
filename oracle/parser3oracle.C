@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.5 2001/11/11 11:02:21 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.6 2001/11/13 07:45:42 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -175,7 +175,9 @@ public:
 
 	/// get api version
 	int api_version() { return SQL_DRIVER_API_VERSION; }
-	/// initialize driver by loading sql dynamic link library
+	/** initialize driver by loading sql dynamic link library
+		@todo ?objects=1 which would turn on OCI_OBJECT init flag
+	*/
 	const char *initialize(char *dlopen_file_spec) {
 		char *options=lsplit(dlopen_file_spec, '?');
 
