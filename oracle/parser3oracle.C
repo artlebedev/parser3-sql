@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.7 2001/11/13 11:30:11 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.8 2001/11/13 11:33:47 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -676,7 +676,7 @@ private: // private funcs
 					for(int i=0; i<column_count; i++) {
 						size_t size=0;
 						void *ptr=0;
-						if(cols[i].indicator) // not NULL
+						if(!cols[i].indicator) // not NULL
 							switch(cols[i].type) {
 							case SQLT_CLOB: 
 								{
