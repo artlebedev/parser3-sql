@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.6 2002/02/08 08:32:50 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.7 2002/03/22 15:50:25 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -86,7 +86,7 @@ public:
 		char *port=lsplit(host, ':');
 
 		PGconn *conn=PQsetdbLogin(
-			strcasecmp(host, "local")==0?NULL/* local Unix domain socket */:host, port, 
+			(host&&strcasecmp(host, "local")==0)?NULL/* local Unix domain socket */:host, port, 
 			NULL, NULL, db, user, pwd);
 		if(!conn)
 			services._throw("PQsetdbLogin failed");
