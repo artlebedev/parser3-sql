@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.23 2004/12/23 15:57:41 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.24 2004/12/23 16:18:21 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -572,7 +572,6 @@ private: // conn client library funcs linking
 		return 0;
 	}
 
-	// Default transaction flag, if true make it.
 	bool isDefaultTransaction;
 };
 
