@@ -8374,10 +8374,12 @@ subdirs="$subdirs libltdl"
 
 
 
+
 for ac_header in stdio.h \
 stdlib.h \
 string.h \
-setjmp.h
+setjmp.h \
+ctype.h
 
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
