@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.23 2004/05/25 07:07:07 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.24 2004/06/23 07:32:06 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -214,14 +214,18 @@ public:
 		mysql_escape_string(result, from, length);
 		return result;
 	}
-	void query(
-		void *aconnection, 
-		const char *astatement, unsigned long offset, unsigned long limit,
+	void query(void *aconnection, 
+		const char *astatement, 
+		size_t placeholders_count, Placeholder* placeholders, 
+		unsigned long offset, unsigned long limit,
 		SQL_Driver_query_event_handlers& handlers) {
 		Connection& connection=*static_cast<Connection*>(aconnection);
 		SQL_Driver_services& services=*connection.services;
 		const char* cstrClientCharset=connection.cstrClientCharset;
 		MYSQL_RES *res=NULL;
+
+		if(placeholders_count>0)
+			services._throw("bind variables not supported (yet)");
 
 		// transcode from $request:charset to connect-string?client_charset
 		if(cstrClientCharset) {

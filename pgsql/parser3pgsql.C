@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.21 2004/05/25 07:07:48 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.22 2004/06/23 07:32:07 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -228,13 +228,18 @@ public:
 		return result;
 		}
 	void query(void *aconnection, 
-		const char *astatement, unsigned long offset, unsigned long limit,
+		const char *astatement, 
+		size_t placeholders_count, Placeholder* placeholders, 
+		unsigned long offset, unsigned long limit,
 		SQL_Driver_query_event_handlers& handlers) {
 //		_asm int 3;
 		Connection& connection=*static_cast<Connection*>(aconnection);
 		const char* cstrClientCharset=connection.cstrClientCharset;
 		SQL_Driver_services& services=*connection.services;
 		PGconn *conn=connection.conn;
+
+		if(placeholders_count>0)
+			services._throw("bind variables not supported (yet)");
 
 		// transcode from $request:charset to connect-string?client_charset
 		if(cstrClientCharset) {

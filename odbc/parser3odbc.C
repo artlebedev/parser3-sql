@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.22 2004/05/25 07:07:28 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.23 2004/06/23 07:32:07 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -169,12 +169,17 @@ public:
 		return result;
 	}
 	void query(void *aconnection, 
-		const char *statement, unsigned long offset, unsigned long limit,
+		const char *statement, 
+		size_t placeholders_count, Placeholder* placeholders, 
+		unsigned long offset, unsigned long limit,
 		SQL_Driver_query_event_handlers& handlers) {
 
 		Connection& connection=*static_cast<Connection*>(aconnection);
 		CDatabase *db=connection.db;
 		SQL_Driver_services& services=*connection.services;
+
+		if(placeholders_count>0)
+			services._throw("bind variables not supported (yet)");
 
 		// transcode from $request:charset to connect-string?client_charset
 		if(const char* cstrClientCharset=connection.cstrClientCharset) {

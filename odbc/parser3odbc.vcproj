@@ -61,16 +61,16 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				Description="Starting apache..."
-				CommandLine="net start &quot;world wide web publishing service&quot;
-net start apache_release
+				CommandLine="::net start &quot;world wide web publishing service&quot;
+::net start apache_release
 "/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
 				Name="VCPreLinkEventTool"
 				Description="Stopping apache..."
-				CommandLine="net stop apache_release
-net stop &quot;world wide web publishing service&quot;
+				CommandLine="::net stop apache_release
+::net stop &quot;world wide web publishing service&quot;
 dir &gt;nul
 "/>
 			<Tool
