@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.25 2004/09/13 10:56:44 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.26 2004/09/13 14:47:43 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -209,7 +209,8 @@ public:
 				CRecordset rs(db); 
 				TRY {
 					rs.Open(
-						CRecordset::forwardOnly, 
+						CRecordset::forwardOnly
+						||CRecordset::readOnly, 
 						statement,
 						CRecordset::executeDirect   
 						);
