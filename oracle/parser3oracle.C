@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.6 2001/11/13 07:45:42 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.7 2001/11/13 11:30:11 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -674,12 +674,9 @@ private: // private funcs
 				if(row>=offset) {
 					handlers.add_row();
 					for(int i=0; i<column_count; i++) {
-						size_t size;
-						void *ptr;
-						if(cols[i].indicator) { // NULL?
-							size=0;
-							ptr=0;
-						} else // not NULL
+						size_t size=0;
+						void *ptr=0;
+						if(cols[i].indicator) // not NULL
 							switch(cols[i].type) {
 							case SQLT_CLOB: 
 								{
@@ -709,7 +706,7 @@ private: // private funcs
 									ptr=0;
 								}
 								break;
-						}
+							}
 						handlers.add_row_cell(ptr, size);
 					}
 				}
