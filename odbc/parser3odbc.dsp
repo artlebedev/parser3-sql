@@ -57,9 +57,9 @@ LINK32=link.exe
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
 PreLink_Desc=Stopping apache...
-PreLink_Cmds=net stop apache_release
+PreLink_Cmds=net stop apache_release	net stop "world wide web publishing service"	dir >nul
 PostBuild_Desc=Starting apache...
-PostBuild_Cmds=net start apache_release
+PostBuild_Cmds=net start "world wide web publishing service"	net start apache_release
 # End Special Build Tool
 
 !ELSEIF  "$(CFG)" == "parser3odbc - Win32 Debug"
@@ -90,9 +90,9 @@ LINK32=link.exe
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
 PreLink_Desc=Stopping apache...
-PreLink_Cmds=net stop apache_debug
+PreLink_Cmds=net stop apache_debug	net stop "world wide web publishing service"	dir >nul
 PostBuild_Desc=Starting apache...
-PostBuild_Cmds=net start apache_debug
+PostBuild_Cmds=net start "world wide web publishing service"	net start apache_debug
 # End Special Build Tool
 
 !ENDIF 

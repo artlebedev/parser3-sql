@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.5 2002/02/08 08:36:51 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.6 2002/03/05 15:04:59 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -169,11 +169,16 @@ public:
 						for(int i=0; i<column_count; i++) 						{
 							CString string;
 							rs.GetFieldValue(i, string);
-							size_t size=string.GetLength();
-							void *ptr=0;
-							if(size) {
+							size_t size;
+							void *ptr;
+							if(string.IsEmpty()) {
+								ptr=0;
+								size=0;
+							} else {
+								const char *string_cstr=LPCTSTR(string);
+								size=strlen(string_cstr); //string.GetLength() works wrong with non-string types: 
 								ptr=services.malloc(size);
-								memcpy(ptr, (char *)LPCTSTR(string), size);
+								memcpy(ptr, string_cstr, size);
 							}
 							handlers.add_row_cell(ptr, size);
 						}
