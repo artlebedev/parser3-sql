@@ -124,13 +124,13 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				Description="Starting apache..."
-				CommandLine="net start apache_debug"/>
+				CommandLine="::net start apache_debug"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
 				Name="VCPreLinkEventTool"
 				Description="Stopping apache..."
-				CommandLine="net stop apache_debug
+				CommandLine="::net stop apache_debug
 dir&gt;nul
 "/>
 			<Tool

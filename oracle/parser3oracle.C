@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.60 2004/06/18 15:55:52 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.61 2004/06/22 14:13:05 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -19,6 +19,7 @@ static const char *RCSId="$Id: parser3oracle.C,v 1.60 2004/06/18 15:55:52 paf Ex
 #define MAX_IN_LOBS 5
 #define MAX_LOB_NAME_LENGTH 100
 #define MAX_OUT_STRING_LENGTH 4000
+#define MAX_BINDS 100
 
 #define EMPTY_CLOB_FUNC_CALL "empty_clob()"
 
@@ -43,6 +44,8 @@ inline int min(int a, int b){ return a<b?a:b; }
 // but we forced to do that under HPUX
 #pragma warning(disable:4611)   
 #endif
+
+const sb2 MAGIC_INDICATOR_VALUE_MEANING_NOT_NULL_AND_UNCHANGED=99;
 
 /// @todo small memory leaks here
 static int pa_setenv(const char *name, const char *value, bool do_append) {
@@ -122,6 +125,7 @@ struct Connection {
 	OCISession *usrhp;
 
 	char* fetch_buffers[MAX_COLS];
+	char* bind_buffers[MAX_BINDS];
 
 	struct Options {
 		bool bLowerCaseColumnNames;
@@ -424,6 +428,7 @@ public:
 		unsigned long offset, unsigned long limit,
 		SQL_Driver_query_event_handlers& handlers) 
 	{
+
 		Connection& connection=*static_cast<Connection *>(aconnection);
 		const char* cstrClientCharset=connection.options.cstrClientCharset;
 		Query_lobs lobs={{0}, 0};
@@ -445,6 +450,9 @@ public:
 			failed=true;
 			goto cleanup;
 		} else {
+			if(placeholders_count>MAX_BINDS)
+				fail(connection, "too many bind variables");
+
 			const char *statement=preprocess_statement(connection, astatement, lobs);
 
 			check(connection, "HandleAlloc STMT", OCIHandleAlloc( 
@@ -466,7 +474,8 @@ public:
 					Placeholder& ph=placeholders[i];
 					Bind_info& bi=binds[i];
 					bi.bind=0;
-					bi.indicator=ph.is_null? -1: 0/*9999*/;
+					// http://i/docs/oracle/server.804/a58234/basics.htm#422173
+					bi.indicator=ph.is_null? -1: MAGIC_INDICATOR_VALUE_MEANING_NOT_NULL_AND_UNCHANGED;
 
 					size_t value_length;
 
@@ -486,12 +495,23 @@ public:
 						value_length=ph.value? strlen(ph.value): 0;
 					}
 
+					// clone value for possible output binds
+					if(value_length) {
+						char*& buf=connection.bind_buffers[i]; // get cached buffer
+						if(!buf) // allocate if needed, caching it
+							buf=(char *)services.malloc_atomic(MAX_OUT_STRING_LENGTH+1/*terminator*/);
+						memcpy(buf, ph.value, value_length+1);
+						ph.value=buf;
+					}
+
 					char placeholder_buf[MAX_STRING];
 					sb4 placeh_len=snprintf(placeholder_buf, sizeof(placeholder_buf), ":%s", ph.name);
-					check(connection, "bind name", OCIBindByName(stmthp, 
+					char check_step_buf[MAX_STRING];
+					snprintf(check_step_buf, sizeof(check_step_buf), "bind by name :%s", ph.name);
+					check(connection, check_step_buf, OCIBindByName(stmthp, 
 						&bi.bind, connection.errhp, 
 						(text*)placeholder_buf, placeh_len,
-						(dvoid *)ph.value, (sword)value_length, SQLT_CHR/*SQLT_STR*/, (dvoid *)&bi.indicator, 
+						(dvoid *)ph.value, (sword)(MAX_OUT_STRING_LENGTH+1), SQLT_STR, (dvoid *)&bi.indicator, 
 						(ub2 *)0, (ub2 *)0, (ub4)0, (ub4 *)0, OCI_DEFAULT));
 				}
 
@@ -528,7 +548,7 @@ public:
 					Placeholder& ph=placeholders[i];
 					Bind_info& bi=binds[i];
 
-					if(bi.indicator==9999 /*unchanged*/)
+					if(bi.indicator==MAGIC_INDICATOR_VALUE_MEANING_NOT_NULL_AND_UNCHANGED/*unchanged*/)
 						continue;
 
 					if(bi.indicator==-1)
@@ -538,8 +558,8 @@ public:
 							ph.is_null=false;
 						else
 							fail(connection, bi.indicator<0?
-								"column return buffer overflow, additionally size too big to be returned in 'indicator'"
-								: "column return buffer overflow");
+								"output bind buffer overflow, additionally size too big to be returned in 'indicator'"
+								: "output bind buffer overflow");
 
 					ph.were_updated=true;
 
