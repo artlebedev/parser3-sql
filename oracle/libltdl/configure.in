@@ -22,7 +22,7 @@ AM_CONDITIONAL(CONVENIENCE_LTDL, test x"${enable_ltdl_convenience-no}" != xno)
 
 dnl Read the libtool configuration
 rm -f conftest
-./libtool --config > conftest
+$LIBTOOL --config > conftest
 . ./conftest
 rm -f conftest
 
