@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.37 2003/10/07 05:58:04 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.38 2003/10/28 15:25:47 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -184,7 +184,7 @@ static sb4 cbf_get_data(dvoid *ctxp,
 						ub1 *piecep, 
 						dvoid **indpp, 
 						ub2 **rcodepp);
-void tolower(char *out, const char *in);
+void tolower(char *out, const char *in, size_t size);
 
 /**
 	OracleSQL server driver
@@ -662,9 +662,11 @@ private: // private funcs
 					(OCIError *)cs.errhp));
 				
 				{
-					char *ptr=(char *)services.malloc_atomic(col_name_len+1);
-					tolower(ptr, (char *)col_name);
-					check(cs, handlers.add_column(cs.sql_error, ptr, col_name_len));
+					size_t length=(size_t)col_name_len;
+					char *ptr=(char *)services.malloc_atomic(length+1);
+					tolower(ptr, (char *)col_name, length);
+					ptr[length]=0;
+					check(cs, handlers.add_column(cs.sql_error, ptr, length));
 				}
 				
 				ub2 coerce_type=dtype;
@@ -1017,10 +1019,9 @@ static sb4 cbf_get_data(dvoid *ctxp,
 	return OCI_CONTINUE;
 }
 
-void tolower(char *out, const char *in) {
-	while(char c=*in++)
-		*out++=tolower(c);
-	*out=0;
+void tolower(char *out, const char *in, size_t size) {
+	while(size--)
+		*out++=tolower(*in++);
 }
 
 extern "C" SQL_Driver *SQL_DRIVER_CREATE() {
