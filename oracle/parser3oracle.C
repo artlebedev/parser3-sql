@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.51 2004/03/02 13:37:25 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.52 2004/03/04 09:10:13 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -173,8 +173,8 @@ static sb4 cbf_get_data(dvoid *ctxp,
 						ub1 *piecep, 
 						dvoid **indpp, 
 						ub2 **rcodepp);
-void tolower(char *out, const char *in, size_t size);
-void toupper(char *out, const char *in, size_t size);
+static void tolower(char *out, const char *in, size_t size);
+static void toupper(char *out, const char *in, size_t size);
 
 static const char *options2env(char *s, Connection::Options* options) {
 	while(s) {
@@ -1120,11 +1120,11 @@ static sb4 cbf_get_data(dvoid *ctxp,
 	return OCI_CONTINUE;
 }
 
-void tolower(char *out, const char *in, size_t size) {
+static void tolower(char *out, const char *in, size_t size) {
 	while(size--)
 		*out++=(char)tolower(*in++);
 }
-void toupper(char *out, const char *in, size_t size) {
+static void toupper(char *out, const char *in, size_t size) {
 	while(size--)
 		*out++=(char)toupper(*in++);
 }
