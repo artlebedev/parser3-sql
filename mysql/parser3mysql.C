@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.20 2004/03/26 13:24:26 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.19.2.1 2004/03/26 14:30:48 paf Exp $"; 
 
 #include "config_includes.h"
 

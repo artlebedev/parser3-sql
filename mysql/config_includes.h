@@ -5,7 +5,7 @@
 
 	Author: Alexander Petrosyan <paf@design.ru> (http://design.ru/paf)
 
-	$Id: config_includes.h,v 1.5 2004/03/26 13:24:26 paf Exp $
+	$Id: config_includes.h,v 1.4.14.1 2004/03/26 14:30:48 paf Exp $
 
 
 	when used Configure [HAVE_CONFIG_H] it uses defines from Configure,

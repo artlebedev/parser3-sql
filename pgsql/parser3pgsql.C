@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.19 2004/03/26 13:29:40 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.18.2.1 2004/03/26 14:31:17 paf Exp $"; 
 
 #include "config_includes.h"
 
