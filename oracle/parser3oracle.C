@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.26 2002/12/09 11:43:08 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.27 2002/12/09 12:19:20 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -132,7 +132,7 @@ static const char *options2env(char *options) {
 #ifndef DOXYGEN
 struct OracleSQL_connection_struct {
 	jmp_buf mark; char error[MAX_STRING];
-	SQL_Exception sql_exception;
+	SQL_Error sql_error;
 	OCIEnv *envhp;
 	OCIServer *srvhp;
 	OCIError *errhp;
@@ -166,9 +166,8 @@ struct OracleSQL_query_lobs {
 #endif
 
 // forwards
-void check(
-		   SQL_Driver_services& services, OracleSQL_connection_struct &cs, 
-		   const char *step, sword status);
+void check(OracleSQL_connection_struct &cs, const char *step, sword status);
+void check(OracleSQL_connection_struct &cs, bool error);
 static sb4 cbf_no_data(
 					   dvoid *ctxp, 
 					   OCIBind *bindp, 
@@ -271,44 +270,44 @@ public:
 		*/
 		OCIHandleAlloc((dvoid *)NULL, (dvoid **) &cs.envhp, (ub4)OCI_HTYPE_ENV, 0, 0);
 		// Initialize an environment handle, attempt #2
-		check(services, cs, "EnvInit", OCIEnvInit(
+		check(cs, "EnvInit", OCIEnvInit(
 			&cs.envhp, (ub4)OCI_DEFAULT, 0, 0));		
 		// Allocate and initialize OCIError handle
-		check(services, cs, "HandleAlloc errhp", OCIHandleAlloc( 
+		check(cs, "HandleAlloc errhp", OCIHandleAlloc( 
 			(dvoid *)cs.envhp, (dvoid **) &cs.errhp, (ub4)OCI_HTYPE_ERROR, 0, 0));
 		// Allocate and initialize OCIServer handle
-		check(services, cs, "HandleAlloc srvhp", OCIHandleAlloc( 
+		check(cs, "HandleAlloc srvhp", OCIHandleAlloc( 
 			(dvoid *)cs.envhp, (dvoid **) &cs.srvhp, (ub4)OCI_HTYPE_SERVER, 0, 0));		
 		// Attach to a 'service'; initialize server context handle  
-		check(services, cs, "ServerAttach", OCIServerAttach( 
+		check(cs, "ServerAttach", OCIServerAttach( 
 			cs.srvhp, cs.errhp, (text *)service, (sb4)strlen(service), (ub4)OCI_DEFAULT));
 		// Allocate and initialize OCISvcCtx handle
-		check(services, cs, "HandleAlloc svchp", OCIHandleAlloc( 
+		check(cs, "HandleAlloc svchp", OCIHandleAlloc( 
 			(dvoid *)cs.envhp, (dvoid **) &cs.svchp, (ub4)OCI_HTYPE_SVCCTX, 0, 0));		
 		// set attribute server context in the service context
-		check(services, cs, "AttrSet server-service", OCIAttrSet( 
+		check(cs, "AttrSet server-service", OCIAttrSet( 
 			(dvoid *)cs.svchp, (ub4)OCI_HTYPE_SVCCTX, 
 			(dvoid *)cs.srvhp, (ub4)0, 
 			(ub4)OCI_ATTR_SERVER, (OCIError *)cs.errhp));		
 		// allocate a user context handle
-		check(services, cs, "HandleAlloc usrhp", OCIHandleAlloc(
+		check(cs, "HandleAlloc usrhp", OCIHandleAlloc(
 			(dvoid *)cs.envhp, (dvoid **)&cs.usrhp, (ub4)OCI_HTYPE_SESSION, 0, 0));
 		// set 'user' name
-		check(services, cs, "AttrSet user-session", OCIAttrSet(
+		check(cs, "AttrSet user-session", OCIAttrSet(
 			(dvoid *)cs.usrhp, (ub4)OCI_HTYPE_SESSION, 
 			(dvoid *)user, (ub4)strlen(user), 
 			OCI_ATTR_USERNAME, cs.errhp));		
 		// set 'pwd' password
-		check(services, cs, "AttrSet pwd-session", OCIAttrSet(
+		check(cs, "AttrSet pwd-session", OCIAttrSet(
 			(dvoid *)cs.usrhp, (ub4)OCI_HTYPE_SESSION, 
 			(dvoid *)pwd, (ub4)strlen(pwd), 
 			OCI_ATTR_PASSWORD, cs.errhp));
 		// Authenticate a user  
-		check(services, cs, "SessionBegin", OCISessionBegin(
+		check(cs, "SessionBegin", OCISessionBegin(
 			cs.svchp, cs.errhp, cs.usrhp, 
 			OCI_CRED_RDBMS, OCI_DEFAULT));
 		// remember connection in session
-		check(services, cs, "AttrSet service-session", OCIAttrSet(
+		check(cs, "AttrSet service-session", OCIAttrSet(
 			(dvoid *)cs.svchp, (ub4)OCI_HTYPE_SVCCTX, 
 			(dvoid *)cs.usrhp, (ub4)0, 
 			OCI_ATTR_SESSION, cs.errhp));
@@ -345,14 +344,14 @@ public:
 		if(setjmp(cs.mark))
 			services._throw(cs.error);
 
-		check(services, cs, "commit", OCITransCommit(cs.svchp, cs.errhp, 0));
+		check(cs, "commit", OCITransCommit(cs.svchp, cs.errhp, 0));
 	}
 	void rollback(SQL_Driver_services& services, void *connection) {
 	    OracleSQL_connection_struct &cs=*(OracleSQL_connection_struct *)connection;
 		if(setjmp(cs.mark))
 			services._throw(cs.error);
 
-		check(services, cs, "rollback", OCITransRollback(cs.svchp, cs.errhp, 0));
+		check(cs, "rollback", OCITransRollback(cs.svchp, cs.errhp, 0));
 	}
 
 	bool ping(SQL_Driver_services&, void *connection) {
@@ -395,18 +394,18 @@ public:
 			const char *statement=preprocess_statement(services, cs, 
 				astatement, lobs);
 
-			check(services, cs, "HandleAlloc STMT", OCIHandleAlloc( 
+			check(cs, "HandleAlloc STMT", OCIHandleAlloc( 
 				(dvoid *)cs.envhp, (dvoid **) &stmthp, (ub4)OCI_HTYPE_STMT, 0, 0));
-			check(services, cs, "syntax", 
+			check(cs, "syntax", 
 				OCIStmtPrepare(stmthp, cs.errhp, (unsigned char *)statement, 
 				(ub4)strlen((char *)statement), 
 				(ub4)OCI_NTV_SYNTAX, (ub4)OCI_DEFAULT));
 			{
 				for(int i=0; i<lobs.count; i++) {
-					check(services, cs, "alloc output var desc", OCIDescriptorAlloc(
+					check(cs, "alloc output var desc", OCIDescriptorAlloc(
 						(dvoid *)cs.envhp, (dvoid **)&lobs.items[i].locator, (ub4)OCI_DTYPE_LOB, 0, 0));
 
-					check(services, cs, "bind output", OCIBindByPos(stmthp, 
+					check(cs, "bind output", OCIBindByPos(stmthp, 
 						&lobs.items[i].bind, cs.errhp, 
 						(ub4)1+i, 
 						(dvoid *)&lobs.items[i].locator, 
@@ -416,7 +415,7 @@ public:
 					lobs.items[i].rows.count=0;
 					OracleSQL_query_lobs::cbf_context_struct cbf_context={
 						&services, &cs, &lobs.items[i].rows};
-					check(services, cs, "bind dynamic", OCIBindDynamic(
+					check(cs, "bind dynamic", OCIBindDynamic(
 						lobs.items[i].bind, cs.errhp, 
 						(dvoid *) &cbf_context, cbf_no_data, 
 						(dvoid *) &cbf_context, cbf_get_data));
@@ -444,8 +443,8 @@ cleanup: // no check call after this point!
 			OCIHandleFree((dvoid *)stmthp, (ub4)OCI_HTYPE_STMT);
 
 		if(failed) {
-			if(cs.sql_exception.defined())
-				services._throw(cs.sql_exception);
+			if(cs.sql_error.defined())
+				services._throw(cs.sql_error);
 			services._throw(cs.error);
 		}
 	}
@@ -547,7 +546,7 @@ private: // private funcs
 	/*
 		//gpfs on sun. paf 000818
 		//Zanyway, this is needed before. 
-		check(services, cs, "get stmt type", OCIAttrGet(
+		check(cs, "get stmt type", OCIAttrGet(
 			(dvoid *)stmthp, (ub4)OCI_HTYPE_STMT, (ub1 *)&stmt_type, 
 			(ub4 *)0, OCI_ATTR_STMT_TYPE, cs.errhp));
 	*/
@@ -567,7 +566,7 @@ private: // private funcs
 			(OCISnapshot *)NULL, (ub4)OCI_DEFAULT);
 
 		if(status!=OCI_NO_DATA)
-			check(services, cs, "execute", status);
+			check(cs, "execute", status);
 
 		{
 			for(int i=0; i<lobs.count; i++) 
@@ -575,7 +574,7 @@ private: // private funcs
 					OracleSQL_query_lobs::return_rows *rows=&lobs.items[i].rows;
 					for(int r=0; r<rows->count; r++) {
 						OCILobLocator *locator=rows->row[r].locator;
-						check(services, cs, "lobwrite", OCILobWrite (
+						check(cs, "lobwrite", OCILobWrite (
 							cs.svchp, cs.errhp, 
 							locator, &bytes_to_write, 1, 
 							(dvoid *)lobs.items[i].data_ptr, (ub4)bytes_to_write, OCI_ONE_PIECE, 
@@ -605,13 +604,13 @@ private: // private funcs
 		SQL_Driver_query_event_handlers& handlers) {
 
 		ub4 prefetch_rows=100;
-		check(services, cs, "AttrSet prefetch-rows", OCIAttrSet( 
+		check(cs, "AttrSet prefetch-rows", OCIAttrSet( 
 			(dvoid *)stmthp, (ub4)OCI_HTYPE_STMT, 
 			(dvoid *)&prefetch_rows, (ub4)0, 
 			(ub4)OCI_ATTR_PREFETCH_ROWS, (OCIError *)cs.errhp));
 
 		ub4 prefetch_mem_size=100*0x400;
-		check(services, cs, "AttrSet prefetch-memory", OCIAttrSet( 
+		check(cs, "AttrSet prefetch-memory", OCIAttrSet( 
 			(dvoid *)stmthp, (ub4)OCI_HTYPE_STMT, 
 			(dvoid *)&prefetch_mem_size, (ub4)0, 
 			(ub4)OCI_ATTR_PREFETCH_MEMORY, (OCIError *)cs.errhp));
@@ -635,125 +634,114 @@ private: // private funcs
 			failed=true;
 			goto cleanup;
 		} else {
-			try {
-
-				// idea of preincrementing is that at error time all handles would free up
-				while(++column_count<=MAX_COLS) {
-					/* get next descriptor, if there is one */
-					if(OCIParamGet(stmthp, OCI_HTYPE_STMT, cs.errhp, (void **)&mypard, 
-						(ub4) column_count)!=OCI_SUCCESS) {
-						--column_count;
-						break;
-					}
-					
-					/* Retrieve the data type attribute */
-					check(services, cs, "get type", OCIAttrGet(
-						(dvoid*) mypard, (ub4)OCI_DTYPE_PARAM, 
-						(dvoid*) &dtype, (ub4 *)0, (ub4)OCI_ATTR_DATA_TYPE, 
-						(OCIError *)cs.errhp));
-					
-					/* Retrieve the column name attribute */
-					ub4 col_name_len;
-					check(services, cs, "get name", OCIAttrGet(
-						(dvoid*) mypard, (ub4)OCI_DTYPE_PARAM, 
-						(dvoid**) &col_name, (ub4 *) &col_name_len, (ub4)OCI_ATTR_NAME, 
-						(OCIError *)cs.errhp));
-					
-					{
-						size_t size=(size_t)col_name_len;
-						char *ptr=(char *)services.malloc(size);
-						tolower(ptr, (char *)col_name, size);
-						handlers.add_column(ptr, size);
-					}
-					
-					ub2 coerce_type=dtype;
-					sb4 size=0;
-					void *ptr;
-					
-					switch(dtype) {
-					case SQLT_CLOB: 
-						{
-							check(services, cs, "alloc output var desc", OCIDescriptorAlloc(
-								(dvoid *)cs.envhp, (dvoid **)(ptr=&cols[column_count-1].var), 
-								(ub4)OCI_DTYPE_LOB, 
-								0, (dvoid **)0));
-							
-							size=0;
-							break;
-						}
-					default:
-						coerce_type=SQLT_STR;
-						ptr=cols[column_count-1].str=(char *)services.malloc(MAX_OUT_STRING_LENGTH+1);
-						size=MAX_OUT_STRING_LENGTH;
-						break;
-					}
-					
-					cols[column_count-1].type=coerce_type;
-					
-					check(services, cs, "DefineByPos", OCIDefineByPos(
-						stmthp, &cols[column_count-1].def, cs.errhp, 
-						column_count, (ub1 *) ptr, size, 
-						coerce_type, (dvoid *) &cols[column_count-1].indicator, 
-						(ub2 *)0, (ub2 *)0, OCI_DEFAULT));
+			// idea of preincrementing is that at error time all handles would free up
+			while(++column_count<=MAX_COLS) {
+				/* get next descriptor, if there is one */
+				if(OCIParamGet(stmthp, OCI_HTYPE_STMT, cs.errhp, (void **)&mypard, 
+					(ub4) column_count)!=OCI_SUCCESS) {
+					--column_count;
+					break;
 				}
 				
-				handlers.before_rows();
+				/* Retrieve the data type attribute */
+				check(cs, "get type", OCIAttrGet(
+					(dvoid*) mypard, (ub4)OCI_DTYPE_PARAM, 
+					(dvoid*) &dtype, (ub4 *)0, (ub4)OCI_ATTR_DATA_TYPE, 
+					(OCIError *)cs.errhp));
 				
-				for(unsigned long row=0; !limit||row<offset+limit; row++) {
-					sword status=OCIStmtFetch(stmthp, cs.errhp, (ub4)1,  (ub4)OCI_FETCH_NEXT, 
-						(ub4)OCI_DEFAULT);
-					if(status==OCI_NO_DATA)
+				/* Retrieve the column name attribute */
+				ub4 col_name_len;
+				check(cs, "get name", OCIAttrGet(
+					(dvoid*) mypard, (ub4)OCI_DTYPE_PARAM, 
+					(dvoid**) &col_name, (ub4 *) &col_name_len, (ub4)OCI_ATTR_NAME, 
+					(OCIError *)cs.errhp));
+				
+				{
+					size_t size=(size_t)col_name_len;
+					char *ptr=(char *)services.malloc(size);
+					tolower(ptr, (char *)col_name, size);
+					check(cs, handlers.add_column(cs.sql_error, ptr, size));
+				}
+				
+				ub2 coerce_type=dtype;
+				sb4 size=0;
+				void *ptr;
+				
+				switch(dtype) {
+				case SQLT_CLOB: 
+					{
+						check(cs, "alloc output var desc", OCIDescriptorAlloc(
+							(dvoid *)cs.envhp, (dvoid **)(ptr=&cols[column_count-1].var), 
+							(ub4)OCI_DTYPE_LOB, 
+							0, (dvoid **)0));
+						
+						size=0;
 						break;
-					check(services, cs, "fetch", status);
+					}
+				default:
+					coerce_type=SQLT_STR;
+					ptr=cols[column_count-1].str=(char *)services.malloc(MAX_OUT_STRING_LENGTH+1);
+					size=MAX_OUT_STRING_LENGTH;
+					break;
+				}
+				
+				cols[column_count-1].type=coerce_type;
+				
+				check(cs, "DefineByPos", OCIDefineByPos(
+					stmthp, &cols[column_count-1].def, cs.errhp, 
+					column_count, (ub1 *) ptr, size, 
+					coerce_type, (dvoid *) &cols[column_count-1].indicator, 
+					(ub2 *)0, (ub2 *)0, OCI_DEFAULT));
+			}
+			
+			check(cs, handlers.before_rows(cs.sql_error));
+			
+			for(unsigned long row=0; !limit||row<offset+limit; row++) {
+				sword status=OCIStmtFetch(stmthp, cs.errhp, (ub4)1,  (ub4)OCI_FETCH_NEXT, 
+					(ub4)OCI_DEFAULT);
+				if(status==OCI_NO_DATA)
+					break;
+				check(cs, "fetch", status);
 
-					if(row>=offset) {
-						handlers.add_row();
-						for(int i=0; i<column_count; i++) {
-							size_t size=0;
-							void *ptr=0;
-							if(!cols[i].indicator) // not NULL
-								switch(cols[i].type) {
-								case SQLT_CLOB: 
-									{
-										ub4   amtp=4096000000UL;
-										ub4   offset=1;
-										ub4   loblen=0;
-										OCILobLocator *var=(OCILobLocator *)cols[i].var;
-										OCILobGetLength(cs.svchp, cs.errhp, var, &loblen);
-										if(loblen) {
-											size=(size_t)loblen;
-											ptr=services.malloc(size);
-											check(services, cs, "lobread", OCILobRead(cs.svchp, cs.errhp, 
-												var, &amtp, offset, (dvoid *) ptr, 
-												loblen, (dvoid *)0, 
-												0, 
-												(ub2)0, (ub1) SQLCS_IMPLICIT));
-										}
-										break;
-									}
-								default:
-									if(const char *str=cols[i].str) {
-										size=strlen(str);
+				if(row>=offset) {
+					check(cs, handlers.add_row(cs.sql_error));
+					for(int i=0; i<column_count; i++) {
+						size_t size=0;
+						void *ptr=0;
+						if(!cols[i].indicator) // not NULL
+							switch(cols[i].type) {
+							case SQLT_CLOB: 
+								{
+									ub4   amtp=4096000000UL;
+									ub4   offset=1;
+									ub4   loblen=0;
+									OCILobLocator *var=(OCILobLocator *)cols[i].var;
+									OCILobGetLength(cs.svchp, cs.errhp, var, &loblen);
+									if(loblen) {
+										size=(size_t)loblen;
 										ptr=services.malloc(size);
-										memcpy(ptr, str, size);
-									} else {
-										size=0;
-										ptr=0;
+										check(cs, "lobread", OCILobRead(cs.svchp, cs.errhp, 
+											var, &amtp, offset, (dvoid *) ptr, 
+											loblen, (dvoid *)0, 
+											0, 
+											(ub2)0, (ub1) SQLCS_IMPLICIT));
 									}
 									break;
 								}
-							handlers.add_row_cell(ptr, size);
-						}
+							default:
+								if(const char *str=cols[i].str) {
+									size=strlen(str);
+									ptr=services.malloc(size);
+									memcpy(ptr, str, size);
+								} else {
+									size=0;
+									ptr=0;
+								}
+								break;
+							}
+						check(cs, handlers.add_row_cell(cs.sql_error, ptr, size));
 					}
 				}
-			} catch(const SQL_Exception& e) {
-				cs.sql_exception=e;
-				failed=true;
-				goto cleanup;
-			} catch(...) {
-				cs.sql_exception=SQL_Exception("exception occured in SQL_Driver_query_event_handlers"); // out of memory...
-				failed=true;
-				goto cleanup;
 			}
 		}
 
@@ -775,9 +763,7 @@ cleanup: // no check call after this point!
 
 private: // conn client library funcs
 	
-	friend void check(
-		SQL_Driver_services& services, OracleSQL_connection_struct &cs, 
-		const char *step, sword status);
+	friend void check(OracleSQL_connection_struct &cs, const char *step, sword status);
 	friend sb4 cbf_get_data(dvoid *ctxp, 
 		OCIBind *bindp, 
 		ub4 iter, ub4 index, 
@@ -927,9 +913,7 @@ private: // conn client library funcs linking
 
 } *OracleSQL_driver;
 
-void check(
-	SQL_Driver_services& services, OracleSQL_connection_struct &cs, 
-	const char *step, sword status) {
+void check(OracleSQL_connection_struct &cs, const char *step, sword status) {
 
 	const char *msg;
 	char reason[MAX_STRING/2];
@@ -969,6 +953,10 @@ void check(
 	longjmp(cs.mark, 1);
 }
 
+void check(OracleSQL_connection_struct &cs, bool error) {
+	if(error)
+		longjmp(cs.mark, 1);
+}
 
 /* ----------------------------------------------------------------- */
 /* Intbind callback that does not do any data input.                 */
@@ -1006,7 +994,7 @@ static sb4 cbf_get_data(dvoid *ctxp,
 
 	if(index==0) {
 		static ub4  rows;
-		check(*context.services, *context.cs, "AttrGet cbf_get_data ROWS_RETURNED", 
+		check(*context.cs, "AttrGet cbf_get_data ROWS_RETURNED", 
 			OracleSQL_driver->OCIAttrGet(
 				(CONST dvoid *) bindp, OCI_HTYPE_BIND, (dvoid *)&rows, 
 				(ub4 *)sizeof(ub2), OCI_ATTR_ROWS_RETURNED, context.cs->errhp))	;
@@ -1017,7 +1005,7 @@ static sb4 cbf_get_data(dvoid *ctxp,
 
 	OracleSQL_query_lobs::return_rows::return_row &var=context.rows->row[index];
 
-	check(*context.services, *context.cs, "alloc output var desc dynamic", OracleSQL_driver->OCIDescriptorAlloc(
+	check(*context.cs, "alloc output var desc dynamic", OracleSQL_driver->OCIDescriptorAlloc(
 		(dvoid *) context.cs->envhp, (dvoid **)&var.locator, 
 		(ub4)OCI_DTYPE_LOB, 
 		0, (dvoid **)0));
