@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.27 2002/12/09 12:19:20 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.28 2003/01/15 10:54:58 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -873,15 +873,8 @@ private: // conn client library funcs linking
 
 	const char *dlink(const char *dlopen_file_spec) {
 		if(lt_dlinit())
-
 			return lt_dlerror();
-
-
-
         lt_dlhandle handle=lt_dlopen(dlopen_file_spec);
-
-		//return "hren31";
-
         if(!handle)
 			return lt_dlerror(); //"can not open the dynamic link module";
 
