@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.18.2.1 2004/03/26 14:31:17 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.18.2.2 2004/03/29 07:56:28 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -58,7 +58,7 @@ static char *lsplit(char **string_ref, char delim) {
     return result;
 }
 
-static void toupper(char *out, const char *in, size_t size) {
+static void toupper_str(char *out, const char *in, size_t size) {
 	while(size--)
 		*out++=(char)toupper(*in++);
 }
@@ -133,7 +133,7 @@ public:
 				if(*key) {
 					if(char *value=lsplit(key, '=')) {
 						if(strcmp(key, "ClientCharset" ) == 0) {
-							toupper(value, value, strlen(value));
+							toupper_str(value, value, strlen(value));
 							connection.cstrClientCharset=value;
 						} else if(strcasecmp(key, "charset")==0) { // left for backward compatibility, consider using ClientCharset
 							cstrBackwardCompAskServerToTranscode=value;
