@@ -6,17 +6,26 @@ AM_CONFIG_HEADER(config_auto.h)
 
 dnl Arguments
 
-AC_ARG_WITH(oracleoci_inc,[  --with-oracleoci_inc[=DIR]      DIR is the Oracle OCI includes directory],,
+AC_ARG_WITH(oracleoci-inc,[  --with-oracleoci-inc[=DIR]      DIR is the Oracle OCI includes directory],,
 	withval="$ORACLE_HOME/rdbms/demo"
 )
-ORACLEOCI_INC=$withval
-AC_SUBST(ORACLEOCI_INC)
+ORACLE_OCI_INC=$withval
+AC_SUBST(ORACLE_OCI_INC)
 
-AC_ARG_WITH(oraclepublic_inc,[  --with-oraclepublic_inc[=DIR]      DIR is the Oracle public includes directory],,
+if test \! -f "$ORACLE_OCI_INC/oci.h"; then
+	AC_MSG_ERROR($ORACLE_OCI_INC does not seem to be valid Oracle OCI includes directory)
+fi
+
+
+AC_ARG_WITH(oraclepublic-inc,[  --with-oraclepublic-inc[=DIR]      DIR is the Oracle public includes directory],,
 	withval="$ORACLE_HOME/network/public"
 )
-ORACLEPUBLIC_INC=$withval
-AC_SUBST(ORACLEPUBLIC_INC)
+ORACLE_PUBLIC_INC=$withval
+AC_SUBST(ORACLE_PUBLIC_INC)
+
+if test \! -f "$ORACLE_PUBLIC_INC/nzt.h"; then
+	AC_MSG_ERROR($ORACLE_PUBLIC_INC does not seem to be valid Oracle public includes directory)
+fi
 
 
 dnl Checks for programs.
