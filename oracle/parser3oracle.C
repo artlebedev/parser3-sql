@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.16 2001/11/19 15:01:21 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.17 2001/11/19 16:06:41 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -550,7 +550,7 @@ private: // private funcs
 			(ub4 *)0, OCI_ATTR_STMT_TYPE, cs.errhp));
 	*/
 
-		while(*statement==' ' || *statement=='\t' || *statement=='\n')
+		while(isspace(*statement)) 
 			statement++;
 		if(strncasecmp(statement, "select", 6)==0) 
 			stmt_type=OCI_STMT_SELECT;
