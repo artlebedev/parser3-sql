@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.30 2003/06/17 13:05:34 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.31 2003/06/17 14:27:36 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -160,6 +160,7 @@ struct OracleSQL_query_lobs {
 		OCILobLocator *locator;
 		OCIBind *bind;
 		return_rows rows;
+		cbf_context_struct cbf_context;
 	} items[MAX_IN_LOBS];
 	int count;
 };
@@ -413,8 +414,10 @@ public:
 						(ub2 *)0, (ub2 *)0, (ub4)0, (ub4 *)0, OCI_DATA_AT_EXEC));
 
 					lobs.items[i].rows.count=0;
-					OracleSQL_query_lobs::cbf_context_struct cbf_context={
-						&services, &cs, &lobs.items[i].rows};
+					OracleSQL_query_lobs::cbf_context_struct& cbf_context=lobs.items[i].cbf_context;
+					cbf_context.services=&services;
+					cbf_context.cs=&cs;
+					cbf_context.rows=&lobs.items[i].rows;
 					check(cs, "bind dynamic", OCIBindDynamic(
 						lobs.items[i].bind, cs.errhp, 
 						(dvoid *) &cbf_context, cbf_no_data, 
