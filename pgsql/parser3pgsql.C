@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.9 2002/12/09 12:36:19 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.10 2002/12/15 08:52:10 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -186,7 +186,7 @@ public:
 					*to++='\''; result++;
 					break;
 				case '\\': // "\" -> "\\"
-					*to++='\''; result++;
+					*to++='\\'; result++;
 					break;
 				}
 				*to++=*from++;

@@ -7,6 +7,10 @@ Project: "libltdl_pgsql"=.\libltdl\libltdl.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
+    begin source code control
+    sql/pgsql/libltdl
+    .\libltdl
+    end source code control
 }}}
 
 Package=<4>
@@ -19,6 +23,10 @@ Project: "parser3pgsql"=.\parser3pgsql.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
+    begin source code control
+    sql
+    .
+    end source code control
 }}}
 
 Package=<4>
