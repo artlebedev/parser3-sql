@@ -8,7 +8,7 @@
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
 
-static const char *RCSId="$Id: parser3oracle.C,v 1.65 2004/10/07 09:27:02 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.66 2004/10/11 14:30:24 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -506,6 +506,8 @@ public:
 						value_buf=(char *)services.malloc_atomic(MAX_OUT_STRING_LENGTH+1/*terminator*/);
 					if(value_length)
 						memcpy(value_buf, ph.value, value_length+1);
+					else
+						value_buf[0]=0;
 
 					char name_buf[MAX_STRING];
 					sb4 placeh_len=snprintf(name_buf, sizeof(name_buf), ":%s", ph.name);
