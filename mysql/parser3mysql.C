@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.17 2004/01/26 15:16:42 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.18 2004/01/30 07:30:40 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -104,11 +104,11 @@ public:
 
 		char *charset=0;
 
-		Connection& connection=*(Connection  *)::calloc(sizeof(Connection), 1);
-		*connection_ref=&connection;
+		Connection& connection=*(Connection  *)services.malloc(sizeof(Connection));
 		connection.services=&services;
 	    connection.handle=mysql_init(NULL);
 		connection.autocommit=true;
+		*connection_ref=&connection;
 
 		while(options) {
 			if(char *key=lsplit(&options, '&')) {

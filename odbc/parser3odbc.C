@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.18 2004/01/26 15:13:13 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.19 2004/01/30 07:30:40 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -84,8 +84,7 @@ public:
 		SQL_Driver_services& services, 
 		void **connection_ref ///< output: Connection*
 		) {
-	//	_asm int 3;
-		Connection& connection=*(Connection  *)::calloc(sizeof(Connection), 1);
+		Connection& connection=*(Connection  *)services.malloc(sizeof(Connection));
 		*connection_ref=&connection;
 		connection.services=&services;
 

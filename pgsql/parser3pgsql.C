@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.16 2004/01/26 15:22:26 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.17 2004/01/30 07:30:40 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -105,7 +105,7 @@ public:
 
 		char *options=lsplit(db, '?');
 
-		Connection& connection=*(Connection  *)::calloc(sizeof(Connection), 1);
+		Connection& connection=*(Connection  *)services.malloc(sizeof(Connection));
 		*connection_ref=&connection;
 		connection.services=&services;
 		connection.conn=PQsetdbLogin(
