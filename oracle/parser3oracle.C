@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.12 2001/11/14 09:46:31 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.13 2001/11/14 10:33:18 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -372,9 +372,6 @@ public:
 		while(length--) {
 			switch(*from) {
 			case '\'': // "'" -> "''"
-				*to++='\''; result++;
-				break;
-			case '\\': // "\" -> "\\"
 				*to++='\''; result++;
 				break;
 			}
