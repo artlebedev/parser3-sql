@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.17 2003/11/19 12:57:43 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.18 2004/01/26 15:13:13 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -56,6 +56,12 @@ static char *lsplit(char *string, char delim) {
     return 0;
 }
 
+struct Connection {
+	SQL_Driver_services* services;
+
+	CDatabase* db;
+};
+
 /**
 	ODBC server driver
 */
@@ -76,61 +82,61 @@ public:
 	void connect(
 		char *used_only_in_connect_url, 
 		SQL_Driver_services& services, 
-		void **connection ///< output: CDatabase *
+		void **connection_ref ///< output: Connection*
 		) {
 	//	_asm int 3;
-		CDatabase *db;
+		Connection& connection=*(Connection  *)::calloc(sizeof(Connection), 1);
+		*connection_ref=&connection;
+		connection.services=&services;
+
 		TRY {
-			db=new CDatabase();
-			db->OpenEx(used_only_in_connect_url, CDatabase::noOdbcDialog);
-			db->BeginTrans();
+			connection.db=new CDatabase();
+			connection.db->OpenEx(used_only_in_connect_url, CDatabase::noOdbcDialog);
+			connection.db->BeginTrans();
 		} 
 		CATCH_ALL (e) {
 			_throw(services, e);
-			db=0; // calm, compiler
 		}
 		END_CATCH_ALL
-
-		*(CDatabase **)connection=db;
 	}
-	void disconnect(void *connection) {
-		CDatabase *db=static_cast<CDatabase *>(connection);
+	void disconnect(void *aconnection) {
+		Connection& connection=*static_cast<Connection*>(aconnection);
 		TRY
-			delete db;
+			delete connection.db;
+			connection.db=0;
 		CATCH_ALL (e) {
 			// nothing
 		}
 		END_CATCH_ALL
 	}
-	void commit(SQL_Driver_services& services, void *connection) {
-		CDatabase *db=static_cast<CDatabase *>(connection);
+	void commit(void *aconnection) {
+		Connection& connection=*static_cast<Connection*>(aconnection);
 		TRY
-			db->CommitTrans();
-			db->BeginTrans();
+			connection.db->CommitTrans();
+			connection.db->BeginTrans();
 		CATCH_ALL (e) {
-			_throw(services, e);
+			_throw(*connection.services, e);
 		}
 		END_CATCH_ALL
 	}
-	void rollback(SQL_Driver_services& services, void *connection) {
-		CDatabase *db=static_cast<CDatabase *>(connection);
+	void rollback(void *aconnection) {
+		Connection& connection=*static_cast<Connection*>(aconnection);
 		TRY
-			db->Rollback();
-			db->BeginTrans();
+			connection.db->Rollback();
+			connection.db->BeginTrans();
 		CATCH_ALL (e) {
-			_throw(services, e);
+			_throw(*connection.services, e);
 		}
 		END_CATCH_ALL
 	}
 
-	bool ping(SQL_Driver_services&, void *connection) {
+	bool ping(void *connection) {
 		return true;
 	}
 
-	const char* quote(
-		SQL_Driver_services& services, void *connection,
-		const char *from, unsigned int length) {
-		char *result=(char*)services.malloc_atomic(length*2+1);
+	const char* quote(void *aconnection, const char *from, unsigned int length) {
+		Connection& connection=*static_cast<Connection*>(aconnection);
+		char *result=(char*)connection.services->malloc_atomic(length*2+1);
 		char *to=result;
 		while(length--) {
 			if(*from=='\'') { // ' -> ''
@@ -141,12 +147,13 @@ public:
 		*to=0;
 		return result;
 	}
-	void query(
-		SQL_Driver_services& services, void *connection, 
+	void query(void *aconnection, 
 		const char *statement, unsigned long offset, unsigned long limit,
 		SQL_Driver_query_event_handlers& handlers) {
 
-		CDatabase *db=static_cast<CDatabase *>(connection);
+		Connection& connection=*static_cast<Connection*>(aconnection);
+		CDatabase *db=connection.db;
+		SQL_Driver_services& services=*connection.services;
 
 		while(isspace(*statement)) 
 			statement++;
