@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.58 2004/05/25 07:00:09 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.59 2004/06/18 11:29:55 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -455,9 +455,12 @@ public:
 					check(connection, "alloc output var desc", OCIDescriptorAlloc(
 						(dvoid *)connection.envhp, (dvoid **)&item.locator, (ub4)OCI_DTYPE_LOB, 0, 0));
 
-					check(connection, "bind output", OCIBindByPos(stmthp, 
+					char placeholder_buf[MAX_STRING];
+					sb4 placeh_len=snprintf(placeholder_buf, sizeof(placeholder_buf), 
+						":%.*s", item.name_size, item.name_ptr);
+					check(connection, "bind lob", OCIBindByName(stmthp, 
 						&item.bind, connection.errhp, 
-						(ub4)1+i, 
+						(text*)placeholder_buf, placeh_len,
 						(dvoid *)&item.locator, 
 						(sword)sizeof (item.locator), SQLT_CLOB, (dvoid *)0, 
 						(ub2 *)0, (ub2 *)0, (ub4)0, (ub4 *)0, OCI_DATA_AT_EXEC));
@@ -894,6 +897,11 @@ private: // conn client library funcs
 		ub2 dty, dvoid *indp, ub2 *alenp, ub2 *rcodep,
 		ub4 maxarr_len, ub4 *curelep, ub4 mode));
 
+	OCI_DECL(BindByName, (OCIStmt *stmtp, OCIBind **bindp, OCIError *errhp,
+		text* placeholder, sb4 placeh_len, dvoid *valuep, sb4 value_sz,
+		ub2 dty, dvoid *indp, ub2 *alenp, ub2 *rcodep,
+		ub4 maxarr_len, ub4 *curelep, ub4 mode));
+
 	OCI_DECL(BindDynamic, (OCIBind *bindp, OCIError *errhp, dvoid *ictxp,
 		OCICallbackInBind icbfp, dvoid *octxp,
 		OCICallbackOutBind ocbfp));
@@ -985,7 +993,7 @@ private: // conn client library funcs linking
 		OCI_LINK(Initialize);
 		OCI_LINK(EnvInit);
 		OCI_LINK(AttrGet);		OCI_LINK(AttrSet);
-		OCI_LINK(BindByPos);		OCI_LINK(BindDynamic);
+		OCI_LINK(BindByPos);		OCI_LINK(BindByName);	OCI_LINK(BindDynamic);
 		OCI_LINK(DefineByPos);
 		OCI_LINK(DescriptorAlloc);		OCI_LINK(DescriptorFree);
 		OCI_LINK(ErrorGet);
