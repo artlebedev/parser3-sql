@@ -1,0 +1,16 @@
+2002-02-08  paf
+	* parser3odbc.C:
+		2002
+
+	* COPYING:
+	* parser3odbc.C:
+		added GNU copyright
+
+2001-11-16  paf
+	* parser3odbc.C:
+		introducing estimating String::cstr_bufsize, 0
+
+2001-10-29  paf
+	* parser3odbc.C:
+		setjump
+
