@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.24 2004/07/28 14:23:32 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.25 2004/09/13 10:56:44 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -362,7 +362,7 @@ public:
 					v.m_pdate->hour,
 					v.m_pdate->minute,
 					v.m_pdate->second,
-					v.m_pdate->fraction);
+					v.m_pdate->fraction/1000000); // lexical parser of INCOMING literal choked on times like hh:mm:ss.123000000
 				str=(char*)services.malloc_atomic(length+1);
 				memcpy(str, local_buf, length+1);
 				break;
