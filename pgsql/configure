@@ -1711,7 +1711,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=parser3pgsql
- VERSION=3.0.HEAD
+ VERSION=3.1.0
 
 
 # Some tools Automake needs.
