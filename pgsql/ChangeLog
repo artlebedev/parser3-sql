@@ -1,117 +1,145 @@
+2002-12-15  paf
+	* parser3pgsql.C 1.10:
+	* parser3pgsql.dsw 1.4:
+		\ -> \\ bug fix
+
+2002-12-09  paf
+	* parser3pgsql.C 1.9:
+	* parser3pgsql.dsw 1.3:
+		changed exception handling mech in sql handlers #2
+
+2002-11-28  paf
+	* configure.in 1.11:
+		removed double libltdl/Makefile generation
+
+2002-10-07  paf
+	* INSTALL 1.3:
+		INSTALL files changed to include sql/ subdir creation
+
+2002-08-02  paf
+	* configure [release_3_0_0005] 1.6.2.1:
+	* configure.in [release_3_0_0005] 1.9.2.1:
+		config version
+
+	* configure 1.6:
+	* configure 1.7:
+	* configure.in 1.10:
+		*** empty log message ***
+
 2002-06-04  paf
-	* Makefile.am:
-	* Makefile.am:
-	* Makefile.in:
-	* Makefile.in:
+	* Makefile.am 1.6:
+	* Makefile.am [release_1_0_0001] 1.5.2.1:
+	* Makefile.in 1.6:
+	* Makefile.in [release_1_0_0001] 1.5.2.1:
 		*** empty log message ***
 
 2002-06-03  paf
-	* parser3pgsql.dsp:
+	* parser3pgsql.dsp 1.2:
 		fixed .dsp-s along with reorganized cvs modules dirs structure
 
-	* parser3pgsql.dsp:
+	* parser3pgsql.dsp [release_1_0_0001] 1.1.1.1.2.1:
 		reorganized cvs modules
 
 2002-03-22  paf
-	* parser3pgsql.C:
+	* parser3pgsql.C 1.7:
 		checked empty host
 
-	* Makefile.am:
-	* Makefile.in:
+	* Makefile.am 1.5:
+	* Makefile.in 1.5:
 		make update
 
-	* parser3pgsql.C:
+	* parser3pgsql.C 1.8:
 		?CLIENT_ENCODING=zz&DATESTYLE=zz
 
 2002-02-08  paf
-	* Makefile.am:
-	* Makefile.in:
-	* libltdl/Makefile.am:
-	* libltdl/Makefile.in:
-	* libltdl/libltdl.dsp:
-	* libltdl/libltdl_pgsql.dsp:
-	* parser3pgsql.dsw:
+	* Makefile.am 1.4:
+	* Makefile.in 1.4:
+	* libltdl/Makefile.am 1.3:
+	* libltdl/Makefile.in 1.3:
+	* libltdl/libltdl.dsp 1.1:
+	* libltdl/libltdl_pgsql.dsp 1.2:
+	* parser3pgsql.dsw 1.2:
 		libltdl.dsp now
 
-	* config_fixed.h:
-	* config_includes.h:
-	* parser3pgsql.C:
+	* config_fixed.h 1.3:
+	* config_includes.h 1.3:
+	* parser3pgsql.C 1.5:
 		2002
 
-	* configure:
-	* configure.in:
-	* libltdl/Makefile.am:
-	* libltdl/Makefile.in:
-	* libltdl/acconfig.h:
-	* libltdl/acinclude.m4:
-	* libltdl/aclocal.m4:
-	* libltdl/config_auto.h.in:
-	* libltdl/configure:
-	* libltdl/configure.in:
+	* configure 1.4:
+	* configure.in 1.7:
+	* libltdl/Makefile.am 1.2:
+	* libltdl/Makefile.in 1.2:
+	* libltdl/acconfig.h 1.1:
+	* libltdl/acinclude.m4 1.2:
+	* libltdl/aclocal.m4 1.2:
+	* libltdl/config_auto.h.in 1.2:
+	* libltdl/configure 1.2:
+	* libltdl/configure.in 1.2:
 		removed extra libtool generation,
 		removed needless static lib
 
-	* configure:
-	* configure.in:
+	* configure 1.5:
+	* configure.in 1.8:
 		package name & version
 
-	* AUTHORS:
-	* COPYING:
-	* INSTALL:
-	* README:
+	* AUTHORS 1.2:
+	* COPYING 1.2:
+	* INSTALL 1.2:
+	* README 1.2:
 		install&others updated
 
-	* parser3pgsql.C:
+	* parser3pgsql.C 1.6:
 		name spelling
 
 2001-11-24  paf
-	* aclocal.m4:
+	* aclocal.m4 1.1:
 		*** empty log message ***
 
 2001-11-16  paf
-	* parser3pgsql.C:
+	* parser3pgsql.C 1.4:
 		introducing estimating String::cstr_bufsize, 0
 
 2001-11-11  paf
-	* Makefile.in:
-	* config_auto.h.in:
-	* parser3pgsql.C:
+	* Makefile.in 1.3:
+	* config_auto.h.in 1.2:
+	* parser3pgsql.C 1.3:
 		init not const
 
 2001-11-08  paf
-	* Makefile.am:
+	* Makefile.am 1.3:
 		lib prefix
 
 2001-10-30  paf
-	* configure:
-	* configure.in:
+	* configure 1.3:
+	* configure.in 1.6:
 		makes
 
 2001-10-29  paf
-	* config_fixed.h:
-	* config_includes.h:
-	* configure.in:
+	* config_fixed.h 1.2:
+	* config_includes.h 1.2:
+	* configure.in 1.5:
 		setjump
 
-	* parser3pgsql.C:
+	* parser3pgsql.C 1.2:
 		z
 
 2001-10-28  paf
-	* configure.in:
+	* configure.in 1.4:
 		conf
 
 2001-09-25  parser
-	* Makefile.in:
-	* configure:
+	* Makefile.in 1.2:
+	* configure 1.2:
 		makes
 
-	* configure.in:
+	* configure.in 1.2:
 		sanity check
 
-	* configure.in:
+	* configure.in 1.3:
 		last underscore in configure options to dash
 
 2001-09-24  parser
-	* Makefile.am:
+	* Makefile.am 1.2:
 		makes
 

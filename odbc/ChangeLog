@@ -1,3 +1,12 @@
+2002-12-09  paf
+	* parser3odbc.C 1.12:
+		changed exception handling mech in sql handlers #2
+
+2002-10-29  paf
+	* parser3odbc.C 1.11:
+		binary field extracted as string with zero-chars inside
+		changed string.save [see]
+
 2002-10-22  paf
 	* parser3odbc.C 1.10:
 		column types extracted once per table [were per row]
