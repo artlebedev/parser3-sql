@@ -8,7 +8,7 @@ libtool: $(LIBTOOL_DEPS)
 
 INCLUDES = -I../parser3/src/sql $(INCLTDL) -I$(PGSQL_INC)
 
-lib_LTLIBRARIES = parser3pgsql.la
-parser3pgsql_la_SOURCES = parser3pgsql.C config_includes.h
-parser3pgsql_la_LIBADD = $(LIBLTDL)
-parser3pgsql_la_LDFLAGS = -module -avoid-version
+lib_LTLIBRARIES = libparser3pgsql.la
+libparser3pgsql_la_SOURCES = parser3pgsql.C config_includes.h
+libparser3pgsql_la_LIBADD = $(LIBLTDL)
+libparser3pgsql_la_LDFLAGS = -module -avoid-version

@@ -8,7 +8,7 @@ libtool: $(LIBTOOL_DEPS)
 
 INCLUDES = -I../parser3/src/sql $(INCLTDL) -I$(MYSQL_INC)
 
-lib_LTLIBRARIES = parser3mysql.la
-parser3mysql_la_SOURCES = parser3mysql.C parser3mysql.h
-parser3mysql_la_LIBADD = $(LIBLTDL)
-parser3mysql_la_LDFLAGS = -module -avoid-version
+lib_LTLIBRARIES = libparser3mysql.la
+libparser3mysql_la_SOURCES = parser3mysql.C parser3mysql.h
+libparser3mysql_la_LIBADD = $(LIBLTDL)
+libparser3mysql_la_LDFLAGS = -module -avoid-version

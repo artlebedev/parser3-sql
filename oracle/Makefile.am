@@ -7,7 +7,7 @@ libtool: $(LIBTOOL_DEPS)
 
 INCLUDES = -I../parser3/src/sql $(INCLTDL) -I$(ORACLE_OCI_INC) -I$(ORACLE_PUBLIC_INC)
 
-lib_LTLIBRARIES = parser3oracle.la
-parser3oracle_la_SOURCES = parser3oracle.C config_includes.h
-parser3oracle_la_LIBADD = $(LIBLTDL)
-parser3oracle_la_LDFLAGS = -module -avoid-version
+lib_LTLIBRARIES = libparser3oracle.la
+libparser3oracle_la_SOURCES = parser3oracle.C config_includes.h
+libparser3oracle_la_LIBADD = $(LIBLTDL)
+libparser3oracle_la_LDFLAGS = -module -avoid-version
