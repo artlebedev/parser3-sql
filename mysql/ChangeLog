@@ -1,9 +1,28 @@
 2002-02-08  paf
+	* libltdl/Makefile.am:
+	* libltdl/Makefile.in:
+	* libltdl/libltdl.dsp:
+	* libltdl/libltdl_mysql.dsp:
+	* parser3mysql.dsw:
+		libltdl.dsp now
+
 	* INSTALL:
 	* config_fixed.h:
 	* config_includes.h:
 	* parser3mysql.C:
 		2002
+
+	* configure:
+	* configure.in:
+		package name & version
+
+	* AUTHORS:
+	* COPYING:
+	* INSTALL:
+	* INSTALL:
+	* README:
+	* README:
+		install&others updated
 
 	* configure:
 	* configure.in:
@@ -17,6 +36,12 @@
 	* libltdl/configure.in:
 		only-static link
 		removed extra libtool generation
+
+	* Makefile.am:
+	* Makefile.in:
+	* libltdl/Makefile.am:
+	* libltdl/Makefile.in:
+		'make dist' works
 
 	* parser3mysql.C:
 		name spelling
