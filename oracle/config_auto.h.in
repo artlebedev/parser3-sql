@@ -20,3 +20,10 @@
 
 /* Define if you have the <string.h> header file.  */
 #undef HAVE_STRING_H
+
+/* library has BSD setenv/unsetenv */
+#undef HAVE_SETENV
+
+/* library has POSIX putenv */
+#undef HAVE_PUTENV
+

@@ -1875,14 +1875,100 @@ fi
 done
 
 
+echo $ac_n "checking for BSD setenv/getenv/unsetenv""... $ac_c" 1>&6
+echo "configure:1880: checking for BSD setenv/getenv/unsetenv" >&5
+cat > conftest.$ac_ext <<EOF
+#line 1882 "configure"
+#include "confdefs.h"
+#ifdef HAVE_STDLIB_H
+#	include <stdlib.h>
+#endif
+#ifdef HAVE_STRING_H
+#	include <string.h>
+#endif
+
+int main() {
+#define TEST_NAME "oracle-configure-test-var"
+#define TEST_VALUE "oracle-configure-test-value"
+int result=setenv(TEST_NAME, TEST_VALUE, 1/*overwrite*/);
+char *getenv_value=getenv(TEST_NAME);
+if(!getenv_value)
+	return 1;
+if(strcmp(getenv_value, TEST_VALUE)!=0)
+	return 2;
+unsetenv(TEST_NAME);
+
+; return 0; }
+EOF
+if { (eval echo configure:1904: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+  rm -rf conftest*
+  
+    echo "$ac_t""yes" 1>&6
+	cat >> confdefs.h <<\EOF
+#define HAVE_SETENV 
+EOF
+
+
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  echo "$ac_t""no" 1>&6
+
+    echo $ac_n "checking for POSIX putenv/getenv""... $ac_c" 1>&6
+echo "configure:1920: checking for POSIX putenv/getenv" >&5
+    cat > conftest.$ac_ext <<EOF
+#line 1922 "configure"
+#include "confdefs.h"
+#ifdef HAVE_STDLIB_H
+    #	include <stdlib.h>
+    #endif
+    #ifdef HAVE_STRING_H
+    #	include <string.h>
+    #endif
+    
+int main() {
+#define TEST_NAME "oracle-configure-test-var"
+    #define TEST_VALUE "oracle-configure-test-value"
+    int result=putenv(TEST_NAME"="TEST_VALUE);
+    char *getenv_value=getenv(TEST_NAME);
+    if(!getenv_value)
+    	return 1;
+    if(strcmp(getenv_value, TEST_NAME)!=0)
+    	return 2;
+    
+; return 0; }
+EOF
+if { (eval echo configure:1943: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+  rm -rf conftest*
+  
+        echo "$ac_t""yes" 1>&6
+    	cat >> confdefs.h <<\EOF
+#define HAVE_PUTENV 
+EOF
+
+    
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  echo "$ac_t""no" 1>&6
+        { echo "configure: error: "there must be some function to modify environment"" 1>&2; exit 1; }
+    
+fi
+rm -f conftest*
+
+fi
+rm -f conftest*
+
 
 echo $ac_n "checking for ANSI C header files""... $ac_c" 1>&6
-echo "configure:1881: checking for ANSI C header files" >&5
+echo "configure:1967: checking for ANSI C header files" >&5
 if eval "test \"`echo '$''{'ac_cv_header_stdc'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1886 "configure"
+#line 1972 "configure"
 #include "confdefs.h"
 #include <stdlib.h>
 #include <stdarg.h>
@@ -1890,7 +1976,7 @@ else
 #include <float.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1894: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1980: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -1907,7 +1993,7 @@ rm -f conftest*
 if test $ac_cv_header_stdc = yes; then
   # SunOS 4.x string.h does not declare mem*, contrary to ANSI.
 cat > conftest.$ac_ext <<EOF
-#line 1911 "configure"
+#line 1997 "configure"
 #include "confdefs.h"
 #include <string.h>
 EOF
@@ -1925,7 +2011,7 @@ fi
 if test $ac_cv_header_stdc = yes; then
   # ISC 2.0.2 stdlib.h does not declare free, contrary to ANSI.
 cat > conftest.$ac_ext <<EOF
-#line 1929 "configure"
+#line 2015 "configure"
 #include "confdefs.h"
 #include <stdlib.h>
 EOF
@@ -1946,7 +2032,7 @@ if test "$cross_compiling" = yes; then
   :
 else
   cat > conftest.$ac_ext <<EOF
-#line 1950 "configure"
+#line 2036 "configure"
 #include "confdefs.h"
 #ifdef __cplusplus
 extern "C" void exit(int);
@@ -1960,7 +2046,7 @@ if (XOR (islower (i), ISLOWER (i)) || toupper (i) != TOUPPER (i)) exit(2);
 exit (0); }
 
 EOF
-if { (eval echo configure:1964: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:2050: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   :
 else
@@ -1984,12 +2070,12 @@ EOF
 fi
 
 echo $ac_n "checking for size_t""... $ac_c" 1>&6
-echo "configure:1988: checking for size_t" >&5
+echo "configure:2074: checking for size_t" >&5
 if eval "test \"`echo '$''{'ac_cv_type_size_t'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1993 "configure"
+#line 2079 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #if STDC_HEADERS
