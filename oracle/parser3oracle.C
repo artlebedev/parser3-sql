@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.43 2003/12/22 12:38:50 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.44 2003/12/23 11:52:37 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -166,6 +166,7 @@ static sb4 cbf_get_data(dvoid *ctxp,
 						dvoid **indpp, 
 						ub2 **rcodepp);
 void tolower(char *out, const char *in, size_t size);
+void toupper(char *out, const char *in, size_t size);
 
 static const char *options2env(char *s, OracleSQL_connection_struct::Options* options) {
 	while(s) {
@@ -173,8 +174,10 @@ static const char *options2env(char *s, OracleSQL_connection_struct::Options* op
 			if(*key) {
 				if(char *value=lsplit(key, '=')) {
 					if( strcmp( key, "ClientCharset" ) == 0 ) {
-						if(options)
+						if(options) {
+							toupper(value, value, strlen(value));
 							options->cstrClientCharset = value;
+						}
 						continue;
 					}
 
@@ -1092,6 +1095,11 @@ void tolower(char *out, const char *in, size_t size) {
 	while(size--)
 		*out++=tolower(*in++);
 }
+void toupper(char *out, const char *in, size_t size) {
+	while(size--)
+		*out++=toupper(*in++);
+}
+
 
 extern "C" SQL_Driver *SQL_DRIVER_CREATE() {
 	return OracleSQL_driver=new OracleSQL_Driver();
