@@ -20,9 +20,11 @@ dnl Checks for programs.
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_AWK
-
-AC_LANG_CPLUSPLUS 
 AC_PROG_CXX
+AC_PROG_CC
+
+dnl most tests should be compiled with C compiler [especially qsort test]
+AC_LANG_C 
 
 dnl Enable building of the convenience library
 dnl and set LIBLTDL accordingly
