@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.56 2004/05/19 08:58:27 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.57 2004/05/19 09:32:50 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -139,16 +139,13 @@ struct OracleSQL_query_lobs {
 		} *row;
 		int count;
 	};
-	struct cbf_context_struct {
-		Connection *connection;
-		return_rows *rows;
-	};
 	struct Item {
 		const char *name_ptr; size_t name_size;
 		char *data_ptr; size_t data_size;
 		OCILobLocator *locator;
 		OCIBind *bind;
 		return_rows rows;
+		Connection *connection;
 	} items[MAX_IN_LOBS];
 	int count;
 };
@@ -452,22 +449,23 @@ public:
 				(ub4)OCI_NTV_SYNTAX, (ub4)OCI_DEFAULT));
 			{
 				for(int i=0; i<lobs.count; i++) {
+					OracleSQL_query_lobs::Item &item=lobs.items[i];
 					check(connection, "alloc output var desc", OCIDescriptorAlloc(
-						(dvoid *)connection.envhp, (dvoid **)&lobs.items[i].locator, (ub4)OCI_DTYPE_LOB, 0, 0));
+						(dvoid *)connection.envhp, (dvoid **)&item.locator, (ub4)OCI_DTYPE_LOB, 0, 0));
 
 					check(connection, "bind output", OCIBindByPos(stmthp, 
-						&lobs.items[i].bind, connection.errhp, 
+						&item.bind, connection.errhp, 
 						(ub4)1+i, 
-						(dvoid *)&lobs.items[i].locator, 
-						(sword)sizeof (lobs.items[i].locator), SQLT_CLOB, (dvoid *)0, 
+						(dvoid *)&item.locator, 
+						(sword)sizeof (item.locator), SQLT_CLOB, (dvoid *)0, 
 						(ub2 *)0, (ub2 *)0, (ub4)0, (ub4 *)0, OCI_DATA_AT_EXEC));
 
-					lobs.items[i].rows.count=0;
-					OracleSQL_query_lobs::cbf_context_struct cbf_context={&connection, &lobs.items[i].rows};
+					item.rows.count=0;
+					item.connection=&connection;
 					check(connection, "bind dynamic", OCIBindDynamic(
-						lobs.items[i].bind, connection.errhp, 
-						(dvoid *) &cbf_context, cbf_no_data, 
-						(dvoid *) &cbf_context, cbf_get_data));
+						item.bind, connection.errhp, 
+						(dvoid *) &item, cbf_no_data, 
+						(dvoid *) &item, cbf_get_data));
 				}
 			}
 
@@ -1090,8 +1088,7 @@ static sb4 cbf_get_data(dvoid *ctxp,
 				 ub1 *piecep, 
 				 dvoid **indpp, 
 				 ub2 **rcodepp) {
-	OracleSQL_query_lobs::cbf_context_struct &context=
-		*(OracleSQL_query_lobs::cbf_context_struct *)ctxp;
+	OracleSQL_query_lobs::Item& context=*static_cast<OracleSQL_query_lobs::Item*>(ctxp);
 
 	if(index==0) {
 		static ub4  rows;
@@ -1099,12 +1096,12 @@ static sb4 cbf_get_data(dvoid *ctxp,
 			OracleSQL_driver->OCIAttrGet(
 				(CONST dvoid *) bindp, OCI_HTYPE_BIND, (dvoid *)&rows, 
 				(ub4 *)sizeof(ub2), OCI_ATTR_ROWS_RETURNED, context.connection->errhp))	;
-		context.rows->count=(ub2)rows;
-		context.rows->row=(OracleSQL_query_lobs::return_rows::return_row *)
+		context.rows.count=(ub2)rows;
+		context.rows.row=(OracleSQL_query_lobs::return_rows::return_row *)
 			context.connection->services->malloc_atomic(sizeof(OracleSQL_query_lobs::return_rows::return_row)*rows);
 	}
 
-	OracleSQL_query_lobs::return_rows::return_row &var=context.rows->row[index];
+	OracleSQL_query_lobs::return_rows::return_row &var=context.rows.row[index];
 
 	check(*context.connection, "alloc output var desc dynamic", OracleSQL_driver->OCIDescriptorAlloc(
 		(dvoid *) context.connection->envhp, (dvoid **)&var.locator, 
