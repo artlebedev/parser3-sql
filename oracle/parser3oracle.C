@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.33 2003/08/19 10:33:10 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.34 2003/09/29 06:10:12 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -467,6 +467,7 @@ private: // private funcs
 				o[0]=='/' &&
 				o[1]=='*' && 
 				o[2]=='*') { // name start
+				const char* saved_o=o;
 				o+=3;
 				const char *name_begin=o;
 				while(*o)
@@ -475,6 +476,7 @@ private: // private funcs
 						o[1]=='*' &&
 						o[2]=='/' &&
 						o[3]=='\'') { // name end
+						saved_o=0; // found, marking that
 						const char *name_end=o;
 						o+=4;
 						OracleSQL_query_lobs::Item &item=lobs.items[lobs.count++];
@@ -506,6 +508,10 @@ private: // private funcs
 						break;
 					} else
 						o++; // /**skip**/'xxx'
+				if(saved_o) {
+					o=saved_o;
+					*n++=*o++;
+				}
 			} else
 				*n++=*o++;
 		}

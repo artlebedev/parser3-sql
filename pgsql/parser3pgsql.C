@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.14 2003/09/26 15:37:21 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.15 2003/09/29 06:09:57 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -338,6 +338,7 @@ private: // private funcs
 				o[0]=='/' &&
 				o[1]=='*' && 
 				o[2]=='*') { // name start
+				const char* saved_o=o;
 				o+=3;
 				while(*o)
 					if(
@@ -345,6 +346,7 @@ private: // private funcs
 						o[1]=='*' &&
 						o[2]=='/' &&
 						o[3]=='\'') { // name end
+						saved_o=0; // found, marking that
 						o+=4;
 						Oid oid=lo_creat(conn, INV_READ|INV_WRITE);
 						if(oid==InvalidOid)
@@ -376,6 +378,10 @@ private: // private funcs
 						break;
 					} else
 						o++; // /**skip**/'xxx'
+				if(saved_o) {
+					o=saved_o;
+					*n++=*o++;
+				}
 			} else
 				*n++=*o++;
 		}
