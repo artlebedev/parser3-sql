@@ -122,7 +122,7 @@ SOURCE=.\config_includes.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\pa_sql_driver.h
+SOURCE=..\..\parser3\src\sql\pa_sql_driver.h
 # End Source File
 # End Group
 # Begin Source File
