@@ -1,13 +1,13 @@
 /** @file
 	Parser PgSQL driver.
 
-	Copyright(c) 2001, 2002 ArtLebedev Group(http://www.artlebedev.com)
+	Copyright(c) 2001, 2002 ArtLebedev Group (http://www.artlebedev.com)
 
-	Author: Alexander Petrosyan <paf@design.ru>(http://design.ru/paf)
+	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.5 2002/02/08 07:28:25 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.6 2002/02/08 08:32:50 paf Exp $"; 
 
 #include "config_includes.h"
 

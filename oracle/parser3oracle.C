@@ -1,13 +1,13 @@
 /** @file
 	Parser Oracle driver.
 
-	Copyright(c) 2001, 2002 ArtLebedev Group(http://www.artlebedev.com)
+	Copyright(c) 2001, 2002 ArtLebedev Group (http://www.artlebedev.com)
 
-	Author: Alexander Petrosyan <paf@design.ru>(http://design.ru/paf)
+	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.18 2002/02/08 07:28:09 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.19 2002/02/08 08:32:41 paf Exp $"; 
 
 #include "config_includes.h"
 
