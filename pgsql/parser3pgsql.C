@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.15 2003/09/29 06:09:57 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.16 2004/01/26 15:22:26 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -58,6 +58,12 @@ static char *lsplit(char **string_ref, char delim) {
     return result;
 }
 
+struct Connection {
+	SQL_Driver_services* services;
+
+	PGconn *conn;
+};
+
 /**
 	PgSQL server driver
 */
@@ -75,12 +81,12 @@ public:
 			dlink(dlopen_file_spec):"client library column is empty";
 	}
 
-	#define throwPQerror services._throw(PQerrorMessage(conn))
+	#define throwPQerror connection.services->_throw(PQerrorMessage(connection.conn))
 	#define PQclear_throw(msg) { \
 			PQclear(res); \
-			services._throw(msg); \
+			connection.services->_throw(msg); \
 		}						
-	#define PQclear_throwPQerror PQclear_throw(PQerrorMessage(conn))
+	#define PQclear_throwPQerror PQclear_throw(PQerrorMessage(connection.conn))
 
 	/**	connect
 		@param used_only_in_connect_url
@@ -89,7 +95,7 @@ public:
 	void connect(
 		char *used_only_in_connect_url, 
 		SQL_Driver_services& services, 
-		void **connection ///< output: PGconn *
+		void **connection_ref ///< output: Connection*
 		) {
 		char *user=used_only_in_connect_url;
 		char *host=lsplit(user, '@');
@@ -99,12 +105,15 @@ public:
 
 		char *options=lsplit(db, '?');
 
-		PGconn *conn=PQsetdbLogin(
+		Connection& connection=*(Connection  *)::calloc(sizeof(Connection), 1);
+		*connection_ref=&connection;
+		connection.services=&services;
+		connection.conn=PQsetdbLogin(
 			(host&&strcasecmp(host, "local")==0)?NULL/* local Unix domain socket */:host, port, 
 			NULL, NULL, db, user, pwd);
-		if(!conn)
+		if(!connection.conn)
 			services._throw("PQsetdbLogin failed");
-		if(PQstatus(conn)!=CONNECTION_OK)  
+		if(PQstatus(connection.conn)!=CONNECTION_OK)  
 			throwPQerror;
 
 		char *charset=0;
@@ -131,7 +140,7 @@ public:
 			char statement[MAX_STRING]="set CLIENT_ENCODING="; // win
 			strncat(statement, charset, MAX_STRING);
 			
-			PGresult *res=PQexec(conn, statement);
+			PGresult *res=PQexec(connection.conn, statement);
 			if(!res) 
 				throwPQerror;
 			PQclear(res); // throw out the result [don't need but must call]
@@ -142,43 +151,51 @@ public:
 			char statement[MAX_STRING]="set DATESTYLE="; // ISO,SQL,Postgres,European,NonEuropean=US,German,DEFAULT=ISO
 			strncat(statement, charset, MAX_STRING);
 			
-			PGresult *res=PQexec(conn, statement);
+			PGresult *res=PQexec(connection.conn, statement);
 			if(!res) 
 				throwPQerror;
 			PQclear(res); // throw out the result [don't need but must call]
 		}
 
-		*(PGconn **)connection=conn;
-		begin_transaction(services, conn);
+		begin_transaction(connection);
 	}
-	void disconnect(void *connection) {
-	    PQfinish((PGconn *)connection);
+	void disconnect(void *aconnection) {
+		Connection& connection=*static_cast<Connection*>(aconnection);
+
+	    PQfinish(connection.conn);
+		connection.conn=0;
 	}
-	void commit(SQL_Driver_services& services, void *connection) {
-		PGconn *conn=(PGconn *)connection;
-		if(PGresult *res=PQexec(conn, "COMMIT"))
+	void commit(void *aconnection) {
+		Connection& connection=*static_cast<Connection*>(aconnection);
+
+		if(PGresult *res=PQexec(connection.conn, "COMMIT"))
 			PQclear(res);
 		else
 			throwPQerror;
-		begin_transaction(services, conn);
+		begin_transaction(connection);
 	}
-	void rollback(SQL_Driver_services& services, void *connection) {
-		PGconn *conn=(PGconn *)connection;
-		if(PGresult *res=PQexec(conn, "ROLLBACK"))
+	void rollback(void *aconnection) {
+		Connection& connection=*static_cast<Connection*>(aconnection);
+
+		if(PGresult *res=PQexec(connection.conn, "ROLLBACK"))
 			PQclear(res);
 		else
 			throwPQerror;
-		begin_transaction(services, conn);
+		begin_transaction(connection);
 	}
 
-	bool ping(SQL_Driver_services&, void *connection) {
-		return PQstatus((PGconn *)connection)==CONNECTION_OK;
+	bool ping(void *aconnection) {
+		Connection& connection=*static_cast<Connection*>(aconnection);
+
+		return PQstatus(connection.conn)==CONNECTION_OK;
 	}
 
 	const char* quote(
-		SQL_Driver_services& services, void *connection,
+		void *aconnection,
 		const char *from, unsigned int length) {
-		char *result=(char*)services.malloc_atomic(length*2+1);
+		Connection& connection=*static_cast<Connection*>(aconnection);
+
+		char *result=(char*)connection.services->malloc_atomic(length*2+1);
 		char *to=result;
 		while(length--) {
 			switch(*from) {
@@ -194,15 +211,15 @@ public:
 		*to=0;
 		return result;
 		}
-	void query(
-		SQL_Driver_services& services, void *connection, 
+	void query(void *aconnection, 
 		const char *astatement, unsigned long offset, unsigned long limit,
 		SQL_Driver_query_event_handlers& handlers) {
 //		_asm int 3;
+		Connection& connection=*static_cast<Connection*>(aconnection);
+		SQL_Driver_services& services=*connection.services;
+		PGconn *conn=connection.conn;
 
-		PGconn *conn=(PGconn *)connection;
-
-		const char *statement=preprocess_statement(services, conn,
+		const char *statement=preprocess_statement(connection,
 			astatement, offset, limit);
 
 		PGresult *res=PQexec(conn, statement);
@@ -303,18 +320,20 @@ cleanup:
 
 private: // private funcs
 
-	void begin_transaction(SQL_Driver_services& services, PGconn *conn) {
-		if(PGresult *res=PQexec(conn, "BEGIN"))
+	void begin_transaction(Connection& connection) {
+		if(PGresult *res=PQexec(connection.conn, "BEGIN"))
 			PQclear(res);
 		else
 			throwPQerror;
 	}
 
-	const char *preprocess_statement(SQL_Driver_services& services, PGconn *conn,
+	const char *preprocess_statement(Connection& connection,
 		const char *astatement, unsigned long offset, unsigned long limit) {
+		PGconn *conn=connection.conn;
+
 		size_t statement_size=strlen(astatement);
 
-		char *result=(char *)services.malloc(statement_size
+		char *result=(char *)connection.services->malloc(statement_size
 			+MAX_NUMBER*2+15 // limit # offset #
 			+MAX_STRING // in case of short 'strings'
 			+1);
@@ -360,13 +379,13 @@ private: // private funcs
 								if(escaped) {
 									// write pending, skip "\" or "'"
 									if(!lo_write_ex(conn, fd, start, o-start))
-										services._throw("lo_write could not write all bytes of object (1)");
+										connection.services->_throw("lo_write could not write all bytes of object (1)");
 									start=++o;
 								} else
 									o++;
 							}
 							if(!lo_write_ex(conn, fd, start, o-start))
-								services._throw("lo_write can not write all bytes of object (2)");
+								connection.services->_throw("lo_write can not write all bytes of object (2)");
 							if(lo_close(conn, fd)<0)
 								throwPQerror;
 						} else
