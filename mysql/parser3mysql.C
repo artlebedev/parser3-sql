@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.14 2003/11/10 08:43:18 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.15 2004/01/26 15:03:59 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -47,6 +47,8 @@ static char *lsplit(char **string_ref, char delim) {
 }
 
 struct Connection {
+	SQL_Driver_services *services;
+
 	MYSQL* handle;
 	bool autocommit;
 };
@@ -102,7 +104,9 @@ public:
 
 		char *charset=0;
 
-		Connection& connection=*new Connection;  *connection_ref=&connection;
+		Connection& connection=*(Connection  *)::calloc(sizeof(Connection), 1);
+		*connection_ref=&connection;
+		connection.services=&services;
 	    connection.handle=mysql_init(NULL);
 		connection.autocommit=true;
 
@@ -145,16 +149,16 @@ public:
 			char statement[MAX_STRING]="set CHARACTER SET "; // cp1251_koi8
 			strncat(statement, charset, MAX_STRING);
 			
-			exec(services, connection, statement);
+			exec(connection, statement);
 		}
 
 		if(!connection.autocommit)
-			exec(services, connection, "set autocommit=0");
+			exec(connection, "set autocommit=0");
 	}
 
-	void exec(SQL_Driver_services& services, Connection& connection, const char* statement) {
+	void exec(Connection& connection, const char* statement) {
 		if(mysql_query(connection.handle, statement)) 
-			services._throw(mysql_error(connection.handle));
+			connection.services->_throw(mysql_error(connection.handle));
 		(*mysql_store_result)(connection.handle); // throw out the result [don't need but must call]
 	}
 
@@ -163,43 +167,43 @@ public:
 
 		mysql_close(connection.handle);
 	}
-	void commit(SQL_Driver_services& services, void *aconnection) {
+	void commit(void *aconnection) {
 		Connection& connection=*static_cast<Connection*>(aconnection);
 
 		if(!connection.autocommit)
-			exec(services, connection, "commit");
+			exec(connection, "commit");
 	}
-	void rollback(SQL_Driver_services& services, void *aconnection) {
+	void rollback(void *aconnection) {
 		Connection& connection=*static_cast<Connection*>(aconnection);
 
 		if(!connection.autocommit)
-			exec(services, connection, "rollback");
+			exec(connection, "rollback");
 	}
 
-	bool ping(SQL_Driver_services&, void *aconnection) {
+	bool ping(void *aconnection) {
 		Connection& connection=*static_cast<Connection*>(aconnection);
 
 		return mysql_ping(connection.handle)==0;
 	}
 
-	const char* quote(
-		SQL_Driver_services& services, void *,
-		const char *from, unsigned int length) {
+	const char* quote(void *aconnection, const char *from, unsigned int length) {
+		Connection& connection=*static_cast<Connection*>(aconnection);
 		/*
 			3.23.22b
 			You must allocate the to buffer to be at least length*2+1 bytes long. 
 			(In the worse case, each character may need to be encoded as using two bytes, 
 			and you need room for the terminating null byte.)
 		*/
-		char *result=(char*)services.malloc_atomic(length*2+1);
+		char *result=(char*)connection.services->malloc_atomic(length*2+1);
 		mysql_escape_string(result, from, length);
 		return result;
 	}
 	void query(
-		SQL_Driver_services& services, void *aconnection, 
+		void *aconnection, 
 		const char *astatement, unsigned long offset, unsigned long limit,
 		SQL_Driver_query_event_handlers& handlers) {
 		Connection& connection=*static_cast<Connection*>(aconnection);
+		SQL_Driver_services& services=*connection.services;
 		MYSQL_RES *res=NULL;
 
 		const char *statement;
