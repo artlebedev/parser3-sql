@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.46 2003/12/24 12:03:32 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.47 2003/12/24 12:29:56 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -348,6 +348,15 @@ public:
 	}
 	void disconnect(void *connection) {
 	    OracleSQL_connection_struct &cs=*(OracleSQL_connection_struct *)connection;
+
+		// free fetch buffers
+		for(int i=0; i<MAX_COLS; i++) {
+			if(void* fetch_buffer=cs.fetch_buffers[i])
+				::free(fetch_buffer);
+			else
+				break;
+		}			
+
 		// Terminate a user session
 		OCISessionEnd(
 			cs.svchp, cs.errhp, cs.usrhp, (ub4)OCI_DEFAULT);
@@ -732,7 +741,7 @@ private: // private funcs
 					char*& buf=cs.fetch_buffers[column_count-1];
 					ptr=buf; // get cached buffer
 					if(!ptr) // allocate if needed, caching it
-						ptr=buf=(char *)services.malloc_atomic(MAX_OUT_STRING_LENGTH+1/*terminator*/);
+						ptr=buf=(char *)::/*see disconnect*/malloc(MAX_OUT_STRING_LENGTH+1/*terminator*/);
 					col.str=(char*)ptr;
 					size=MAX_OUT_STRING_LENGTH;
 					break;
