@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.44 2003/12/23 11:52:37 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.45 2003/12/24 08:39:09 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -36,6 +36,12 @@ static const char *RCSId="$Id: parser3oracle.C,v 1.44 2003/12/23 11:52:37 paf Ex
 #ifndef max
 inline int max(int a, int b) { return a>b?a:b; }
 inline int min(int a, int b){ return a<b?a:b; }
+#endif
+
+#if _MSC_VER
+// interaction between '_setjmp' and C++ object destruction is non-portable
+// but we forced to do that under HPUX
+#pragma warning(disable:4611)   
 #endif
 
 /// @todo small memory leaks here
@@ -379,7 +385,7 @@ public:
 		/*check(cs, "rollback", */OCITransRollback(cs.svchp, cs.errhp, 0)/*)*/;
 	}
 
-	bool ping(void *connection) {
+	bool ping(void* /*connection*/) {
 		// maybe OCIServerVersion?
 		// select 0 from dual
 		return true;
@@ -454,7 +460,7 @@ public:
 				}
 			}
 
-			execute_prepared(services, cs, 
+			execute_prepared(cs, 
 				statement, stmthp, lobs, 
 				offset, limit, handlers);
 		}
@@ -571,7 +577,7 @@ private: // private funcs
 	}
 
 	void execute_prepared(
-		SQL_Driver_services& services, OracleSQL_connection_struct &cs, 
+		OracleSQL_connection_struct &cs, 
 		const char *statement, OCIStmt *stmthp, OracleSQL_query_lobs &lobs, 
 		unsigned long offset, unsigned long limit, 
 		SQL_Driver_query_event_handlers& handlers) {
@@ -754,13 +760,13 @@ private: // private funcs
 							case SQLT_CLOB: 
 								{
 									ub4   offset=1;
-									ub4   loblen=0;
 									OCILobLocator *var=(OCILobLocator *)cols[i].var;
 									size_t read_size=0;
-									strm=(char*)services.malloc_atomic(1); // set type of memory block
+									strm=(char*)services.malloc_atomic(1/*for terminator*/); // set type of memory block
 									do {
 										char buf[MAX_STRING*10];
-										ub4   amtp=sizeof(buf)-1;
+										ub4   amtp=0/*to be read in stream mode*/;
+										// http://i/docs/oracle/server.804/a58234/oci_func.htm#427818
 										status=OCILobRead(cs.svchp, cs.errhp, 
 											var, &amtp, offset, (dvoid *)buf, 
 											sizeof(buf), 
@@ -769,7 +775,7 @@ private: // private funcs
                                         if(status!=OCI_SUCCESS && status!=OCI_NEED_DATA)
 											check(cs, "lobread", status);
 
-										strm=(char*)services.realloc(strm, read_size+amtp+1/*for zero termintator*/);
+										strm=(char*)services.realloc(strm, read_size+amtp+1/*for termintator*/);
 										memcpy(strm+read_size, buf, amtp);
 										read_size+=amtp;
 										offset+=amtp;
@@ -979,7 +985,6 @@ void check(OracleSQL_connection_struct &cs, const char *step, sword status) {
 	const char *msg;
 	char reason[MAX_STRING/2];
 
-	const char *prefix="ERROR";
 	switch (status) {
 	case OCI_SUCCESS: // hurrah
 	case OCI_SUCCESS_WITH_INFO:		// ignoring. example: count(column) when column contains NULLs, 
@@ -987,24 +992,25 @@ void check(OracleSQL_connection_struct &cs, const char *step, sword status) {
 		return;
 	case OCI_ERROR:
 		{
-		sb4 errcode;
-		if(OracleSQL_driver->OCIErrorGet((dvoid *)cs.errhp, (ub4)1, (text *)NULL, &errcode, 
-			(text *)reason, (ub4)sizeof(reason), OCI_HTYPE_ERROR)==OCI_SUCCESS)
-			msg=reason;
+			sb4 errcode;
+			if(OracleSQL_driver->OCIErrorGet((dvoid *)cs.errhp, (ub4)1, (text *)NULL, &errcode, 
+				(text *)reason, (ub4)sizeof(reason), OCI_HTYPE_ERROR)==OCI_SUCCESS) {
+				msg=reason;
 
-			// transcode to $request:charset from connect-string?client_charset
-			if(const char* cstrClientCharset=cs.options.cstrClientCharset)
-				if(msg) {
-					if(size_t msg_length=strlen(msg)) {
-						cs.services->transcode(msg, msg_length,
-							msg, msg_length,
-							cstrClientCharset,
-							cs.services->request_charset());
+				// transcode to $request:charset from connect-string?client_charset
+				if(const char* cstrClientCharset=cs.options.cstrClientCharset) {
+					if(msg) {
+						if(size_t msg_length=strlen(msg)) {
+							cs.services->transcode(msg, msg_length,
+								msg, msg_length,
+								cstrClientCharset,
+								cs.services->request_charset());
+						}
 					}
 				}
-		else
-			msg="[can not get error description]";
-		break;
+			} else
+				msg="[can not get error description]";
+			break;
 		}
 	case OCI_NEED_DATA:
 		msg="NEED_DATA"; break;
@@ -1034,9 +1040,9 @@ void check(OracleSQL_connection_struct &cs, bool error) {
 /* Intbind callback that does not do any data input.                 */
 /* ----------------------------------------------------------------- */
 static sb4 cbf_no_data(
-				dvoid *ctxp, 
-				OCIBind *bindp, 
-				ub4 iter, ub4 index, 
+				dvoid* /*ctxp*/, 
+				OCIBind* /*bindp*/, 
+				ub4 /*iter*/, ub4 /*index*/, 
 				dvoid **bufpp, 
 				ub4 *alenpp, 
 				ub1 *piecep, 
@@ -1055,7 +1061,7 @@ static sb4 cbf_no_data(
 /* ----------------------------------------------------------------- */
 static sb4 cbf_get_data(dvoid *ctxp, 
 				 OCIBind *bindp, 
-				 ub4 iter, ub4 index, 
+				 ub4 /*iter*/, ub4 index, 
 				 dvoid **bufpp, 
 				 ub4 **alenp, 
 				 ub1 *piecep, 
@@ -1093,11 +1099,11 @@ static sb4 cbf_get_data(dvoid *ctxp,
 
 void tolower(char *out, const char *in, size_t size) {
 	while(size--)
-		*out++=tolower(*in++);
+		*out++=(char)tolower(*in++);
 }
 void toupper(char *out, const char *in, size_t size) {
 	while(size--)
-		*out++=toupper(*in++);
+		*out++=(char)toupper(*in++);
 }
 
 
