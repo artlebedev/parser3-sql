@@ -1712,7 +1712,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=parser3oracle
- VERSION=3.0.HEAD
+ VERSION=3.0.8
 
 
 # Some tools Automake needs.

@@ -1,3 +1,15 @@
+2003-07-22  paf
+	* parser3odbc.C [template_gc] 1.13.6.2:
+		updated to interface v8
+
+2003-03-26  paf
+	* parser3odbc.C [template_gc] 1.13.6.1:
+		mistakenly patched HEAD branch. copying changes to template_gc one
+
+2003-01-21  paf
+	* parser3odbc.C 1.13:
+		2002->2003
+
 2002-12-09  paf
 	* parser3odbc.C 1.12:
 		changed exception handling mech in sql handlers #2
