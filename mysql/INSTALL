@@ -1,3 +1,8 @@
+     At that point you may have to rerun ldconfig or similar utility to
+     update your list of installed shared libs.
+
+
+
 Basic Installation
 ==================
 

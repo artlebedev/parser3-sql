@@ -1,11 +1,11 @@
 /** @file
 	Parser PgSQL driver: Configure file for autoconf-disabled platforms.
 
-	Copyright (c) 2001 ArtLebedev Group (http://www.artlebedev.com)
+	Copyright (c) 2001, 2002 ArtLebedev Group (http://www.artlebedev.com)
 
 	Author: Alexander Petrosyan <paf@design.ru> (http://design.ru/paf)
 
-	$Id: config_fixed.h,v 1.3 2001/11/10 16:11:24 paf Exp $
+	$Id: config_fixed.h,v 1.4 2002/02/08 07:28:09 paf Exp $
 
 
 	tested only with MS Visual C++ V6
