@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.7 2002/04/25 17:51:38 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.8 2002/05/15 10:21:46 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -148,7 +148,18 @@ public:
 			statement++;
 		
 		TRY {
-			if(strncasecmp(statement, "select", 6)==0) {
+			// mk:@MSITStore:C:\Program%20Files\Microsoft%20SQL%20Server\80\Tools\Books\adosql.chm::/adoprg02_4g33.htm
+			// Server cursors are created only for statements that begin with: 
+			// SELECT
+			// EXEC[ute] procedure_name
+			// call procedure_name
+			// mk:@MSITStore:C:\Program%20Files\Microsoft%20SQL%20Server\80\Tools\Books\odbcsql.chm::/od_6_035_5dnp.htm
+			// The ODBC CALL escape sequence for calling a procedure is:
+			// {[?=]call procedure_name[([parameter][,[parameter]]...)]}
+			if(strncasecmp(statement, "select", 6)==0
+				|| strncasecmp(statement, "EXEC", 4)==0
+				|| strncasecmp(statement, "call", 4)==0
+				|| strncasecmp(statement, "{", 1)==0) {
 				CRecordset rs(db); 
 				rs.Open(
 					CRecordset::forwardOnly, 
