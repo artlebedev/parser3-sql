@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.7 2002/03/22 15:50:25 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.8 2002/03/22 16:19:13 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -51,6 +51,13 @@ static char *lsplit(char *string, char delim) {
     return 0;
 }
 
+static char *lsplit(char **string_ref, char delim) {
+    char *result=*string_ref;
+	char *next=lsplit(*string_ref, delim);
+    *string_ref=next;
+    return result;
+}
+
 /**
 	PgSQL server driver
 */
@@ -69,6 +76,11 @@ public:
 	}
 
 	#define throwPQerror services._throw(PQerrorMessage(conn))
+	#define PQclear_throw(msg) { \
+			PQclear(res); \
+			services._throw(msg); \
+		}						
+	#define PQclear_throwPQerror PQclear_throw(PQerrorMessage(conn))
 
 	/**	connect
 		@param used_only_in_connect_url
@@ -85,6 +97,8 @@ public:
 		char *pwd=lsplit(user, ':');
 		char *port=lsplit(host, ':');
 
+		char *options=lsplit(db, '?');
+
 		PGconn *conn=PQsetdbLogin(
 			(host&&strcasecmp(host, "local")==0)?NULL/* local Unix domain socket */:host, port, 
 			NULL, NULL, db, user, pwd);
@@ -92,6 +106,47 @@ public:
 			services._throw("PQsetdbLogin failed");
 		if(PQstatus(conn)!=CONNECTION_OK)  
 			throwPQerror;
+
+		char *charset=0;
+		char *datestyle=0;
+
+		while(options) {
+			if(char *key=lsplit(&options, '&')) {
+				if(*key) {
+					if(char *value=lsplit(key, '=')) {
+						if(strcasecmp(key, "charset")==0) {
+							charset=value;
+						} else if(strcasecmp(key, "datestyle")==0) {
+							datestyle=value;
+						} else
+							services._throw("unknown connect option" /*key*/);
+					} else 
+						services._throw("connect option without =value" /*key*/);
+				}
+			}
+		}
+
+		if(charset) {
+			// set CLIENT_ENCODING
+			char statement[MAX_STRING]="set CLIENT_ENCODING="; // win
+			strncat(statement, charset, MAX_STRING);
+			
+			PGresult *res=PQexec(conn, statement);
+			if(!res) 
+				throwPQerror;
+			PQclear(res); // throw out the result [don't need but must call]
+		}
+
+		if(datestyle) {
+			// set DATESTYLE
+			char statement[MAX_STRING]="set DATESTYLE="; // ISO,SQL,Postgres,European,NonEuropean=US,German,DEFAULT=ISO
+			strncat(statement, charset, MAX_STRING);
+			
+			PGresult *res=PQexec(conn, statement);
+			if(!res) 
+				throwPQerror;
+			PQclear(res); // throw out the result [don't need but must call]
+		}
 
 		*(PGconn **)connection=conn;
 		begin_transaction(services, conn);
@@ -147,11 +202,6 @@ public:
 //		_asm int 3;
 
 		PGconn *conn=(PGconn *)connection;
-		#define PQclear_throw(msg) { \
-				PQclear(res); \
-				services._throw(msg); \
-			}						
-		#define PQclear_throwPQerror PQclear_throw(PQerrorMessage(conn))
 
 		const char *statement=preprocess_statement(services, conn,
 			astatement, offset, limit);
