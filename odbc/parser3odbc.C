@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.9 2002/05/15 14:06:07 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.10 2002/10/22 10:12:46 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -20,10 +20,14 @@ static const char *RCSId="$Id: parser3odbc.C,v 1.9 2002/05/15 14:06:07 paf Exp $
 
 #include <AFXDB.H>
 
+// defines
+
+#define MAX_COLS 500
+
 #define MAX_STRING 0x400
 #define MAX_NUMBER 40
 
-// MSSQL2000
+// new in MSSQL2000, no MFC constants
 #ifndef SQL_NVARCHAR
 #define SQL_NVARCHAR (-9)
 #endif
@@ -184,10 +188,15 @@ public:
 				if(!column_count)
 					services._throw("result contains no columns");
 
+				SWORD column_types[MAX_COLS];
+				if(column_count>MAX_COLS)
+					column_count=MAX_COLS;
+
 				for(int i=0; i<column_count; i++){
 					CString string;
 					CODBCFieldInfo fieldinfo;
 					rs.GetODBCFieldInfo(i, fieldinfo);
+					column_types[i]=fieldinfo.m_nSQLType;
 					size_t size=fieldinfo.m_strName.GetLength();
 					void *ptr=0;
 					if(size) {
@@ -200,32 +209,26 @@ public:
 				handlers.before_rows();
 
 				unsigned long row=0;
+				CDBVariant v;
+				CString s;
 				while(!rs.IsEOF() && (!limit||(row<offset+limit))) {
 					if(row>=offset) {
 						handlers.add_row();
-						for(int i=0; i<column_count; i++) 						{
-							CODBCFieldInfo fieldinfo;
-							rs.GetODBCFieldInfo(i, fieldinfo);
+						for(int i=0; i<column_count; i++) {
 							size_t size;
 							void *ptr;
-							switch(fieldinfo.m_nSQLType) {
+							switch(column_types[i]) {
 							//case xBOOL:
 //							case SQL_INTEGER: // serg@design.ru did that in parser2. test first!
 							//case SQL_DATETIME:
 							case SQL_SMALLDATETIME:
-								{
-									CDBVariant v;
-									rs.GetFieldValue(i, v);
-									getFromDBVariant(services, v, ptr, size);
-									break;
-								}
+								rs.GetFieldValue(i, v);
+								getFromDBVariant(services, v, ptr, size);
+								break;
 							default:
-								{
-									CString s;
-									rs.GetFieldValue(i, s);
-									getFromString(services, s, ptr, size);
-									break;
-								}
+								rs.GetFieldValue(i, s);
+								getFromString(services, s, ptr, size);
+								break;
 							}
 							handlers.add_row_cell(ptr, size);
 						}
