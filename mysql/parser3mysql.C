@@ -6,8 +6,11 @@
 	Author: Alexander Petrosyan <paf@design.ru>(http://design.ru/paf)
 
 	2001.07.30 using MySQL 3.23.22b
+
+	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
+		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.2 2001/10/02 14:52:10 parser Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.3 2001/11/08 10:21:23 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -211,22 +214,20 @@ public:
 
 		handlers.before_rows();
 		
-		if(unsigned long row_count=(unsigned long)mysql_num_rows(res))
-			for(unsigned long r=0; r<row_count; r++) 
-				if(MYSQL_ROW mysql_row=mysql_fetch_row(res)) { // never false..
-					handlers.add_row();
-					unsigned long *lengths=mysql_fetch_lengths(res);
-					for(int i=0; i<column_count; i++){
-						size_t size=(size_t)lengths[i];
-						void *ptr;
-						if(size) {
-							ptr=services.malloc(size);
-							memcpy(ptr, mysql_row[i], size);
-						} else
-							ptr=0;
-						handlers.add_row_cell(ptr, size);
-					}
-				}
+  		while(MYSQL_ROW mysql_row=mysql_fetch_row(res)) {
+  			handlers.add_row();
+  			unsigned long *lengths=mysql_fetch_lengths(res);
+  			for(int i=0; i<column_count; i++){
+  				size_t size=(size_t)lengths[i];
+  				void *ptr;
+  				if(size) {
+  					ptr=services.malloc(size);
+  					memcpy(ptr, mysql_row[i], size);
+  				} else
+  					ptr=0;
+  				handlers.add_row_cell(ptr, size);
+  			}
+  		}
 
 		mysql_free_result(res);
 	}
@@ -267,9 +268,6 @@ private: // mysql client library funcs
 	
 	typedef MYSQL_FIELD*	(STDCALL *t_mysql_fetch_field)(MYSQL_RES *result); t_mysql_fetch_field mysql_fetch_field;
 	
-	typedef my_ulonglong (STDCALL *t_mysql_num_rows)(MYSQL_RES *); t_mysql_num_rows mysql_num_rows;
-	static my_ulonglong STDCALL subst_mysql_num_rows(MYSQL_RES *res) { return res->row_count; }
-	
 	typedef unsigned int (STDCALL *t_mysql_num_fields)(MYSQL_RES *); t_mysql_num_fields mysql_num_fields;
 	static unsigned int STDCALL subst_mysql_num_fields(MYSQL_RES *res) { return res->field_count; }
 
@@ -304,7 +302,6 @@ private: // mysql client library funcs linking
 		DLINK(mysql_fetch_lengths);
 		DLINK(mysql_fetch_row);
 		DLINK(mysql_fetch_field);
-		SLINK(mysql_num_rows);
 		SLINK(mysql_num_fields);
 		SLINK(mysql_field_count);
 		return 0;
