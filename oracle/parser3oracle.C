@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.23 2002/10/31 10:14:11 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.24 2002/12/09 07:56:27 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -68,18 +68,17 @@ static int pa_setenv(const char *name, const char *value, bool do_append) {
 #else 
 	//#ifdef HAVE_SETENV
 	if(value) {
-		char *buf;
 		if(prev_value) {
 			// MEM_LEAK_HERE
-			buf=(char *)::malloc(strlen(prev_value)
+			char *buf=(char *)::malloc(strlen(prev_value)
 				+strlen(value)
 				+1);
 			strcpy(buf, prev_value);
 			strcat(buf, value);
-		} else
-			buf=value;
+			value=buf;
+		}
 
-		return setenv(name, buf, 1/*overwrite*/); 
+		return setenv(name, value, 1/*overwrite*/); 
 	} else {
 		unsetenv(name);
 		return 0;
