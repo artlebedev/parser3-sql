@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.13 2003/01/21 15:51:29 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.14 2003/07/24 10:09:40 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -126,20 +126,19 @@ public:
 		return true;
 	}
 
-	unsigned int quote(
-		SQL_Driver_services&, void *connection,
-		char *to, const char *from, unsigned int length) {
-		if(to) { // store mode
-			unsigned int result=length;
-			while(length--) {
-				if(*from=='\'') { // ' -> ''
-					*to++='\''; result++;
-				}
-				*to++=*from++;
+	const char* quote(
+		SQL_Driver_services& services, void *connection,
+		const char *from, unsigned int length) {
+		char *result=(char*)services.malloc_atomic(length*2+1);
+		char *to=result;
+		while(length--) {
+			if(*from=='\'') { // ' -> ''
+				*to++='\''; result++;
 			}
-			return result;
-		} else // estimate mode
-			return length*2;
+			*to++=*from++;
+		}
+		*to=0;
+		return result;
 	}
 	void query(
 		SQL_Driver_services& services, void *connection, 
@@ -201,12 +200,12 @@ public:
 					rs.GetODBCFieldInfo(i, fieldinfo);
 					column_types[i]=fieldinfo.m_nSQLType;
 					size_t size=fieldinfo.m_strName.GetLength();
-					void *ptr=0;
+					char *str=0;
 					if(size) {
-						ptr=services.malloc(size);
-						memcpy(ptr, (char *)LPCTSTR(fieldinfo.m_strName), size);
+						str=(char*)services.malloc_atomic(size+1);
+						memcpy(str, (char *)LPCTSTR(fieldinfo.m_strName), size+1);
 					}
-					CHECK(handlers.add_column(sql_error, ptr, size));
+					CHECK(handlers.add_column(sql_error, str, size));
 				}
 
 				CHECK(handlers.before_rows(sql_error));
@@ -219,24 +218,24 @@ public:
 						CHECK(handlers.add_row(sql_error));
 						for(int i=0; i<column_count; i++) {
 							size_t size;
-							void *ptr;
+							char* str;
 							switch(column_types[i]) {
 							//case xBOOL:
 //							case SQL_INTEGER: // serg@design.ru did that in parser2. test first!
-							//case SQL_DATETIME:
-							case SQL_BINARY:
+							//case SQL_DATETIME: << default: handles that more properly (?)
+							case SQL_BINARY: 
 							case SQL_VARBINARY:
 							case SQL_LONGVARBINARY:
 							case SQL_SMALLDATETIME:
 								rs.GetFieldValue(i, v);
-								getFromDBVariant(services, v, ptr, size);
+								getFromDBVariant(services, v, str, size);
 								break;
 							default:
 								rs.GetFieldValue(i, s);
-								getFromString(services, s, ptr, size);
+								getFromString(services, s, str, size);
 								break;
 							}
-							CHECK(handlers.add_row_cell(sql_error, ptr, size));
+							CHECK(handlers.add_row_cell(sql_error, str, size));
 						}
 					}
 					rs.MoveNext();  row++;
@@ -251,10 +250,21 @@ public:
 		} END_CATCH_ALL
 	}
 
-	void getFromDBVariant(SQL_Driver_services& services, CDBVariant& v, void *& ptr, size_t& size) {
+	void getFromDBVariant(SQL_Driver_services& services, CDBVariant& v, char*& str, size_t& size) {
 		switch(v.m_dwType) {
+		case DBVT_BINARY: /* << would cause problems with current String implementation
+				  now falling into NULL case, effectively ignoring such columns [not failing]
+			{
+				if(size=v.m_pbinary->m_dwDataLength) {
+					str=services.malloc_atomic(size+1);
+					memcpy(ptr, ::GlobalLock(v.m_pbinary->m_hData), size);
+					::GlobalUnlock(v.m_pbinary->m_hData);
+				} else 
+					str=0;
+				break;
+			}*/ 
 		case DBVT_NULL: // No union member is valid for access. 
-			ptr=0;
+			str=0;
 			size=0;
 			break;
 /*		case DBVT_BOOL:
@@ -272,7 +282,7 @@ public:
 			{
 				char local_buf[MAX_NUMBER];
 				size=snprintf(local_buf, MAX_NUMBER, "%ld", v.m_lVal);
-				ptr=services.malloc(size);
+				ptr=services.malloc_atomic(size);
 				memcpy(ptr, local_buf, size);
 				break;
 			}*/
@@ -280,17 +290,7 @@ public:
 			m_fltVal 
 			break;
 	case DBVT_DOUBLE m_dblVal 
-	case DBVT_STRING m_pstring */ 
-		case DBVT_BINARY:
-			{
-				if(size=v.m_pbinary->m_dwDataLength) {
-					ptr=services.malloc(size);
-					memcpy(ptr, ::GlobalLock(v.m_pbinary->m_hData), size);
-					::GlobalUnlock(v.m_pbinary->m_hData);
-				} else 
-					ptr=0;
-				break;
-			}
+	case DBVT_STRING m_pstring */
 		case DBVT_DATE:
 			{
 				char local_buf[MAX_STRING];
@@ -303,8 +303,8 @@ public:
 					v.m_pdate->minute,
 					v.m_pdate->second,
 					v.m_pdate->fraction);
-				ptr=services.malloc(size);
-				memcpy(ptr, local_buf, size);
+				str=(char*)services.malloc_atomic(size+1);
+				memcpy(str, local_buf, size+1);
 				break;
 			}
 		default:
@@ -315,15 +315,15 @@ public:
 		}
 	}
 
-	void getFromString(SQL_Driver_services& services, CString& s, void *& ptr, size_t& size) {
+	void getFromString(SQL_Driver_services& services, CString& s, char*& astr, size_t& size) {
 		if(s.IsEmpty()) {
-			ptr=0;
+			astr=0;
 			size=0;
 		} else {
 			const char *cstr=LPCTSTR(s);
 			size=strlen(cstr); //string.GetLength() works wrong with non-string types: 
-			ptr=services.malloc(size);
-			memcpy(ptr, cstr, size);
+			astr=(char*)services.malloc_atomic(size+1);
+			memcpy(astr, cstr, size+1);
 		}
 	}
 

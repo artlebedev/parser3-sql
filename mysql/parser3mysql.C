@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.12 2003/01/31 09:33:15 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.13 2003/07/24 10:09:40 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -151,19 +151,18 @@ public:
 		return mysql_ping((MYSQL *)connection)==0;
 	}
 
-	unsigned int quote(
-		SQL_Driver_services&, void *connection,
-		char *to, const char *from, unsigned int length) {
+	const char* quote(
+		SQL_Driver_services& services, void *connection,
+		const char *from, unsigned int length) {
 		/*
 			3.23.22b
 			You must allocate the to buffer to be at least length*2+1 bytes long. 
 			(In the worse case, each character may need to be encoded as using two bytes, 
 			and you need room for the terminating null byte.)
 		*/
-		if(to) // store mode
-			return mysql_escape_string(to, from, length);
-		else // estimate mode
-			return length*2+1;
+		char *result=(char*)services.malloc_atomic(length*2+1);
+		mysql_escape_string(result, from, length);
+		return result;
 	}
 	void query(
 		SQL_Driver_services& services, void *connection, 
@@ -176,7 +175,7 @@ public:
 		const char *statement;
 		if(offset || limit) {
 			size_t statement_size=strlen(astatement);
-			char *statement_limited=(char *)services.malloc(
+			char *statement_limited=(char *)services.malloc_atomic(
 				statement_size+MAX_NUMBER*2+8/* limit #,#*/+1);
 			char *cur=statement_limited;
 			memcpy(cur, astatement, statement_size); cur+=statement_size;
@@ -215,10 +214,10 @@ public:
 
 		for(int i=0; i<column_count; i++){
 			if(MYSQL_FIELD *field=mysql_fetch_field(res)) {
-			    size_t size=strlen(field->name);
-			    void *ptr=services.malloc(size);
-			    memcpy(ptr, field->name, size);
-			    CHECK(handlers.add_column(sql_error, ptr, size));
+			    size_t length=strlen(field->name);
+			    char* str=(char*)services.malloc_atomic(length+1);
+			    memcpy(str, field->name, length+1);
+			    CHECK(handlers.add_column(sql_error, str, length));
 			} else {
 			    // seen some broken client, 
 			    // which reported "44" for column count of response to "select 2+2"
@@ -233,14 +232,15 @@ public:
   			CHECK(handlers.add_row(sql_error));
   			unsigned long *lengths=mysql_fetch_lengths(res);
   			for(int i=0; i<column_count; i++){
-  				size_t size=(size_t)lengths[i];
-  				void *ptr;
-  				if(size) {
-  					ptr=services.malloc(size);
-  					memcpy(ptr, mysql_row[i], size);
+  				size_t length=(size_t)lengths[i];
+  				char* str;
+  				if(length) {
+  					str=(char*)services.malloc_atomic(length+1);
+  					memcpy(str, mysql_row[i], length);
+					str[length]=0;
   				} else
-  					ptr=0;
-  				CHECK(handlers.add_row_cell(sql_error, ptr, size));
+  					str=0;
+  				CHECK(handlers.add_row_cell(sql_error, str, length));
   			}
   		}
 cleanup:

@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.12 2003/01/21 15:51:30 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.13 2003/07/24 10:09:40 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -175,26 +175,25 @@ public:
 		return PQstatus((PGconn *)connection)==CONNECTION_OK;
 	}
 
-	unsigned int quote(
-		SQL_Driver_services&, void *connection,
-		char *to, const char *from, unsigned int length) {
-		if(to) { // store mode
-			unsigned int result=length;
-			while(length--) {
-				switch(*from) {
-				case '\'': // "'" -> "''"
-					*to++='\''; result++;
-					break;
-				case '\\': // "\" -> "\\"
-					*to++='\\'; result++;
-					break;
-				}
-				*to++=*from++;
+	const char* quote(
+		SQL_Driver_services& services, void *connection,
+		const char *from, unsigned int length) {
+		char *result=(char*)services.malloc_atomic(length*2+1);
+		char *to=result;
+		while(length--) {
+			switch(*from) {
+			case '\'': // "'" -> "''"
+				*to++='\''; result++;
+				break;
+			case '\\': // "\" -> "\\"
+				*to++='\\'; result++;
+				break;
 			}
-			return result;
-		} else // estimate mode
-			return length*2;
-	}
+			*to++=*from++;
+		}
+		*to=0;
+		return result;
+		}
 	void query(
 		SQL_Driver_services& services, void *connection, 
 		const char *astatement, unsigned long offset, unsigned long limit,
@@ -240,9 +239,9 @@ public:
 		for(int i=0; i<column_count; i++){
 			char *name=PQfname(res, i);
 			size_t size=strlen(name);
-			void *ptr=services.malloc(size);
-			memcpy(ptr, name, size);
-			CHECK(handlers.add_column(sql_error, ptr, size));
+			char* str=(char*)services.malloc(size+1);
+			memcpy(str, name, size+1);
+			CHECK(handlers.add_column(sql_error, str, size));
 		}
 
 		CHECK(handlers.before_rows(sql_error));
@@ -253,7 +252,7 @@ public:
 				for(int i=0; i<column_count; i++){
 					const char *cell=PQgetvalue(res, r, i);
 					size_t size;
-					void *ptr;
+					char* str;
 					if(PQftype(res, i)==OIDOID) {
 						// ObjectID column, read object bytes
 
@@ -274,11 +273,12 @@ public:
 							size=(size_t)size_tell;
 							if(size) {
 								// read 
-								ptr=services.malloc(size);
-								if(!lo_read_ex(conn, fd, (const char *)ptr, size_tell))
+								str=(char*)services.malloc(size+1);
+								if(!lo_read_ex(conn, fd, str, size_tell))
 									PQclear_throw("lo_read can not read all bytes of object");
+								str[size]=0;
 							} else
-								ptr=0;
+								str=0;
 							if(lo_close(conn, fd)<0)
 								PQclear_throwPQerror;
 						} else
@@ -287,12 +287,12 @@ public:
 						// normal column, read it normally
 						size=(size_t)PQgetlength(res, r, i);
 						if(size) {
-							ptr=services.malloc(size);
-							memcpy(ptr, cell, size);
+							str=(char*)services.malloc(size+1);
+							memcpy(str, cell, size+1);
 						} else
-							ptr=0;
+							str=0;
 					}
-					CHECK(handlers.add_row_cell(sql_error, ptr, size));
+					CHECK(handlers.add_row_cell(sql_error, str, size));
 				}
 			}
 cleanup:

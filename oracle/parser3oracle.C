@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.31 2003/06/17 14:27:36 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.32 2003/07/24 10:09:40 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -38,7 +38,7 @@ inline int max(int a, int b) { return a>b?a:b; }
 inline int min(int a, int b){ return a<b?a:b; }
 #endif
 
-/// @test setenv version memory. maybe key/value needs ::malloc?
+/// @test setenv version memory. maybe key/value needs ::malloc_atomic?
 static int pa_setenv(const char *name, const char *value, bool do_append) {
 	const char *prev_value=0;
 	if(do_append)
@@ -70,7 +70,7 @@ static int pa_setenv(const char *name, const char *value, bool do_append) {
 	if(value) {
 		if(prev_value) {
 			// MEM_LEAK_HERE
-			char *buf=(char *)::malloc(strlen(prev_value)
+			char *buf=(char *)::malloc_atomic(strlen(prev_value)
 				+strlen(value)
 				+1);
 			strcpy(buf, prev_value);
@@ -160,7 +160,6 @@ struct OracleSQL_query_lobs {
 		OCILobLocator *locator;
 		OCIBind *bind;
 		return_rows rows;
-		cbf_context_struct cbf_context;
 	} items[MAX_IN_LOBS];
 	int count;
 };
@@ -361,22 +360,21 @@ public:
 		return true;
 	}
 
-	unsigned int quote(
-		SQL_Driver_services&, void *, 
-		char *to, const char *from, unsigned int length) {
-		if(to) { // store mode
-			unsigned int result=length;
-			while(length--) {
-				switch(*from) {
-				case '\'': // "'" -> "''"
-					*to++='\''; result++;
-					break;
-				}
-				*to++=*from++;
+	const char* quote(
+		SQL_Driver_services& services, void *connection,
+		const char *from, unsigned int length) {
+		char *result=(char*)services.malloc_atomic(length*2+1);
+		char *to=result;
+		while(length--) {
+			switch(*from) {
+			case '\'': // "'" -> "''"
+				*to++='\''; result++;
+				break;
 			}
-			return result;
-		} else // estimate mode
-			return length*2;
+			*to++=*from++;
+		}
+		*to=0;
+		return result;
 	}
 	void query(
 		SQL_Driver_services& services, void *connection, 
@@ -414,10 +412,8 @@ public:
 						(ub2 *)0, (ub2 *)0, (ub4)0, (ub4 *)0, OCI_DATA_AT_EXEC));
 
 					lobs.items[i].rows.count=0;
-					OracleSQL_query_lobs::cbf_context_struct& cbf_context=lobs.items[i].cbf_context;
-					cbf_context.services=&services;
-					cbf_context.cs=&cs;
-					cbf_context.rows=&lobs.items[i].rows;
+					OracleSQL_query_lobs::cbf_context_struct cbf_context={
+						&services, &cs, &lobs.items[i].rows};
 					check(cs, "bind dynamic", OCIBindDynamic(
 						lobs.items[i].bind, cs.errhp, 
 						(dvoid *) &cbf_context, cbf_no_data, 
@@ -458,7 +454,7 @@ private: // private funcs
 		const char *astatement, OracleSQL_query_lobs &lobs) {
 		size_t statement_size=strlen(astatement);
 
-		char *result=(char *)services.malloc(statement_size
+		char *result=(char *)services.malloc_atomic(statement_size
 			+MAX_STRING // in case of short 'strings'
 			+11/* returning */+6/* into */+(MAX_LOB_NAME_LENGTH+2/*:, */)*2/*ret into*/*MAX_IN_LOBS
 			+1);
@@ -483,7 +479,7 @@ private: // private funcs
 						o+=4;
 						OracleSQL_query_lobs::Item &item=lobs.items[lobs.count++];
 						item.name_ptr=name_begin; item.name_size=name_end-name_begin;
-						item.data_ptr=(char *)services.malloc(statement_size/*max*/); item.data_size=0;
+						item.data_ptr=(char *)services.malloc_atomic(statement_size/*max*/); item.data_size=0;
 
 						const char *start=o;
 						bool escaped=false;
@@ -528,7 +524,7 @@ private: // private funcs
 			n+=sprintf(n, " into ");
 			for(i=0; i<lobs.count; i++) {
 				if(i)
-					*n++=',';
+					*n++='x';
 				n+=sprintf(n, ":%.*s", lobs.items[i].name_size, lobs.items[i].name_ptr);
 				/**n++=':';
 				memcpy(n, lobs.items[i].name_ptr, lobs.items[i].name_size);
@@ -661,7 +657,7 @@ private: // private funcs
 				
 				{
 					size_t size=(size_t)col_name_len;
-					char *ptr=(char *)services.malloc(size);
+					char *ptr=(char *)services.malloc_atomic(size);
 					tolower(ptr, (char *)col_name, size);
 					check(cs, handlers.add_column(cs.sql_error, ptr, size));
 				}
@@ -683,7 +679,7 @@ private: // private funcs
 					}
 				default:
 					coerce_type=SQLT_STR;
-					ptr=cols[column_count-1].str=(char *)services.malloc(MAX_OUT_STRING_LENGTH+1);
+					ptr=cols[column_count-1].str=(char *)services.malloc_atomic(MAX_OUT_STRING_LENGTH+1);
 					size=MAX_OUT_STRING_LENGTH;
 					break;
 				}
@@ -710,7 +706,7 @@ private: // private funcs
 					check(cs, handlers.add_row(cs.sql_error));
 					for(int i=0; i<column_count; i++) {
 						size_t size=0;
-						void *ptr=0;
+						char* str=0;
 						if(!cols[i].indicator) // not NULL
 							switch(cols[i].type) {
 							case SQLT_CLOB: 
@@ -722,27 +718,28 @@ private: // private funcs
 									OCILobGetLength(cs.svchp, cs.errhp, var, &loblen);
 									if(loblen) {
 										size=(size_t)loblen;
-										ptr=services.malloc(size);
+										str=(char*)services.malloc_atomic(size+1);
 										check(cs, "lobread", OCILobRead(cs.svchp, cs.errhp, 
-											var, &amtp, offset, (dvoid *) ptr, 
+											var, &amtp, offset, (dvoid *) str, 
 											loblen, (dvoid *)0, 
 											0, 
 											(ub2)0, (ub1) SQLCS_IMPLICIT));
+										str[size]=0;
 									}
 									break;
 								}
 							default:
-								if(const char *str=cols[i].str) {
+								if(const char *value=cols[i].str) {
 									size=strlen(str);
-									ptr=services.malloc(size);
-									memcpy(ptr, str, size);
+									str=(char*)services.malloc_atomic(size+1);
+									memcpy(str, value, size+1);
 								} else {
 									size=0;
-									ptr=0;
+									str=0;
 								}
 								break;
 							}
-						check(cs, handlers.add_row_cell(cs.sql_error, ptr, size));
+						check(cs, handlers.add_row_cell(cs.sql_error, str, size));
 					}
 				}
 			}
@@ -996,7 +993,7 @@ static sb4 cbf_get_data(dvoid *ctxp,
 				(ub4 *)sizeof(ub2), OCI_ATTR_ROWS_RETURNED, context.cs->errhp))	;
 		context.rows->count=(ub2)rows;
 		context.rows->row=(OracleSQL_query_lobs::return_rows::return_row *)
-			context.services->malloc(sizeof(OracleSQL_query_lobs::return_rows::return_row)*rows);
+			context.services->malloc_atomic(sizeof(OracleSQL_query_lobs::return_rows::return_row)*rows);
 	}
 
 	OracleSQL_query_lobs::return_rows::return_row &var=context.rows->row[index];
