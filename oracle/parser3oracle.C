@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.41 2003/12/15 08:57:22 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.42 2003/12/22 11:44:01 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -104,39 +104,10 @@ static char *lsplit(char **string_ref, char delim) {
     return result;
 }
 
-static const char *options2env(char *options, bool* LowerCaseColumnNames) {
-	while(options) {
-		if(char *key=lsplit(&options, '&')) {
-			if(*key) {
-				if(char *value=lsplit(key, '=')) {
-					if( strcmp( key, "LowerCaseColumnNames" ) == 0 ) {
-						if( LowerCaseColumnNames )
-							*LowerCaseColumnNames = atoi(value)!=0;
-						continue;
-					}
-
-					bool do_append=key[strlen(key)-1]=='+'; // PATH+=
-					if(do_append)
-						key[strlen(key)-1]=0; // remove trailing +
-					if(strncmp(key, "ORACLE_", 7)==0  // ORACLE_HOME & co
-						|| strncmp(key, "ORA_", 4)==0 // ORA_ENCRYPT_LOGIN & co
-						|| strncmp(key, "NLS_", 4)==0 // NLS_LANG & co
-						|| do_append
-						) {
-						if(pa_setenv(key, value, do_append)!=0)
-							return "problem changing process environment" /*key*/;
-					} else
-						return "unknown option (option must start with ORACLE_, ORA_ or NLS_)" /*key*/;
-				} else 
-					return "option without =value" /*key*/;
-			}
-		}
-	}
-	return 0;
-}
-
 #ifndef DOXYGEN
 struct OracleSQL_connection_struct {
+	SQL_Driver_services *services;
+
 	jmp_buf mark; char error[MAX_STRING];
 	SQL_Error sql_error;
 	OCIEnv *envhp;
@@ -145,7 +116,10 @@ struct OracleSQL_connection_struct {
 	OCISvcCtx *svchp;
 	OCISession *usrhp;
 
-	bool bLowerCaseColumnNames;
+	struct Options {
+		bool bLowerCaseColumnNames;
+		const char* cstrClientCharset;
+	} options;
 };
 
 struct OracleSQL_query_lobs {
@@ -158,7 +132,6 @@ struct OracleSQL_query_lobs {
 		int count;
 	};
 	struct cbf_context_struct {
-		SQL_Driver_services *services;
 		OracleSQL_connection_struct *cs;
 		return_rows *rows;
 	};
@@ -193,6 +166,43 @@ static sb4 cbf_get_data(dvoid *ctxp,
 						dvoid **indpp, 
 						ub2 **rcodepp);
 void tolower(char *out, const char *in, size_t size);
+
+static const char *options2env(char *s, OracleSQL_connection_struct::Options* options) {
+	while(s) {
+		if(char *key=lsplit(&s, '&')) {
+			if(*key) {
+				if(char *value=lsplit(key, '=')) {
+					if( strcmp( key, "ClientCharset" ) == 0 ) {
+						if(options)
+							options->cstrClientCharset = value;
+						continue;
+					}
+
+					if( strcmp( key, "LowerCaseColumnNames" ) == 0 ) {
+						if(options)
+							options->bLowerCaseColumnNames = atoi(value)!=0;
+						continue;
+					}
+
+					bool do_append=key[strlen(key)-1]=='+'; // PATH+=
+					if(do_append)
+						key[strlen(key)-1]=0; // remove trailing +
+					if(strncmp(key, "ORACLE_", 7)==0  // ORACLE_HOME & co
+						|| strncmp(key, "ORA_", 4)==0 // ORA_ENCRYPT_LOGIN & co
+						|| strncmp(key, "NLS_", 4)==0 // NLS_LANG & co
+						|| do_append
+						) {
+						if(pa_setenv(key, value, do_append)!=0)
+							return "problem changing process environment" /*key*/;
+					} else
+						return "unknown option" /*key*/;
+				} else 
+					return "option without =value" /*key*/;
+			}
+		}
+	}
+	return 0;
+}
 
 /**
 	OracleSQL server driver
@@ -245,7 +255,8 @@ public:
 		// connections are cross-request, do not use services._alloc [linked with request]
 		OracleSQL_connection_struct &cs=
 			*(OracleSQL_connection_struct  *)::calloc(sizeof(OracleSQL_connection_struct), 1);
-		cs.bLowerCaseColumnNames = true;
+		cs.services=&services;
+		cs.options.bLowerCaseColumnNames = true;
 
 		char *user=used_only_in_connect_url;
 		char *service=lsplit(user, '@');
@@ -255,7 +266,7 @@ public:
 		if(!(user && pwd && service))
 			services._throw("mailformed connect part, must be 'user:pass@service'");
 
-		if(const char *error=options2env(options, &cs.bLowerCaseColumnNames))
+		if(const char *error=options2env(options, &cs.options))
 			services._throw(error);
 
 		if(setjmp(cs.mark))
@@ -348,31 +359,34 @@ public:
 		// connections are cross-request, do not use services._alloc [linked with request]
 		::free(&cs);
 	}
-	void commit(SQL_Driver_services& services, void *connection) {
+	void commit(void *connection) {
 	    OracleSQL_connection_struct &cs=*(OracleSQL_connection_struct *)connection;
 		if(setjmp(cs.mark))
-			services._throw(cs.error);
+			cs.services->_throw(cs.error);
 
 		check(cs, "commit", OCITransCommit(cs.svchp, cs.errhp, 0));
 	}
-	void rollback(SQL_Driver_services& services, void *connection) {
+	void rollback(void *connection) {
 	    OracleSQL_connection_struct &cs=*(OracleSQL_connection_struct *)connection;
 		if(setjmp(cs.mark))
-			services._throw(cs.error);
+			cs.services->_throw(cs.error);
 
-		check(cs, "rollback", OCITransRollback(cs.svchp, cs.errhp, 0));
+		// sometimes rollback is done in context when this yields error which masks previous error
+		// consider consequent errors not very important to report, reporting first one
+		/*check(cs, "rollback", */OCITransRollback(cs.svchp, cs.errhp, 0)/*)*/;
 	}
 
-	bool ping(SQL_Driver_services&, void *connection) {
+	bool ping(void *connection) {
 		// maybe OCIServerVersion?
 		// select 0 from dual
 		return true;
 	}
 
-	const char* quote(
-		SQL_Driver_services& services, void *connection,
-		const char *from, unsigned int length) {
-		char *result=(char*)services.malloc_atomic(length*2+1);
+	const char* quote(void *connection,
+		const char *from, unsigned int length) 
+	{
+		OracleSQL_connection_struct &cs=*(OracleSQL_connection_struct *)connection;
+		char *result=(char*)cs.services->malloc_atomic(length*2+1);
 		char *to=result;
 		while(length--) {
 			switch(*from) {
@@ -385,22 +399,30 @@ public:
 		*to=0;
 		return result;
 	}
-	void query(
-		SQL_Driver_services& services, void *connection, 
+	void query(void *connection, 
 		const char *astatement, unsigned long offset, unsigned long limit, 
-		SQL_Driver_query_event_handlers& handlers) {
-		
+		SQL_Driver_query_event_handlers& handlers) 
+	{
 		OracleSQL_connection_struct &cs=*(OracleSQL_connection_struct *)connection;
 		OracleSQL_query_lobs lobs={{0}, 0};
 		OCIStmt *stmthp=0;
+
+		SQL_Driver_services& services=*cs.services;
+
+		// transcode from $request:charset to connect-string?client_charset
+		size_t transcoded_statement_size;
+		if(const char* cstrClientCharset=cs.options.cstrClientCharset)
+			services.transcode(astatement, strlen(astatement),
+				astatement, transcoded_statement_size,
+				services.request_charset(),
+				cstrClientCharset);
 
 		bool failed=false;
 		if(setjmp(cs.mark)) {
 			failed=true;
 			goto cleanup;
 		} else {
-			const char *statement=preprocess_statement(services, cs, 
-				astatement, lobs);
+			const char *statement=preprocess_statement(cs, astatement, lobs);
 
 			check(cs, "HandleAlloc STMT", OCIHandleAlloc( 
 				(dvoid *)cs.envhp, (dvoid **) &stmthp, (ub4)OCI_HTYPE_STMT, 0, 0));
@@ -421,8 +443,7 @@ public:
 						(ub2 *)0, (ub2 *)0, (ub4)0, (ub4 *)0, OCI_DATA_AT_EXEC));
 
 					lobs.items[i].rows.count=0;
-					OracleSQL_query_lobs::cbf_context_struct cbf_context={
-						&services, &cs, &lobs.items[i].rows};
+					OracleSQL_query_lobs::cbf_context_struct cbf_context={&cs, &lobs.items[i].rows};
 					check(cs, "bind dynamic", OCIBindDynamic(
 						lobs.items[i].bind, cs.errhp, 
 						(dvoid *) &cbf_context, cbf_no_data, 
@@ -459,9 +480,10 @@ cleanup: // no check call after this point!
 
 private: // private funcs
 
-	const char *preprocess_statement(SQL_Driver_services& services, OracleSQL_connection_struct &cs, 
+	const char *preprocess_statement(OracleSQL_connection_struct &cs, 
 		const char *astatement, OracleSQL_query_lobs &lobs) {
 		size_t statement_size=strlen(astatement);
+		SQL_Driver_services& services=*cs.services;
 
 		char *result=(char *)services.malloc_atomic(statement_size
 			+MAX_STRING // in case of short 'strings'
@@ -595,7 +617,7 @@ private: // private funcs
 		
 		switch(stmt_type) {
 		case OCI_STMT_SELECT:
-			fetch_table(services, cs,
+			fetch_table(cs,
 				stmthp, offset, limit, 
 				handlers);
 			break;
@@ -608,9 +630,11 @@ private: // private funcs
 		}
 	}
 
-	void fetch_table(SQL_Driver_services& services, OracleSQL_connection_struct &cs, 
+	void fetch_table(OracleSQL_connection_struct &cs, 
 		OCIStmt *stmthp, unsigned long offset, unsigned long limit, 
-		SQL_Driver_query_event_handlers& handlers) {
+		SQL_Driver_query_event_handlers& handlers) 
+	{
+		SQL_Driver_services& services=*cs.services;
 
 		ub4 prefetch_rows=100;
 		check(cs, "AttrSet prefetch-rows", OCIAttrSet( 
@@ -669,7 +693,7 @@ private: // private funcs
 				{
 					size_t length=(size_t)col_name_len;
 					char *ptr=(char *)services.malloc_atomic(length+1);
-					if( cs.bLowerCaseColumnNames ) 
+					if( cs.options.bLowerCaseColumnNames ) 
 						tolower(ptr, (char *)col_name, length);
 					else
 						memcpy(ptr, col_name, length);						
@@ -721,39 +745,64 @@ private: // private funcs
 					check(cs, handlers.add_row(cs.sql_error));
 					for(int i=0; i<column_count; i++) {
 						size_t length=0;
-						char* str=0;
+						char* strm=0;
 						if(!cols[i].indicator) // not NULL
 							switch(cols[i].type) {
 							case SQLT_CLOB: 
 								{
-									ub4   amtp=4096000000UL;
 									ub4   offset=1;
 									ub4   loblen=0;
 									OCILobLocator *var=(OCILobLocator *)cols[i].var;
-									OCILobGetLength(cs.svchp, cs.errhp, var, &loblen);
-									if(loblen) {
-										length=(size_t)loblen;
-										str=(char*)services.malloc_atomic(length+1);
-										check(cs, "lobread", OCILobRead(cs.svchp, cs.errhp, 
-											var, &amtp, offset, (dvoid *) str, 
-											loblen, (dvoid *)0, 
-											0, 
-											(ub2)0, (ub1) SQLCS_IMPLICIT));
-										str[length]=0;
-									}
+									size_t read_size=0;
+									strm=(char*)services.malloc_atomic(1); // set type of memory block
+									do {
+										char buf[MAX_STRING*10];
+										ub4   amtp=sizeof(buf)-1;
+										status=OCILobRead(cs.svchp, cs.errhp, 
+											var, &amtp, offset, (dvoid *)buf, 
+											sizeof(buf), 
+											(dvoid *)0, 0, 
+											(ub2)0, (ub1)SQLCS_IMPLICIT);
+                                        if(status!=OCI_SUCCESS && status!=OCI_NEED_DATA)
+											check(cs, "lobread", status);
+
+										strm=(char*)services.realloc(strm, read_size+amtp+1/*for zero termintator*/);
+										memcpy(strm+read_size, buf, amtp);
+										read_size+=amtp;
+										offset+=amtp;
+									} while(status==OCI_NEED_DATA);
+
+									length=(size_t)read_size;
+									strm[length]=0;
 									break;
 								}
 							default:
 								if(const char *value=cols[i].str) {
 									length=strlen(value);
-									str=(char*)services.malloc_atomic(length+1);
-									memcpy(str, value, length+1);
+									strm=(char*)services.malloc_atomic(length+1);
+									memcpy(strm, value, length+1);
 								} else {
 									length=0;
-									str=0;
+									strm=0;
 								}
 								break;
 							}
+
+						const char* str=strm;
+						if(str && length)
+						{
+							// transcode to $request:charset from connect-string?client_charset
+							const char* dest;
+							size_t dest_length;
+							if(const char* cstrClientCharset=cs.options.cstrClientCharset)
+								services.transcode(str, length,
+									dest, dest_length,
+									cstrClientCharset,
+									services.request_charset());
+							str=dest;
+							length=dest_length;
+						}
+
 						check(cs, handlers.add_row_cell(cs.sql_error, str, length));
 					}
 				}
@@ -938,6 +987,17 @@ void check(OracleSQL_connection_struct &cs, const char *step, sword status) {
 		if(OracleSQL_driver->OCIErrorGet((dvoid *)cs.errhp, (ub4)1, (text *)NULL, &errcode, 
 			(text *)reason, (ub4)sizeof(reason), OCI_HTYPE_ERROR)==OCI_SUCCESS)
 			msg=reason;
+
+			// transcode to $request:charset from connect-string?client_charset
+			if(const char* cstrClientCharset=cs.options.cstrClientCharset)
+				if(msg) {
+					if(size_t msg_length=strlen(msg)) {
+						cs.services->transcode(msg, msg_length,
+							msg, msg_length,
+							cstrClientCharset,
+							cs.services->request_charset());
+					}
+				}
 		else
 			msg="[can not get error description]";
 		break;
@@ -1008,7 +1068,7 @@ static sb4 cbf_get_data(dvoid *ctxp,
 				(ub4 *)sizeof(ub2), OCI_ATTR_ROWS_RETURNED, context.cs->errhp))	;
 		context.rows->count=(ub2)rows;
 		context.rows->row=(OracleSQL_query_lobs::return_rows::return_row *)
-			context.services->malloc_atomic(sizeof(OracleSQL_query_lobs::return_rows::return_row)*rows);
+			context.cs->services->malloc_atomic(sizeof(OracleSQL_query_lobs::return_rows::return_row)*rows);
 	}
 
 	OracleSQL_query_lobs::return_rows::return_row &var=context.rows->row[index];
