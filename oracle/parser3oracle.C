@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.47 2003/12/24 12:29:56 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.48 2003/12/24 12:47:36 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -749,6 +749,11 @@ private: // private funcs
 				
 				col.type=coerce_type;
 				
+				// http://i/docs/oracle/server.804/a58234/oci_func.htm#449680
+				//   this call implicitly allocates the define handle
+				// http://sunsite.eunnet.net/documentation/oracle.8.0.4/server.804/a58234/basics.htm
+				//   when a statement handle is freed, any bind and define handles associated with it 
+				//   are also freed
 				col.def=0; check(cs, "DefineByPos", OCIDefineByPos(
 					stmthp, &col.def, cs.errhp, 
 					column_count, (ub1 *) ptr, size, 
