@@ -11,35 +11,14 @@ dnl even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 dnl PARTICULAR PURPOSE.
 
 
+
 # serial 40 AC_PROG_LIBTOOL
 AC_DEFUN(AC_PROG_LIBTOOL,
 [AC_REQUIRE([AC_LIBTOOL_SETUP])dnl
 
-# Save cache, so that ltconfig can load it
-AC_CACHE_SAVE
-
-# Actually configure libtool.  ac_aux_dir is where install-sh is found.
-CC="$CC" CFLAGS="$CFLAGS" CPPFLAGS="$CPPFLAGS" \
-LD="$LD" LDFLAGS="$LDFLAGS" LIBS="$LIBS" \
-LN_S="$LN_S" NM="$NM" RANLIB="$RANLIB" \
-DLLTOOL="$DLLTOOL" AS="$AS" OBJDUMP="$OBJDUMP" \
-${CONFIG_SHELL-/bin/sh} $ac_aux_dir/ltconfig --no-reexec \
-$libtool_flags --no-verify $ac_aux_dir/ltmain.sh $lt_target \
-|| AC_MSG_ERROR([libtool configure failed])
-
-# Reload cache, that may have been modified by ltconfig
-AC_CACHE_LOAD
-
-# This can be used to rebuild libtool when needed
-LIBTOOL_DEPS="$ac_aux_dir/ltconfig $ac_aux_dir/ltmain.sh"
-
-# Always use our own libtool.
-LIBTOOL='$(SHELL) $(top_builddir)/libtool'
+# Always use rootdir libtool.
+LIBTOOL=../libtool
 AC_SUBST(LIBTOOL)dnl
-
-# Redirect the config.log output again, so that the ltconfig log is not
-# clobbered by the next message.
-exec 5>>./config.log
 ])
 
 AC_DEFUN(AC_LIBTOOL_SETUP,
