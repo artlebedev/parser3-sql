@@ -6,7 +6,7 @@ AM_CONFIG_HEADER(config_auto.h)
 
 dnl Arguments
 
-AC_ARG_WITH(mysql_inc,[  --with-mysql_inc[=DIR]      DIR is the MySQL includes directory],,
+AC_ARG_WITH(mysql-inc,[  --with-mysql-inc[=DIR]      DIR is the MySQL includes directory],,
 	withval="/usr/include/mysql"
 )
 
@@ -25,6 +25,24 @@ AC_PROG_AWK
 
 AC_LANG_CPLUSPLUS 
 AC_PROG_CXX
+
+AC_DEFUN(GCC_OPTION,
+[
+    AC_MSG_CHECKING(whether gcc accepts $1)
+    save_CXXFLAGS=$CXXFLAGS
+    CXXFLAGS="$save_CXXFLAGS $1"
+    AC_TRY_COMPILE(,,
+        AC_MSG_RESULT(yes)
+        dnl leave CXXFLAGS
+    ,		
+        AC_MSG_RESULT(no)
+        CXXFLAGS=$save_CXXFLAGS
+    )
+])
+
+if test "z$GXX" = "zyes"; then
+    GCC_OPTION(-fno-rtti)
+fi
 
 dnl Enable building of the convenience library
 dnl and set LIBLTDL accordingly
