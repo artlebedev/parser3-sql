@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.15 2004/01/26 15:03:59 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.16 2004/01/26 15:09:02 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -47,7 +47,7 @@ static char *lsplit(char **string_ref, char delim) {
 }
 
 struct Connection {
-	SQL_Driver_services *services;
+	SQL_Driver_services* services;
 
 	MYSQL* handle;
 	bool autocommit;
