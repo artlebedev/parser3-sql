@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.8 2002/05/15 10:21:46 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.9 2002/05/15 14:06:07 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -161,11 +161,24 @@ public:
 				|| strncasecmp(statement, "call", 4)==0
 				|| strncasecmp(statement, "{", 1)==0) {
 				CRecordset rs(db); 
-				rs.Open(
-					CRecordset::forwardOnly, 
-					statement,
-					CRecordset::executeDirect   
-					);
+				TRY {
+					rs.Open(
+						CRecordset::forwardOnly, 
+						statement,
+						CRecordset::executeDirect   
+						);
+				} CATCH_ALL (e) {
+					// could not fetch a table
+					TRY {
+						// then try resultless query
+						db->ExecuteSQL(statement);
+						// OK then
+						return;
+					} CATCH_ALL (e2) {
+						// still nothing good
+						_throw(services, e); // throw ORIGINAL exception
+					} END_CATCH_ALL
+				} END_CATCH_ALL
 
 				int column_count=rs.GetODBCFieldCount();
 				if(!column_count)
@@ -224,11 +237,9 @@ public:
 			} else {
 				db->ExecuteSQL(statement);
 			}
-		} 
-		CATCH_ALL (e) {
+		} CATCH_ALL (e) {
 			_throw(services, e);
-		}
-		END_CATCH_ALL
+		} END_CATCH_ALL
 	}
 
 	void getFromDBVariant(SQL_Driver_services& services, CDBVariant& v, void *& ptr, size_t& size) {
