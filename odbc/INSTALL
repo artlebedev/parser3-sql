@@ -1,0 +1,31 @@
+0.You must build this under \parser3project directory.
+
+1.What is the process to compile Parser3 ODBC driver? 
+
+  Start Microsoft Visual Studio 6.0+ 
+  open parser3odbc.dsw workspace.
+
+  Select build option "parser3odbc - Win32 Release"
+  and build the project.
+
+  
+2.What is the process to install Parser3 MySQL driver?
+
+  Copy \parser3project\odbc\Release\parser3odbc.dll to the directory
+  where you decided to store Parser3 SQL drivers.
+
+  NOTE:
+  make sure that Parser3 main configuration file, 
+  	$prefix/etc/parser3.conf
+  has in $SQL[...] configuration section a line like this:
+
+odbc	C:\Inetpub\parser3sqldrivers\parser3odbc.dll
+
+  which specifies 
+    protocol name
+    path to Parser 'parser3odbc' dynamic library
+
+ 
+Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
+
+$Id: INSTALL,v 1.1 2002/02/08 11:24:21 paf Exp $
