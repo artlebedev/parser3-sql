@@ -5,7 +5,7 @@
 
 	Author: Alexander Petrosyan <paf@design.ru> (http://design.ru/paf)
 
-	$Id: config_fixed.h,v 1.4 2003/01/21 15:51:30 paf Exp $
+	$Id: config_fixed.h,v 1.5 2004/03/26 13:29:40 paf Exp $
 
 
 	tested only with MS Visual C++ V6
@@ -15,3 +15,4 @@
 #define HAVE_STDLIB_H
 #define HAVE_STRING_H
 #define HAVE_SETJMP_H
+#define HAVE_CTYPE_H

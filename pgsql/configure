@@ -1711,7 +1711,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=parser3pgsql
- VERSION=3.1.0
+ VERSION=3.1.HEAD
 
 
 # Some tools Automake needs.
@@ -8342,10 +8342,12 @@ subdirs="$subdirs libltdl"
 
 
 
+
 for ac_header in stdio.h \
 stdlib.h \
 string.h \
-setjmp.h
+setjmp.h \
+ctype.h
 
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
