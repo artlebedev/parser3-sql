@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.19 2004/03/04 10:46:52 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.20 2004/03/26 13:24:26 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -219,10 +219,11 @@ public:
 		SQL_Driver_query_event_handlers& handlers) {
 		Connection& connection=*static_cast<Connection*>(aconnection);
 		SQL_Driver_services& services=*connection.services;
+		const char* cstrClientCharset=connection.cstrClientCharset;
 		MYSQL_RES *res=NULL;
 
 		// transcode from $request:charset to connect-string?client_charset
-		if(const char* cstrClientCharset=connection.cstrClientCharset) {
+		if(cstrClientCharset) {
 			size_t transcoded_statement_size;
 			services.transcode(astatement, strlen(astatement),
 				astatement, transcoded_statement_size,
@@ -272,12 +273,13 @@ public:
 
 		for(int i=0; i<column_count; i++){
 			if(MYSQL_FIELD *field=mysql_fetch_field(res)) {
-			    size_t length=strlen(field->name);
-			    char* str=(char*)services.malloc_atomic(length+1);
-			    memcpy(str, field->name, length+1);
+				size_t length=strlen(field->name);
+				char* strm=(char*)services.malloc_atomic(length+1);
+				memcpy(strm, field->name, length+1);
+				const char* str=strm;
 
 				// transcode to $request:charset from connect-string?client_charset
-				if(const char* cstrClientCharset=connection.cstrClientCharset) {
+				if(cstrClientCharset) {
 					services.transcode(str, length,
 						str, length,
 						cstrClientCharset,
@@ -300,14 +302,15 @@ public:
   			unsigned long *lengths=mysql_fetch_lengths(res);
   			for(int i=0; i<column_count; i++){
   				size_t length=(size_t)lengths[i];
-  				char* str;
+				const char* str;
   				if(length) {
-  					str=(char*)services.malloc_atomic(length+1);
-  					memcpy(str, mysql_row[i], length);
-					str[length]=0;
+  					char *strm=(char*)services.malloc_atomic(length+1);
+  					memcpy(strm, mysql_row[i], length);
+					strm[length]=0;
+					str=strm;
 
 					// transcode to $request:charset from connect-string?client_charset
-					if(const char* cstrClientCharset=connection.cstrClientCharset)
+					if(cstrClientCharset)
 						services.transcode(str, length,
 							str, length,
 							cstrClientCharset,
