@@ -199,58 +199,6 @@ dir &gt;nul
 			</File>
 		</Filter>
 		<Filter
-			Name="MFCPatches"
-			Filter="">
-			<File
-				RelativePath="MFCpatches\AFXIMPL.H">
-			</File>
-			<File
-				RelativePath="MFCpatches\CTLIMPL.H">
-			</File>
-			<File
-				RelativePath="MFCpatches\DAOIMPL.H">
-			</File>
-			<File
-				RelativePath="MFCpatches\DBCORE.CPP">
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						BrowseInformation="1"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="MFCpatches\DBIMPL.H">
-			</File>
-			<File
-				RelativePath="MFCpatches\OLEIMPL2.H">
-			</File>
-			<File
-				RelativePath="MFCpatches\SOCKIMPL.H">
-			</File>
-			<File
-				RelativePath="MFCpatches\STDAFX.H">
-			</File>
-			<File
-				RelativePath="MFCpatches\WINHAND_.H">
-			</File>
-		</Filter>
-		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl">
 		</Filter>

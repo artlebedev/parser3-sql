@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.15 2003/09/29 06:14:16 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.16 2003/11/10 08:44:53 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -18,6 +18,7 @@ static const char *RCSId="$Id: parser3odbc.C,v 1.15 2003/09/29 06:14:16 paf Exp 
 
 #include "pa_sql_driver.h"
 
+#define WINVER 0x0400
 #include <AFXDB.H>
 
 // defines
