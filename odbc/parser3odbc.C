@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.14 2003/07/24 10:09:40 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.15 2003/09/29 06:14:16 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -133,7 +133,7 @@ public:
 		char *to=result;
 		while(length--) {
 			if(*from=='\'') { // ' -> ''
-				*to++='\''; result++;
+				*to++='\'';
 			}
 			*to++=*from++;
 		}
