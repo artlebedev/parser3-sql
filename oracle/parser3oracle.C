@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.53 2004/03/04 10:35:53 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.54 2004/03/26 13:26:41 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -420,13 +420,14 @@ public:
 		SQL_Driver_query_event_handlers& handlers) 
 	{
 		Connection& connection=*static_cast<Connection *>(aconnection);
+		const char* cstrClientCharset=connection.options.cstrClientCharset;
 		OracleSQL_query_lobs lobs={{0}, 0};
 		OCIStmt *stmthp=0;
 
 		SQL_Driver_services& services=*connection.services;
 
 		// transcode from $request:charset to connect-string?client_charset
-		if(const char* cstrClientCharset=connection.options.cstrClientCharset) {
+		if(cstrClientCharset) {
 			size_t transcoded_statement_size;
 			services.transcode(astatement, strlen(astatement),
 				astatement, transcoded_statement_size,
@@ -651,6 +652,7 @@ private: // private funcs
 		OCIStmt *stmthp, unsigned long offset, unsigned long limit, 
 		SQL_Driver_query_event_handlers& handlers) 
 	{
+		const char* cstrClientCharset=connection.options.cstrClientCharset;
 		SQL_Driver_services& services=*connection.services;
 
 		ub4 prefetch_rows=100;
@@ -706,7 +708,7 @@ private: // private funcs
 					(dvoid**) &col_name, (ub4 *) &col_name_len, (ub4)OCI_ATTR_NAME, 
 					(OCIError *)connection.errhp));
 				// transcode to $request:charset from connect-string?client_charset
-				if(const char* cstrClientCharset=connection.options.cstrClientCharset) {
+				if(cstrClientCharset) {
 					services.transcode(col_name, col_name_len,
 						col_name, col_name_len,
 						cstrClientCharset,
@@ -825,7 +827,7 @@ private: // private funcs
 						if(str && length)
 						{
 							// transcode to $request:charset from connect-string?client_charset
-							if(const char* cstrClientCharset=connection.options.cstrClientCharset)
+							if(cstrClientCharset)
 								services.transcode(str, length,
 									str, length,
 									cstrClientCharset,
