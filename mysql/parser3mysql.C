@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.13 2003/07/24 10:09:40 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.14 2003/11/10 08:43:18 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -46,6 +46,11 @@ static char *lsplit(char **string_ref, char delim) {
     return result;
 }
 
+struct Connection {
+	MYSQL* handle;
+	bool autocommit;
+};
+
 /**
 	MySQL server driver
 */
@@ -76,7 +81,7 @@ public:
 	void connect(
 		char *used_only_in_connect_url, 
 		SQL_Driver_services& services, 
-		void **connection ///< output: MYSQL *
+		void **connection_ref ///< output: Connection*
 		) {
 		char *user=used_only_in_connect_url;
 		char *s=lsplit(user, '@');
@@ -97,7 +102,9 @@ public:
 
 		char *charset=0;
 
-	    MYSQL *mysql=mysql_init(NULL);
+		Connection& connection=*new Connection;  *connection_ref=&connection;
+	    connection.handle=mysql_init(NULL);
+		connection.autocommit=true;
 
 		while(options) {
 			if(char *key=lsplit(&options, '&')) {
@@ -107,16 +114,20 @@ public:
 							charset=value;
 						} else if(strcasecmp(key, "timeout")==0) {
 							unsigned int timeout=(unsigned int)atoi(value);
-							if(mysql_options(mysql, MYSQL_OPT_CONNECT_TIMEOUT, (const char *)&timeout)!=0)
-								services._throw(mysql_error(mysql));
+							if(mysql_options(connection.handle, MYSQL_OPT_CONNECT_TIMEOUT, (const char *)&timeout)!=0)
+								services._throw(mysql_error(connection.handle));
 						} else if(strcasecmp(key, "compress")==0) {
 							if(atoi(value))
-								if(mysql_options(mysql, MYSQL_OPT_COMPRESS, 0)!=0)
-									services._throw(mysql_error(mysql));
+								if(mysql_options(connection.handle, MYSQL_OPT_COMPRESS, 0)!=0)
+									services._throw(mysql_error(connection.handle));
 						} else if(strcasecmp(key, "named_pipe")==0) {
 							if(atoi(value))
-								if(mysql_options(mysql, MYSQL_OPT_NAMED_PIPE , 0)!=0)
-									services._throw(mysql_error(mysql));
+								if(mysql_options(connection.handle, MYSQL_OPT_NAMED_PIPE , 0)!=0)
+									services._throw(mysql_error(connection.handle));
+						} else if(strcasecmp(key, "autocommit")==0) {
+							if(atoi(value)==0) {
+								connection.autocommit=false;
+							}
 						} else
 							services._throw("unknown connect option" /*key*/);
 					} else 
@@ -125,34 +136,54 @@ public:
 			}
 		}
 
-		if(!mysql_real_connect(mysql, 
+		if(!mysql_real_connect(connection.handle, 
 			host, user, pwd, db, port?port:MYSQL_PORT, unix_socket, 0))
-			services._throw(mysql_error(mysql));
+			services._throw(mysql_error(connection.handle));
 
 		if(charset) {
 			// set charset
 			char statement[MAX_STRING]="set CHARACTER SET "; // cp1251_koi8
 			strncat(statement, charset, MAX_STRING);
 			
-			if(mysql_query(mysql, statement)) 
-				services._throw(mysql_error(mysql));
-			(*mysql_store_result)(mysql); // throw out the result [don't need but must call]
+			exec(services, connection, statement);
 		}
 
-		*(MYSQL **)connection=mysql;
+		if(!connection.autocommit)
+			exec(services, connection, "set autocommit=0");
 	}
-	void disconnect(void *connection) {
-	    mysql_close((MYSQL *)connection);
-	}
-	void commit(SQL_Driver_services&, void *) {}
-	void rollback(SQL_Driver_services&, void *) {}
 
-	bool ping(SQL_Driver_services&, void *connection) {
-		return mysql_ping((MYSQL *)connection)==0;
+	void exec(SQL_Driver_services& services, Connection& connection, const char* statement) {
+		if(mysql_query(connection.handle, statement)) 
+			services._throw(mysql_error(connection.handle));
+		(*mysql_store_result)(connection.handle); // throw out the result [don't need but must call]
+	}
+
+	void disconnect(void *aconnection) {
+		Connection& connection=*static_cast<Connection*>(aconnection);
+
+		mysql_close(connection.handle);
+	}
+	void commit(SQL_Driver_services& services, void *aconnection) {
+		Connection& connection=*static_cast<Connection*>(aconnection);
+
+		if(!connection.autocommit)
+			exec(services, connection, "commit");
+	}
+	void rollback(SQL_Driver_services& services, void *aconnection) {
+		Connection& connection=*static_cast<Connection*>(aconnection);
+
+		if(!connection.autocommit)
+			exec(services, connection, "rollback");
+	}
+
+	bool ping(SQL_Driver_services&, void *aconnection) {
+		Connection& connection=*static_cast<Connection*>(aconnection);
+
+		return mysql_ping(connection.handle)==0;
 	}
 
 	const char* quote(
-		SQL_Driver_services& services, void *connection,
+		SQL_Driver_services& services, void *,
 		const char *from, unsigned int length) {
 		/*
 			3.23.22b
@@ -165,11 +196,10 @@ public:
 		return result;
 	}
 	void query(
-		SQL_Driver_services& services, void *connection, 
+		SQL_Driver_services& services, void *aconnection, 
 		const char *astatement, unsigned long offset, unsigned long limit,
 		SQL_Driver_query_event_handlers& handlers) {
-
-		MYSQL *mysql=(MYSQL *)connection;
+		Connection& connection=*static_cast<Connection*>(aconnection);
 		MYSQL_RES *res=NULL;
 
 		const char *statement;
@@ -188,16 +218,16 @@ public:
 		} else
 			statement=astatement;
 
-		if(mysql_query(mysql, statement)) 
-			services._throw(mysql_error(mysql));
-		if(!(res=mysql_store_result(mysql)) && mysql_field_count(mysql)) 
-			services._throw(mysql_error(mysql));
+		if(mysql_query(connection.handle, statement)) 
+			services._throw(mysql_error(connection.handle));
+		if(!(res=mysql_store_result(connection.handle)) && mysql_field_count(connection.handle)) 
+			services._throw(mysql_error(connection.handle));
 		if(!res) // empty result: insert|delete|update|...
 			return;
 		
 		int column_count=mysql_num_fields(res);
 		if(!column_count) // old client
-			column_count=mysql_field_count(mysql);
+			column_count=mysql_field_count(connection.handle);
 
 		if(!column_count) {
 			mysql_free_result(res);
