@@ -9,6 +9,6 @@ Check the INSTALL to find out how to compile and install Parser3 MySQL driver.
 
 Report bugs to paf@design.ru or on http://www.parser.ru/forum/
 
-Alexandr Petrosian(PAF) <paf@design.ru>
+Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
-$Id: README,v 1.2 2002/02/08 10:56:22 paf Exp $
+$Id: README,v 1.3 2002/02/08 11:13:41 paf Exp $

@@ -1,1 +1,14 @@
-1
+Parser3 Oracle driver sources
+	http://www.parser.ru/
+
+Read the documentation here
+	http://www.parser.ru/docs/
+
+Check the Changelog to keep track of progresses.
+Check the INSTALL to find out how to compile and install Parser3 Oracle driver.
+
+Report bugs to paf@design.ru or on http://www.parser.ru/forum/
+
+Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
+
+$Id: README,v 1.2 2002/02/08 11:14:00 paf Exp $

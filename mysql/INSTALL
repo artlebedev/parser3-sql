@@ -3,11 +3,10 @@
 
 1.What is the process to compile Parser3 MySQL driver? 
 
-  You sould have mysql client software installed.
+  You sould have MySQL client software and include files installed.
 
-  As most UNIX libraries Parser3 follows the "standard":
+  As most UNIX libraries Parser3 MySQL driver follows the "standard":
 
-  mkdir $D/parser3project
   cd $D/parser3project
   gunzip -c parser3mysql-x.x.tar.gz | tar xvf -
   cd parser3mysql-x.x
@@ -17,8 +16,8 @@
 
   In case configure could not find directory with your 
   MySQL client software include files, specify it with
-    --with-mysql-inc=/somewhere/include/mysql
-  option.  
+    --with-mysql-inc=DIR        DIR is the MySQL includes directory
+  option.
   
 2.What is the process to install Parser3 MySQL driver?
 
@@ -37,11 +36,11 @@ mysql	$sqldriversdir/libparser3mysql.so	/usr/local/lib/mysql/libmysqlclient.so
 
   which specifies 
     protocol name
-    path to libparser3mysql dynamic library
-    path to libmysqlclient dynamic library
-      [you sould have it from from your mysql client installation]
+    path to Parser 'libparser3mysql' dynamic library
+    path to MySQL client 'libmysqlclient' dynamic library
+      [you sould have it from from your MySQL client installation]
 
  
-Alexandr Petrosian(PAF) <paf@design.ru>
+Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
-$Id: INSTALL,v 1.3 2002/02/08 10:56:22 paf Exp $
+$Id: INSTALL,v 1.4 2002/02/08 11:13:41 paf Exp $

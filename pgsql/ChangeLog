@@ -1,29 +1,73 @@
-2001-07-30  parser
-	* PgSQL32/include/fe-auth.h:
-	* PgSQL32/include/libpq-fe.h:
-	* PgSQL32/include/libpq-int.h:
-	* PgSQL32/include/postgres_ext.h:
-	* PgSQL32/include/pqexpbuffer.h:
-	* PgSQL32/include/pqsignal.h:
-	* PgSQL32/include/win32.h:
-	* PgSQL32/lib/release/libpq.dll:
+2002-02-08  paf
 	* config_fixed.h:
 	* config_includes.h:
+	* parser3pgsql.C:
+		2002
+
+	* configure:
+	* configure.in:
 	* libltdl/Makefile.am:
 	* libltdl/Makefile.in:
-	* libltdl/README:
+	* libltdl/acconfig.h:
 	* libltdl/acinclude.m4:
 	* libltdl/aclocal.m4:
-	* libltdl/config.h:
 	* libltdl/config_auto.h.in:
-	* libltdl/config_fixed.h:
 	* libltdl/configure:
 	* libltdl/configure.in:
-	* libltdl/libltdl_pgsql.dsp:
-	* libltdl/ltdl.c:
-	* libltdl/ltdl.h:
+		removed extra libtool generation,
+		removed needless static lib
+
 	* parser3pgsql.C:
-	* parser3pgsql.def:
-	* parser3pgsql.dsp:
-		pgsql 0
+		name spelling
+
+2001-11-24  paf
+	* aclocal.m4:
+		*** empty log message ***
+
+2001-11-16  paf
+	* parser3pgsql.C:
+		introducing estimating String::cstr_bufsize, 0
+
+2001-11-11  paf
+	* Makefile.in:
+	* config_auto.h.in:
+	* parser3pgsql.C:
+		init not const
+
+2001-11-08  paf
+	* Makefile.am:
+		lib prefix
+
+2001-10-30  paf
+	* configure:
+	* configure.in:
+		makes
+
+2001-10-29  paf
+	* config_fixed.h:
+	* config_includes.h:
+	* configure.in:
+		setjump
+
+	* parser3pgsql.C:
+		z
+
+2001-10-28  paf
+	* configure.in:
+		conf
+
+2001-09-25  parser
+	* Makefile.in:
+	* configure:
+		makes
+
+	* configure.in:
+		sanity check
+
+	* configure.in:
+		last underscore in configure options to dash
+
+2001-09-24  parser
+	* Makefile.am:
+		makes
 
