@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.17 2004/01/30 07:30:40 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.18 2004/03/05 10:16:41 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -58,10 +58,16 @@ static char *lsplit(char **string_ref, char delim) {
     return result;
 }
 
+static void toupper(char *out, const char *in, size_t size) {
+	while(size--)
+		*out++=(char)toupper(*in++);
+}
+
 struct Connection {
 	SQL_Driver_services* services;
 
 	PGconn *conn;
+	const char* cstrClientCharset;
 };
 
 /**
@@ -105,9 +111,12 @@ public:
 
 		char *options=lsplit(db, '?');
 
+		char *cstrBackwardCompAskServerToTranscode=0;
+
 		Connection& connection=*(Connection  *)services.malloc(sizeof(Connection));
 		*connection_ref=&connection;
 		connection.services=&services;
+		connection.cstrClientCharset=0;	
 		connection.conn=PQsetdbLogin(
 			(host&&strcasecmp(host, "local")==0)?NULL/* local Unix domain socket */:host, port, 
 			NULL, NULL, db, user, pwd);
@@ -123,8 +132,11 @@ public:
 			if(char *key=lsplit(&options, '&')) {
 				if(*key) {
 					if(char *value=lsplit(key, '=')) {
-						if(strcasecmp(key, "charset")==0) {
-							charset=value;
+						if(strcmp(key, "ClientCharset" ) == 0) {
+							toupper(value, value, strlen(value));
+							connection.cstrClientCharset=value;
+						} else if(strcasecmp(key, "charset")==0) { // left for backward compatibility, consider using ClientCharset
+							cstrBackwardCompAskServerToTranscode=value;
 						} else if(strcasecmp(key, "datestyle")==0) {
 							datestyle=value;
 						} else
@@ -135,10 +147,14 @@ public:
 			}
 		}
 
-		if(charset) {
+		if(connection.cstrClientCharset && cstrBackwardCompAskServerToTranscode)
+			services._throw("use 'ClientCharset' option only, "
+				"'charset' option is obsolete and should not be used with new 'ClientCharset' option");
+
+		if(cstrBackwardCompAskServerToTranscode) {
 			// set CLIENT_ENCODING
 			char statement[MAX_STRING]="set CLIENT_ENCODING="; // win
-			strncat(statement, charset, MAX_STRING);
+			strncat(statement, cstrBackwardCompAskServerToTranscode, MAX_STRING);
 			
 			PGresult *res=PQexec(connection.conn, statement);
 			if(!res) 
@@ -219,6 +235,15 @@ public:
 		SQL_Driver_services& services=*connection.services;
 		PGconn *conn=connection.conn;
 
+		// transcode from $request:charset to connect-string?client_charset
+		if(const char* cstrClientCharset=connection.cstrClientCharset) {
+			size_t transcoded_statement_size;
+			services.transcode(astatement, strlen(astatement),
+				astatement, transcoded_statement_size,
+				services.request_charset(),
+				cstrClientCharset);
+		}
+
 		const char *statement=preprocess_statement(connection,
 			astatement, offset, limit);
 
@@ -255,10 +280,19 @@ public:
 
 		for(int i=0; i<column_count; i++){
 			char *name=PQfname(res, i);
-			size_t size=strlen(name);
-			char* str=(char*)services.malloc(size+1);
-			memcpy(str, name, size+1);
-			CHECK(handlers.add_column(sql_error, str, size));
+			size_t length=strlen(name);
+			char* str=(char*)services.malloc(length+1);
+			memcpy(str, name, length+1);
+
+			// transcode to $request:charset from connect-string?client_charset
+			if(const char* cstrClientCharset=connection.cstrClientCharset) {
+				services.transcode(str, length,
+					str, length,
+					cstrClientCharset,
+					services.request_charset());
+			}
+
+			CHECK(handlers.add_column(sql_error, str, length));
 		}
 
 		CHECK(handlers.before_rows(sql_error));
@@ -268,7 +302,7 @@ public:
 				CHECK(handlers.add_row(sql_error));
 				for(int i=0; i<column_count; i++){
 					const char *cell=PQgetvalue(res, r, i);
-					size_t size;
+					size_t length;
 					char* str;
 					if(PQftype(res, i)==OIDOID) {
 						// ObjectID column, read object bytes
@@ -280,20 +314,20 @@ public:
 							// seek to end
 							if(lo_lseek(conn, fd, 0, SEEK_END)<0)
 								PQclear_throwPQerror;
-							// get size
+							// get length
 							int size_tell=lo_tell(conn, fd);
 							if(size_tell<0)
 								PQclear_throwPQerror;
 							// seek to begin
 							if(lo_lseek(conn, fd, 0, SEEK_SET)<0)
 								PQclear_throwPQerror;
-							size=(size_t)size_tell;
-							if(size) {
+							length=(size_t)size_tell;
+							if(length) {
 								// read 
-								str=(char*)services.malloc(size+1);
+								str=(char*)services.malloc(length+1);
 								if(!lo_read_ex(conn, fd, str, size_tell))
 									PQclear_throw("lo_read can not read all bytes of object");
-								str[size]=0;
+								str[length]=0;
 							} else
 								str=0;
 							if(lo_close(conn, fd)<0)
@@ -302,14 +336,24 @@ public:
 							PQclear_throwPQerror;
 					} else {
 						// normal column, read it normally
-						size=(size_t)PQgetlength(res, r, i);
-						if(size) {
-							str=(char*)services.malloc(size+1);
-							memcpy(str, cell, size+1);
+						length=(size_t)PQgetlength(res, r, i);
+						if(length) {
+							str=(char*)services.malloc(length+1);
+							memcpy(str, cell, length+1);
 						} else
 							str=0;
 					}
-					CHECK(handlers.add_row_cell(sql_error, str, size));
+
+					if(str && length) {
+						// transcode to $request:charset from connect-string?client_charset
+						if(const char* cstrClientCharset=connection.cstrClientCharset)
+							services.transcode(str, length,
+								str, length,
+								cstrClientCharset,
+								services.request_charset());
+					}
+
+					CHECK(handlers.add_row_cell(sql_error, str, length));
 				}
 			}
 cleanup:
