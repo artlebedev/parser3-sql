@@ -1,51 +1,56 @@
+2002-10-22  paf
+	* parser3odbc.C 1.10:
+		column types extracted once per table [were per row]
+		data extract objects created once per table [were per cell]
+
 2002-06-03  paf
-	* parser3odbc.dsp:
+	* parser3odbc.dsp 1.5:
 		fixed .dsp-s along with reorganized cvs modules dirs structure
 
-	* parser3odbc.dsp:
+	* parser3odbc.dsp [release_1_0_0001] 1.2.2.1:
 		reorganized cvs modules
 
 2002-05-15  paf
-	* MFCpatches/DBCORE.CPP:
-	* parser3odbc.C:
-	* parser3odbc.dsp:
+	* MFCpatches/DBCORE.CPP 1.4:
+	* parser3odbc.C 1.8:
+	* parser3odbc.dsp 1.4:
 		EXEC, call, {
 		sql statement starts now considered as stored procedure call and cause table result extraction
 
-	* parser3odbc.C:
+	* parser3odbc.C 1.9:
 		not-returning-tables sp execs checked
 
 2002-04-25  paf
-	* MFCpatches/DBCORE.CPP:
-	* parser3odbc.C:
-	* parser3odbc.dsp:
+	* MFCpatches/DBCORE.CPP 1.3:
+	* parser3odbc.C 1.7:
+	* parser3odbc.dsp 1.3:
 		create table test (id int, a smalldatetime, b ntext, c nvarchar
 		100))
 
 2002-03-05  paf
-	* MFCpatches/DBCORE.CPP:
-	* parser3odbc.C:
-	* parser3odbc.dsp:
+	* MFCpatches/DBCORE.CPP 1.2:
+	* parser3odbc.C 1.6:
+	* parser3odbc.dsp 1.2:
 		another mfc bug: non-string datatypes report wrong string size
 
 2002-02-08  paf
-	* parser3odbc.C:
+	* parser3odbc.C 1.4:
 		2002
 
-	* AUTHORS:
-	* INSTALL:
-	* README:
+	* AUTHORS 1.1:
+	* INSTALL 1.1:
+	* README 1.1:
 		install&others added
 
-	* COPYING:
-	* parser3odbc.C:
+	* COPYING 1.1:
+	* parser3odbc.C 1.5:
 		added GNU copyright
 
 2001-11-16  paf
-	* parser3odbc.C:
+	* parser3odbc.C 1.3:
 		introducing estimating String::cstr_bufsize, 0
 
 2001-10-29  paf
-	* parser3odbc.C:
+	* parser3odbc.C 1.2:
 		setjump
 
