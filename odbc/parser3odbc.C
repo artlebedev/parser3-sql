@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.10 2002/10/22 10:12:46 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.11 2002/10/29 10:17:41 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -221,6 +221,9 @@ public:
 							//case xBOOL:
 //							case SQL_INTEGER: // serg@design.ru did that in parser2. test first!
 							//case SQL_DATETIME:
+							case SQL_BINARY:
+							case SQL_VARBINARY:
+							case SQL_LONGVARBINARY:
 							case SQL_SMALLDATETIME:
 								rs.GetFieldValue(i, v);
 								getFromDBVariant(services, v, ptr, size);
@@ -274,8 +277,17 @@ public:
 			m_fltVal 
 			break;
 	case DBVT_DOUBLE m_dblVal 
-	case DBVT_STRING m_pstring 
-	case DBVT_BINARY m_pbinary */
+	case DBVT_STRING m_pstring */ 
+		case DBVT_BINARY:
+			{
+				if(size=v.m_pbinary->m_dwDataLength) {
+					ptr=services.malloc(size);
+					memcpy(ptr, ::GlobalLock(v.m_pbinary->m_hData), size);
+					::GlobalUnlock(v.m_pbinary->m_hData);
+				} else 
+					ptr=0;
+				break;
+			}
 		case DBVT_DATE:
 			{
 				char local_buf[MAX_STRING];
