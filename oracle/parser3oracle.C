@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.57 2004/05/19 09:32:50 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.58 2004/05/25 07:00:09 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -83,7 +83,6 @@ static int pa_setenv(const char *name, const char *value, bool do_append) {
 			strcat(buf, value);
 			value=buf;
 		}
-
 		return setenv(name, value, 1/*overwrite*/); 
 	} else {
 		unsetenv(name);
@@ -246,7 +245,7 @@ public:
 	}
 
 	/**	connect
-		@param used_only_in_connect_url
+		@param url
 			format: @b user:pass@service?
 			   ORACLE_HOME=/u01/app/oracle/product/8.1.5&
 			   ORA_NLS33=/u01/app/oracle/product/8.1.5/ocommon/nls/admin/data&
@@ -254,20 +253,21 @@ public:
 			   ORA_ENCRYPT_LOGIN=TRUE
 
 		@todo environment manupulation doesnt look thread safe
+		@todo allocate 'aused_only_in_connect_url' on gc heap, so it can be manipulated directly
 	*/
 	void connect(
-		char *used_only_in_connect_url, 
+		char *url, 
 		SQL_Driver_services& services, 
 		void **connection_ref ///< output: Connection *
 		) 
 	{
 		// connections are cross-request, do not use services._alloc [linked with request]
-		Connection& connection=*(Connection  *)::calloc(1, sizeof(Connection));
+		Connection& connection=*(Connection  *)services.malloc(sizeof(Connection));
 		connection.services=&services;
 		connection.options.bLowerCaseColumnNames = true;
 		*connection_ref=&connection;
 
-		char *user=used_only_in_connect_url;
+		char *user=url;
 		char *service=lsplit(user, '@');
 		char *pwd=lsplit(user, ':');
 		char *options=lsplit(service, '?');
@@ -344,13 +344,15 @@ public:
 	void disconnect(void *aconnection) {
 	    Connection& connection=*static_cast<Connection *>(aconnection);
 
-		// free fetch buffers
+		// free fetch buffers. leave that to GC [no such services func. yet?]
+		/*
 		for(int i=0; i<MAX_COLS; i++) {
 			if(void* fetch_buffer=connection.fetch_buffers[i])
-				::free(fetch_buffer);
+				connection.services->free(fetch_buffer);
 			else
 				break;
-		}			
+		}
+		*/
 
 		// Terminate a user session
 		OCISessionEnd(
@@ -371,8 +373,8 @@ public:
 		OCIHandleFree(
 			(dvoid *)connection.envhp, (ub4)OCI_HTYPE_ENV);
 
-		// connections are cross-request, do not use services._alloc [linked with request]
-		::free(&connection);
+		// free connection. leave that to GC [no such services func. yet?]
+		// connection.services->free(&connection);
 	}
 	void commit(void *aconnection) {
 	    Connection& connection=*static_cast<Connection *>(aconnection);
@@ -747,7 +749,7 @@ private: // private funcs
 					char*& buf=connection.fetch_buffers[column_count-1];
 					ptr=buf; // get cached buffer
 					if(!ptr) // allocate if needed, caching it
-						ptr=buf=(char *)::/*see disconnect*/malloc(MAX_OUT_STRING_LENGTH+1/*terminator*/);
+						ptr=buf=(char *)services.malloc_atomic(MAX_OUT_STRING_LENGTH+1/*terminator*/);
 					col.str=(char*)ptr;
 					size=MAX_OUT_STRING_LENGTH;
 					break;
