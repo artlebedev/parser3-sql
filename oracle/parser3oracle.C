@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.48 2003/12/24 12:47:36 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.49 2004/01/26 14:59:08 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -111,7 +111,7 @@ static char *lsplit(char **string_ref, char delim) {
 }
 
 #ifndef DOXYGEN
-struct OracleSQL_connection_struct {
+struct Connection {
 	SQL_Driver_services *services;
 
 	jmp_buf mark; char error[MAX_STRING];
@@ -140,7 +140,7 @@ struct OracleSQL_query_lobs {
 		int count;
 	};
 	struct cbf_context_struct {
-		OracleSQL_connection_struct *cs;
+		Connection *connection;
 		return_rows *rows;
 	};
 	struct Item {
@@ -155,8 +155,8 @@ struct OracleSQL_query_lobs {
 #endif
 
 // forwards
-void check(OracleSQL_connection_struct &cs, const char *step, sword status);
-void check(OracleSQL_connection_struct &cs, bool error);
+void check(Connection& connection, const char *step, sword status);
+void check(Connection& connection, bool error);
 static sb4 cbf_no_data(
 					   dvoid *ctxp, 
 					   OCIBind *bindp, 
@@ -176,7 +176,7 @@ static sb4 cbf_get_data(dvoid *ctxp,
 void tolower(char *out, const char *in, size_t size);
 void toupper(char *out, const char *in, size_t size);
 
-static const char *options2env(char *s, OracleSQL_connection_struct::Options* options) {
+static const char *options2env(char *s, Connection::Options* options) {
 	while(s) {
 		if(char *key=lsplit(&s, '&')) {
 			if(*key) {
@@ -261,13 +261,12 @@ public:
 	void connect(
 		char *used_only_in_connect_url, 
 		SQL_Driver_services& services, 
-		void **connection ///< output: OracleSQL_connection_struct *
+		void **aconnection ///< output: Connection *
 		) {
 		// connections are cross-request, do not use services._alloc [linked with request]
-		OracleSQL_connection_struct &cs=
-			*(OracleSQL_connection_struct  *)::calloc(sizeof(OracleSQL_connection_struct), 1);
-		cs.services=&services;
-		cs.options.bLowerCaseColumnNames = true;
+		Connection& connection=*(Connection  *)::calloc(sizeof(Connection), 1);
+		connection.services=&services;
+		connection.options.bLowerCaseColumnNames = true;
 
 		char *user=used_only_in_connect_url;
 		char *service=lsplit(user, '@');
@@ -277,11 +276,11 @@ public:
 		if(!(user && pwd && service))
 			services._throw("mailformed connect part, must be 'user:pass@service'");
 
-		if(const char *error=options2env(options, &cs.options))
+		if(const char *error=options2env(options, &connection.options))
 			services._throw(error);
 
-		if(setjmp(cs.mark))
-			services._throw(cs.error);
+		if(setjmp(connection.mark))
+			services._throw(connection.error);
 
 		// Allocate and initialize OCIError handle, attempt #1
 		/*
@@ -299,59 +298,59 @@ public:
 			think, this is some sort of backward compatibility wonder.
 			leaving as it is, and without check()
 		*/
-		OCIHandleAlloc((dvoid *)NULL, (dvoid **) &cs.envhp, (ub4)OCI_HTYPE_ENV, 0, 0);
+		OCIHandleAlloc((dvoid *)NULL, (dvoid **) &connection.envhp, (ub4)OCI_HTYPE_ENV, 0, 0);
 		// Initialize an environment handle, attempt #2
-		check(cs, "EnvInit", OCIEnvInit(
-			&cs.envhp, (ub4)OCI_DEFAULT, 0, 0));		
+		check(connection, "EnvInit", OCIEnvInit(
+			&connection.envhp, (ub4)OCI_DEFAULT, 0, 0));		
 		// Allocate and initialize OCIError handle
-		check(cs, "HandleAlloc errhp", OCIHandleAlloc( 
-			(dvoid *)cs.envhp, (dvoid **) &cs.errhp, (ub4)OCI_HTYPE_ERROR, 0, 0));
+		check(connection, "HandleAlloc errhp", OCIHandleAlloc( 
+			(dvoid *)connection.envhp, (dvoid **) &connection.errhp, (ub4)OCI_HTYPE_ERROR, 0, 0));
 		// Allocate and initialize OCIServer handle
-		check(cs, "HandleAlloc srvhp", OCIHandleAlloc( 
-			(dvoid *)cs.envhp, (dvoid **) &cs.srvhp, (ub4)OCI_HTYPE_SERVER, 0, 0));		
+		check(connection, "HandleAlloc srvhp", OCIHandleAlloc( 
+			(dvoid *)connection.envhp, (dvoid **) &connection.srvhp, (ub4)OCI_HTYPE_SERVER, 0, 0));		
 		// Attach to a 'service'; initialize server context handle  
-		check(cs, "ServerAttach", OCIServerAttach( 
-			cs.srvhp, cs.errhp, (text *)service, (sb4)strlen(service), (ub4)OCI_DEFAULT));
+		check(connection, "ServerAttach", OCIServerAttach( 
+			connection.srvhp, connection.errhp, (text *)service, (sb4)strlen(service), (ub4)OCI_DEFAULT));
 		// Allocate and initialize OCISvcCtx handle
-		check(cs, "HandleAlloc svchp", OCIHandleAlloc( 
-			(dvoid *)cs.envhp, (dvoid **) &cs.svchp, (ub4)OCI_HTYPE_SVCCTX, 0, 0));		
+		check(connection, "HandleAlloc svchp", OCIHandleAlloc( 
+			(dvoid *)connection.envhp, (dvoid **) &connection.svchp, (ub4)OCI_HTYPE_SVCCTX, 0, 0));		
 		// set attribute server context in the service context
-		check(cs, "AttrSet server-service", OCIAttrSet( 
-			(dvoid *)cs.svchp, (ub4)OCI_HTYPE_SVCCTX, 
-			(dvoid *)cs.srvhp, (ub4)0, 
-			(ub4)OCI_ATTR_SERVER, (OCIError *)cs.errhp));		
+		check(connection, "AttrSet server-service", OCIAttrSet( 
+			(dvoid *)connection.svchp, (ub4)OCI_HTYPE_SVCCTX, 
+			(dvoid *)connection.srvhp, (ub4)0, 
+			(ub4)OCI_ATTR_SERVER, (OCIError *)connection.errhp));		
 		// allocate a user context handle
-		check(cs, "HandleAlloc usrhp", OCIHandleAlloc(
-			(dvoid *)cs.envhp, (dvoid **)&cs.usrhp, (ub4)OCI_HTYPE_SESSION, 0, 0));
+		check(connection, "HandleAlloc usrhp", OCIHandleAlloc(
+			(dvoid *)connection.envhp, (dvoid **)&connection.usrhp, (ub4)OCI_HTYPE_SESSION, 0, 0));
 		// set 'user' name
-		check(cs, "AttrSet user-session", OCIAttrSet(
-			(dvoid *)cs.usrhp, (ub4)OCI_HTYPE_SESSION, 
+		check(connection, "AttrSet user-session", OCIAttrSet(
+			(dvoid *)connection.usrhp, (ub4)OCI_HTYPE_SESSION, 
 			(dvoid *)user, (ub4)strlen(user), 
-			OCI_ATTR_USERNAME, cs.errhp));		
+			OCI_ATTR_USERNAME, connection.errhp));		
 		// set 'pwd' password
-		check(cs, "AttrSet pwd-session", OCIAttrSet(
-			(dvoid *)cs.usrhp, (ub4)OCI_HTYPE_SESSION, 
+		check(connection, "AttrSet pwd-session", OCIAttrSet(
+			(dvoid *)connection.usrhp, (ub4)OCI_HTYPE_SESSION, 
 			(dvoid *)pwd, (ub4)strlen(pwd), 
-			OCI_ATTR_PASSWORD, cs.errhp));
+			OCI_ATTR_PASSWORD, connection.errhp));
 		// Authenticate a user  
-		check(cs, "SessionBegin", OCISessionBegin(
-			cs.svchp, cs.errhp, cs.usrhp, 
+		check(connection, "SessionBegin", OCISessionBegin(
+			connection.svchp, connection.errhp, connection.usrhp, 
 			OCI_CRED_RDBMS, OCI_DEFAULT));
 		// remember connection in session
-		check(cs, "AttrSet service-session", OCIAttrSet(
-			(dvoid *)cs.svchp, (ub4)OCI_HTYPE_SVCCTX, 
-			(dvoid *)cs.usrhp, (ub4)0, 
-			OCI_ATTR_SESSION, cs.errhp));
+		check(connection, "AttrSet service-session", OCIAttrSet(
+			(dvoid *)connection.svchp, (ub4)OCI_HTYPE_SVCCTX, 
+			(dvoid *)connection.usrhp, (ub4)0, 
+			OCI_ATTR_SESSION, connection.errhp));
 
 		// return created connection
-		*(OracleSQL_connection_struct **)connection=&cs;
+		*(Connection **)aconnection=&connection;
 	}
-	void disconnect(void *connection) {
-	    OracleSQL_connection_struct &cs=*(OracleSQL_connection_struct *)connection;
+	void disconnect(void *aconnection) {
+	    Connection& connection=*static_cast<Connection *>(aconnection);
 
 		// free fetch buffers
 		for(int i=0; i<MAX_COLS; i++) {
-			if(void* fetch_buffer=cs.fetch_buffers[i])
+			if(void* fetch_buffer=connection.fetch_buffers[i])
 				::free(fetch_buffer);
 			else
 				break;
@@ -359,41 +358,41 @@ public:
 
 		// Terminate a user session
 		OCISessionEnd(
-			cs.svchp, cs.errhp, cs.usrhp, (ub4)OCI_DEFAULT);
+			connection.svchp, connection.errhp, connection.usrhp, (ub4)OCI_DEFAULT);
 		// Detach from a server; uninitialize server context handle
 		OCIServerDetach(
-			cs.srvhp, cs.errhp, (ub4)OCI_DEFAULT);
+			connection.srvhp, connection.errhp, (ub4)OCI_DEFAULT);
 		// Free a previously allocated handles
 		/* 
 		oci will free them up as belonging to env
 		OCIHandleFree(
-			(dvoid *)cs.srvhp, (ub4)OCI_HTYPE_SERVER);
+			(dvoid *)connection.srvhp, (ub4)OCI_HTYPE_SERVER);
 		OCIHandleFree(
-			(dvoid *)cs.svchp, (ub4)OCI_HTYPE_SVCCTX);
+			(dvoid *)connection.svchp, (ub4)OCI_HTYPE_SVCCTX);
 		OCIHandleFree(
-			(dvoid *)cs.errhp, (ub4)OCI_HTYPE_ERROR);
+			(dvoid *)connection.errhp, (ub4)OCI_HTYPE_ERROR);
 		*/
 		OCIHandleFree(
-			(dvoid *)cs.envhp, (ub4)OCI_HTYPE_ENV);
+			(dvoid *)connection.envhp, (ub4)OCI_HTYPE_ENV);
 
 		// connections are cross-request, do not use services._alloc [linked with request]
-		::free(&cs);
+		::free(&connection);
 	}
-	void commit(void *connection) {
-	    OracleSQL_connection_struct &cs=*(OracleSQL_connection_struct *)connection;
-		if(setjmp(cs.mark))
-			cs.services->_throw(cs.error);
+	void commit(void *aconnection) {
+	    Connection& connection=*static_cast<Connection *>(aconnection);
+		if(setjmp(connection.mark))
+			connection.services->_throw(connection.error);
 
-		check(cs, "commit", OCITransCommit(cs.svchp, cs.errhp, 0));
+		check(connection, "commit", OCITransCommit(connection.svchp, connection.errhp, 0));
 	}
-	void rollback(void *connection) {
-	    OracleSQL_connection_struct &cs=*(OracleSQL_connection_struct *)connection;
-		if(setjmp(cs.mark))
-			cs.services->_throw(cs.error);
+	void rollback(void *aconnection) {
+	    Connection& connection=*static_cast<Connection *>(aconnection);
+		if(setjmp(connection.mark))
+			connection.services->_throw(connection.error);
 
 		// sometimes rollback is done in context when this yields error which masks previous error
 		// consider consequent errors not very important to report, reporting first one
-		/*check(cs, "rollback", */OCITransRollback(cs.svchp, cs.errhp, 0)/*)*/;
+		/*check(connection, "rollback", */OCITransRollback(connection.svchp, connection.errhp, 0)/*)*/;
 	}
 
 	bool ping(void* /*connection*/) {
@@ -402,11 +401,11 @@ public:
 		return true;
 	}
 
-	const char* quote(void *connection,
+	const char* quote(void *aconnection,
 		const char *from, unsigned int length) 
 	{
-		OracleSQL_connection_struct &cs=*(OracleSQL_connection_struct *)connection;
-		char *result=(char*)cs.services->malloc_atomic(length*2+1);
+		Connection& connection=*static_cast<Connection *>(aconnection);
+		char *result=(char*)connection.services->malloc_atomic(length*2+1);
 		char *to=result;
 		while(length--) {
 			switch(*from) {
@@ -419,59 +418,59 @@ public:
 		*to=0;
 		return result;
 	}
-	void query(void *connection, 
+	void query(void *aconnection, 
 		const char *astatement, unsigned long offset, unsigned long limit, 
 		SQL_Driver_query_event_handlers& handlers) 
 	{
-		OracleSQL_connection_struct &cs=*(OracleSQL_connection_struct *)connection;
+		Connection& connection=*static_cast<Connection *>(aconnection);
 		OracleSQL_query_lobs lobs={{0}, 0};
 		OCIStmt *stmthp=0;
 
-		SQL_Driver_services& services=*cs.services;
+		SQL_Driver_services& services=*connection.services;
 
 		// transcode from $request:charset to connect-string?client_charset
 		size_t transcoded_statement_size;
-		if(const char* cstrClientCharset=cs.options.cstrClientCharset)
+		if(const char* cstrClientCharset=connection.options.cstrClientCharset)
 			services.transcode(astatement, strlen(astatement),
 				astatement, transcoded_statement_size,
 				services.request_charset(),
 				cstrClientCharset);
 
 		bool failed=false;
-		if(setjmp(cs.mark)) {
+		if(setjmp(connection.mark)) {
 			failed=true;
 			goto cleanup;
 		} else {
-			const char *statement=preprocess_statement(cs, astatement, lobs);
+			const char *statement=preprocess_statement(connection, astatement, lobs);
 
-			check(cs, "HandleAlloc STMT", OCIHandleAlloc( 
-				(dvoid *)cs.envhp, (dvoid **) &stmthp, (ub4)OCI_HTYPE_STMT, 0, 0));
-			check(cs, "syntax", 
-				OCIStmtPrepare(stmthp, cs.errhp, (unsigned char *)statement, 
+			check(connection, "HandleAlloc STMT", OCIHandleAlloc( 
+				(dvoid *)connection.envhp, (dvoid **) &stmthp, (ub4)OCI_HTYPE_STMT, 0, 0));
+			check(connection, "syntax", 
+				OCIStmtPrepare(stmthp, connection.errhp, (unsigned char *)statement, 
 				(ub4)strlen((char *)statement), 
 				(ub4)OCI_NTV_SYNTAX, (ub4)OCI_DEFAULT));
 			{
 				for(int i=0; i<lobs.count; i++) {
-					check(cs, "alloc output var desc", OCIDescriptorAlloc(
-						(dvoid *)cs.envhp, (dvoid **)&lobs.items[i].locator, (ub4)OCI_DTYPE_LOB, 0, 0));
+					check(connection, "alloc output var desc", OCIDescriptorAlloc(
+						(dvoid *)connection.envhp, (dvoid **)&lobs.items[i].locator, (ub4)OCI_DTYPE_LOB, 0, 0));
 
-					check(cs, "bind output", OCIBindByPos(stmthp, 
-						&lobs.items[i].bind, cs.errhp, 
+					check(connection, "bind output", OCIBindByPos(stmthp, 
+						&lobs.items[i].bind, connection.errhp, 
 						(ub4)1+i, 
 						(dvoid *)&lobs.items[i].locator, 
 						(sword)sizeof (lobs.items[i].locator), SQLT_CLOB, (dvoid *)0, 
 						(ub2 *)0, (ub2 *)0, (ub4)0, (ub4 *)0, OCI_DATA_AT_EXEC));
 
 					lobs.items[i].rows.count=0;
-					OracleSQL_query_lobs::cbf_context_struct cbf_context={&cs, &lobs.items[i].rows};
-					check(cs, "bind dynamic", OCIBindDynamic(
-						lobs.items[i].bind, cs.errhp, 
+					OracleSQL_query_lobs::cbf_context_struct cbf_context={&connection, &lobs.items[i].rows};
+					check(connection, "bind dynamic", OCIBindDynamic(
+						lobs.items[i].bind, connection.errhp, 
 						(dvoid *) &cbf_context, cbf_no_data, 
 						(dvoid *) &cbf_context, cbf_get_data));
 				}
 			}
 
-			execute_prepared(cs, 
+			execute_prepared(connection, 
 				statement, stmthp, lobs, 
 				offset, limit, handlers);
 		}
@@ -492,18 +491,18 @@ cleanup: // no check call after this point!
 			OCIHandleFree((dvoid *)stmthp, (ub4)OCI_HTYPE_STMT);
 
 		if(failed) {
-			if(cs.sql_error.defined())
-				services._throw(cs.sql_error);
-			services._throw(cs.error);
+			if(connection.sql_error.defined())
+				services._throw(connection.sql_error);
+			services._throw(connection.error);
 		}
 	}
 
 private: // private funcs
 
-	const char *preprocess_statement(OracleSQL_connection_struct &cs, 
+	const char *preprocess_statement(Connection& connection, 
 		const char *astatement, OracleSQL_query_lobs &lobs) {
 		size_t statement_size=strlen(astatement);
-		SQL_Driver_services& services=*cs.services;
+		SQL_Driver_services& services=*connection.services;
 
 		char *result=(char *)services.malloc_atomic(statement_size
 			+MAX_STRING // in case of short 'strings'
@@ -588,7 +587,7 @@ private: // private funcs
 	}
 
 	void execute_prepared(
-		OracleSQL_connection_struct &cs, 
+		Connection& connection, 
 		const char *statement, OCIStmt *stmthp, OracleSQL_query_lobs &lobs, 
 		unsigned long offset, unsigned long limit, 
 		SQL_Driver_query_event_handlers& handlers) {
@@ -597,9 +596,9 @@ private: // private funcs
 	/*
 		//gpfs on sun. paf 000818
 		//Zanyway, this is needed before. 
-		check(cs, "get stmt type", OCIAttrGet(
+		check(connection, "get stmt type", OCIAttrGet(
 			(dvoid *)stmthp, (ub4)OCI_HTYPE_STMT, (ub1 *)&stmt_type, 
-			(ub4 *)0, OCI_ATTR_STMT_TYPE, cs.errhp));
+			(ub4 *)0, OCI_ATTR_STMT_TYPE, connection.errhp));
 	*/
 
 		while(isspace(*statement)) 
@@ -611,13 +610,13 @@ private: // private funcs
 		else if(strncasecmp(statement, "update", 6)==0)
 			stmt_type=OCI_STMT_UPDATE;
 
-		sword status=OCIStmtExecute(cs.svchp, stmthp, cs.errhp, 
+		sword status=OCIStmtExecute(connection.svchp, stmthp, connection.errhp, 
 			(ub4)stmt_type==OCI_STMT_SELECT?0:1, (ub4)0, 
 			(OCISnapshot *)NULL, 
 			(OCISnapshot *)NULL, (ub4)OCI_DEFAULT);
 
 		if(status!=OCI_NO_DATA)
-			check(cs, "execute", status);
+			check(connection, "execute", status);
 
 		{
 			for(int i=0; i<lobs.count; i++) 
@@ -625,8 +624,8 @@ private: // private funcs
 					OracleSQL_query_lobs::return_rows *rows=&lobs.items[i].rows;
 					for(int r=0; r<rows->count; r++) {
 						OCILobLocator *locator=rows->row[r].locator;
-						check(cs, "lobwrite", OCILobWrite (
-							cs.svchp, cs.errhp, 
+						check(connection, "lobwrite", OCILobWrite (
+							connection.svchp, connection.errhp, 
 							locator, &bytes_to_write, 1, 
 							(dvoid *)lobs.items[i].data_ptr, (ub4)bytes_to_write, OCI_ONE_PIECE, 
 							(dvoid *)0, 0, (ub2)0, 
@@ -637,7 +636,7 @@ private: // private funcs
 		
 		switch(stmt_type) {
 		case OCI_STMT_SELECT:
-			fetch_table(cs,
+			fetch_table(connection,
 				stmthp, offset, limit, 
 				handlers);
 			break;
@@ -650,23 +649,23 @@ private: // private funcs
 		}
 	}
 
-	void fetch_table(OracleSQL_connection_struct &cs, 
+	void fetch_table(Connection& connection, 
 		OCIStmt *stmthp, unsigned long offset, unsigned long limit, 
 		SQL_Driver_query_event_handlers& handlers) 
 	{
-		SQL_Driver_services& services=*cs.services;
+		SQL_Driver_services& services=*connection.services;
 
 		ub4 prefetch_rows=100;
-		check(cs, "AttrSet prefetch-rows", OCIAttrSet( 
+		check(connection, "AttrSet prefetch-rows", OCIAttrSet( 
 			(dvoid *)stmthp, (ub4)OCI_HTYPE_STMT, 
 			(dvoid *)&prefetch_rows, (ub4)0, 
-			(ub4)OCI_ATTR_PREFETCH_ROWS, (OCIError *)cs.errhp));
+			(ub4)OCI_ATTR_PREFETCH_ROWS, (OCIError *)connection.errhp));
 
 		ub4 prefetch_mem_size=100*0x400;
-		check(cs, "AttrSet prefetch-memory", OCIAttrSet( 
+		check(connection, "AttrSet prefetch-memory", OCIAttrSet( 
 			(dvoid *)stmthp, (ub4)OCI_HTYPE_STMT, 
 			(dvoid *)&prefetch_mem_size, (ub4)0, 
-			(ub4)OCI_ATTR_PREFETCH_MEMORY, (OCIError *)cs.errhp));
+			(ub4)OCI_ATTR_PREFETCH_MEMORY, (OCIError *)connection.errhp));
 
 		OCIParam          *mypard;
 		ub2                    dtype;
@@ -682,43 +681,43 @@ private: // private funcs
 		int column_count=0;
 
 		bool failed=false;
-		jmp_buf saved_mark; memcpy(saved_mark, cs.mark, sizeof(jmp_buf));
-		if(setjmp(cs.mark)) {
+		jmp_buf saved_mark; memcpy(saved_mark, connection.mark, sizeof(jmp_buf));
+		if(setjmp(connection.mark)) {
 			failed=true;
 			goto cleanup;
 		} else {
 			// idea of preincrementing is that at error time all handles would free up
 			while(++column_count<=MAX_COLS) {
 				/* get next descriptor, if there is one */
-				if(OCIParamGet(stmthp, OCI_HTYPE_STMT, cs.errhp, (void **)&mypard, 
+				if(OCIParamGet(stmthp, OCI_HTYPE_STMT, connection.errhp, (void **)&mypard, 
 					(ub4) column_count)!=OCI_SUCCESS) {
 					--column_count;
 					break;
 				}
 				
 				/* Retrieve the data type attribute */
-				check(cs, "get type", OCIAttrGet(
+				check(connection, "get type", OCIAttrGet(
 					(dvoid*) mypard, (ub4)OCI_DTYPE_PARAM, 
 					(dvoid*) &dtype, (ub4 *)0, (ub4)OCI_ATTR_DATA_TYPE, 
-					(OCIError *)cs.errhp));
+					(OCIError *)connection.errhp));
 				
 				/* Retrieve the column name attribute */
 				ub4 col_name_len;
-				check(cs, "get name", OCIAttrGet(
+				check(connection, "get name", OCIAttrGet(
 					(dvoid*) mypard, (ub4)OCI_DTYPE_PARAM, 
 					(dvoid**) &col_name, (ub4 *) &col_name_len, (ub4)OCI_ATTR_NAME, 
-					(OCIError *)cs.errhp));
+					(OCIError *)connection.errhp));
 				
 				Col& col=cols[column_count-1];
 				{
 					size_t length=(size_t)col_name_len;
 					char *ptr=(char *)services.malloc_atomic(length+1);
-					if( cs.options.bLowerCaseColumnNames ) 
+					if( connection.options.bLowerCaseColumnNames ) 
 						tolower(ptr, (char *)col_name, length);
 					else
 						memcpy(ptr, col_name, length);						
 					ptr[length]=0;
-					check(cs, handlers.add_column(cs.sql_error, ptr, length));
+					check(connection, handlers.add_column(connection.sql_error, ptr, length));
 				}
 				
 				ub2 coerce_type=dtype;
@@ -728,8 +727,8 @@ private: // private funcs
 				switch(dtype) {
 				case SQLT_CLOB: 
 					{
-						check(cs, "alloc output var desc", OCIDescriptorAlloc(
-							(dvoid *)cs.envhp, (dvoid **)(ptr=&col.var), 
+						check(connection, "alloc output var desc", OCIDescriptorAlloc(
+							(dvoid *)connection.envhp, (dvoid **)(ptr=&col.var), 
 							(ub4)OCI_DTYPE_LOB, 
 							0, (dvoid **)0));
 						
@@ -738,7 +737,7 @@ private: // private funcs
 					}
 				default:
 					coerce_type=SQLT_STR;
-					char*& buf=cs.fetch_buffers[column_count-1];
+					char*& buf=connection.fetch_buffers[column_count-1];
 					ptr=buf; // get cached buffer
 					if(!ptr) // allocate if needed, caching it
 						ptr=buf=(char *)::/*see disconnect*/malloc(MAX_OUT_STRING_LENGTH+1/*terminator*/);
@@ -754,24 +753,24 @@ private: // private funcs
 				// http://sunsite.eunnet.net/documentation/oracle.8.0.4/server.804/a58234/basics.htm
 				//   when a statement handle is freed, any bind and define handles associated with it 
 				//   are also freed
-				col.def=0; check(cs, "DefineByPos", OCIDefineByPos(
-					stmthp, &col.def, cs.errhp, 
+				col.def=0; check(connection, "DefineByPos", OCIDefineByPos(
+					stmthp, &col.def, connection.errhp, 
 					column_count, (ub1 *) ptr, size, 
 					coerce_type, (dvoid *) &col.indicator, 
 					(ub2 *)0, (ub2 *)0, OCI_DEFAULT));
 			}
 			
-			check(cs, handlers.before_rows(cs.sql_error));
+			check(connection, handlers.before_rows(connection.sql_error));
 			
 			for(unsigned long row=0; !limit||row<offset+limit; row++) {
-				sword status=OCIStmtFetch(stmthp, cs.errhp, (ub4)1,  (ub4)OCI_FETCH_NEXT, 
+				sword status=OCIStmtFetch(stmthp, connection.errhp, (ub4)1,  (ub4)OCI_FETCH_NEXT, 
 					(ub4)OCI_DEFAULT);
 				if(status==OCI_NO_DATA)
 					break;
-				check(cs, "fetch", status);
+				check(connection, "fetch", status);
 
 				if(row>=offset) {
-					check(cs, handlers.add_row(cs.sql_error));
+					check(connection, handlers.add_row(connection.sql_error));
 					for(int i=0; i<column_count; i++) {
 						size_t length=0;
 						char* strm=0;
@@ -787,13 +786,13 @@ private: // private funcs
 										char buf[MAX_STRING*10];
 										ub4   amtp=0/*to be read in stream mode*/;
 										// http://i/docs/oracle/server.804/a58234/oci_func.htm#427818
-										status=OCILobRead(cs.svchp, cs.errhp, 
+										status=OCILobRead(connection.svchp, connection.errhp, 
 											var, &amtp, offset, (dvoid *)buf, 
 											sizeof(buf), 
 											(dvoid *)0, 0, 
 											(ub2)0, (ub1)SQLCS_IMPLICIT);
                                         if(status!=OCI_SUCCESS && status!=OCI_NEED_DATA)
-											check(cs, "lobread", status);
+											check(connection, "lobread", status);
 
 										strm=(char*)services.realloc(strm, read_size+amtp+1/*for termintator*/);
 										memcpy(strm+read_size, buf, amtp);
@@ -821,7 +820,7 @@ private: // private funcs
 						if(str && length)
 						{
 							// transcode to $request:charset from connect-string?client_charset
-							if(const char* cstrClientCharset=cs.options.cstrClientCharset) {
+							if(const char* cstrClientCharset=connection.options.cstrClientCharset) {
 								const char* dest;
 								size_t dest_length;
 								services.transcode(str, length,
@@ -833,7 +832,7 @@ private: // private funcs
 							}
 						}
 
-						check(cs, handlers.add_row_cell(cs.sql_error, str, length));
+						check(connection, handlers.add_row_cell(connection.sql_error, str, length));
 					}
 				}
 			}
@@ -857,7 +856,7 @@ cleanup: // no check call after this point!
 
 private: // conn client library funcs
 	
-	friend void check(OracleSQL_connection_struct &cs, const char *step, sword status);
+	friend void check(Connection& connection, const char *step, sword status);
 	friend sb4 cbf_get_data(dvoid *ctxp, 
 		OCIBind *bindp, 
 		ub4 iter, ub4 index, 
@@ -1000,7 +999,7 @@ private: // conn client library funcs linking
 
 } *OracleSQL_driver;
 
-void check(OracleSQL_connection_struct &cs, const char *step, sword status) {
+void check(Connection& connection, const char *step, sword status) {
 
 	const char *msg;
 	char reason[MAX_STRING/2];
@@ -1013,18 +1012,18 @@ void check(OracleSQL_connection_struct &cs, const char *step, sword status) {
 	case OCI_ERROR:
 		{
 			sb4 errcode;
-			if(OracleSQL_driver->OCIErrorGet((dvoid *)cs.errhp, (ub4)1, (text *)NULL, &errcode, 
+			if(OracleSQL_driver->OCIErrorGet((dvoid *)connection.errhp, (ub4)1, (text *)NULL, &errcode, 
 				(text *)reason, (ub4)sizeof(reason), OCI_HTYPE_ERROR)==OCI_SUCCESS) {
 				msg=reason;
 
 				// transcode to $request:charset from connect-string?client_charset
-				if(const char* cstrClientCharset=cs.options.cstrClientCharset) {
+				if(const char* cstrClientCharset=connection.options.cstrClientCharset) {
 					if(msg) {
 						if(size_t msg_length=strlen(msg)) {
-							cs.services->transcode(msg, msg_length,
+							connection.services->transcode(msg, msg_length,
 								msg, msg_length,
 								cstrClientCharset,
-								cs.services->request_charset());
+								connection.services->request_charset());
 						}
 					}
 				}
@@ -1046,14 +1045,14 @@ void check(OracleSQL_connection_struct &cs, const char *step, sword status) {
 		msg="unknown"; break;
 	}
 
-	snprintf(cs.error, sizeof(cs.error), "%s (%s, %d)", 
+	snprintf(connection.error, sizeof(connection.error), "%s (%s, %d)", 
 		msg, step, (int)status);
-	longjmp(cs.mark, 1);
+	longjmp(connection.mark, 1);
 }
 
-void check(OracleSQL_connection_struct &cs, bool error) {
+void check(Connection& connection, bool error) {
 	if(error)
-		longjmp(cs.mark, 1);
+		longjmp(connection.mark, 1);
 }
 
 /* ----------------------------------------------------------------- */
@@ -1092,19 +1091,19 @@ static sb4 cbf_get_data(dvoid *ctxp,
 
 	if(index==0) {
 		static ub4  rows;
-		check(*context.cs, "AttrGet cbf_get_data ROWS_RETURNED", 
+		check(*context.connection, "AttrGet cbf_get_data ROWS_RETURNED", 
 			OracleSQL_driver->OCIAttrGet(
 				(CONST dvoid *) bindp, OCI_HTYPE_BIND, (dvoid *)&rows, 
-				(ub4 *)sizeof(ub2), OCI_ATTR_ROWS_RETURNED, context.cs->errhp))	;
+				(ub4 *)sizeof(ub2), OCI_ATTR_ROWS_RETURNED, context.connection->errhp))	;
 		context.rows->count=(ub2)rows;
 		context.rows->row=(OracleSQL_query_lobs::return_rows::return_row *)
-			context.cs->services->malloc_atomic(sizeof(OracleSQL_query_lobs::return_rows::return_row)*rows);
+			context.connection->services->malloc_atomic(sizeof(OracleSQL_query_lobs::return_rows::return_row)*rows);
 	}
 
 	OracleSQL_query_lobs::return_rows::return_row &var=context.rows->row[index];
 
-	check(*context.cs, "alloc output var desc dynamic", OracleSQL_driver->OCIDescriptorAlloc(
-		(dvoid *) context.cs->envhp, (dvoid **)&var.locator, 
+	check(*context.connection, "alloc output var desc dynamic", OracleSQL_driver->OCIDescriptorAlloc(
+		(dvoid *) context.connection->envhp, (dvoid **)&var.locator, 
 		(ub4)OCI_DTYPE_LOB, 
 		0, (dvoid **)0));
 
