@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.25 2002/12/09 11:07:52 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.26 2002/12/09 11:43:08 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -132,6 +132,7 @@ static const char *options2env(char *options) {
 #ifndef DOXYGEN
 struct OracleSQL_connection_struct {
 	jmp_buf mark; char error[MAX_STRING];
+	SQL_Exception sql_exception;
 	OCIEnv *envhp;
 	OCIServer *srvhp;
 	OCIError *errhp;
@@ -387,7 +388,6 @@ public:
 		OCIStmt *stmthp=0;
 
 		bool failed=false;
-		SQL_Exception sql_exception;
 		if(setjmp(cs.mark)) {
 			failed=true;
 			goto cleanup;
@@ -423,15 +423,9 @@ public:
 				}
 			}
 
-			try {
-				execute_prepared(services, cs, 
-					statement, stmthp, lobs, 
-					offset, limit, handlers);
-			} catch(const SQL_Exception& e) {
-				sql_exception=e;
-			} catch(...) {
-				sql_exception=SQL_Exception("exception occured in SQL_Driver_query_event_handlers"); // out of memory...
-			}
+			execute_prepared(services, cs, 
+				statement, stmthp, lobs, 
+				offset, limit, handlers);
 		}
 cleanup: // no check call after this point!
 		{
@@ -449,10 +443,11 @@ cleanup: // no check call after this point!
 		if(stmthp)
 			OCIHandleFree((dvoid *)stmthp, (ub4)OCI_HTYPE_STMT);
 
-		if(failed)
+		if(failed) {
+			if(cs.sql_exception.defined())
+				services._throw(cs.sql_exception);
 			services._throw(cs.error);
-		if(sql_exception.defined())
-			services._throw(sql_exception);
+		}
 	}
 
 private: // private funcs
@@ -640,114 +635,125 @@ private: // private funcs
 			failed=true;
 			goto cleanup;
 		} else {
-			// idea of preincrementing is that at error time all handles would free up
-			while(++column_count<=MAX_COLS) {
-				/* get next descriptor, if there is one */
-				if(OCIParamGet(stmthp, OCI_HTYPE_STMT, cs.errhp, (void **)&mypard, 
-					(ub4) column_count)!=OCI_SUCCESS) {
-					--column_count;
-					break;
-				}
-				
-				/* Retrieve the data type attribute */
-				check(services, cs, "get type", OCIAttrGet(
-					(dvoid*) mypard, (ub4)OCI_DTYPE_PARAM, 
-					(dvoid*) &dtype, (ub4 *)0, (ub4)OCI_ATTR_DATA_TYPE, 
-					(OCIError *)cs.errhp));
-				
-				/* Retrieve the column name attribute */
-				ub4 col_name_len;
-				check(services, cs, "get name", OCIAttrGet(
-					(dvoid*) mypard, (ub4)OCI_DTYPE_PARAM, 
-					(dvoid**) &col_name, (ub4 *) &col_name_len, (ub4)OCI_ATTR_NAME, 
-					(OCIError *)cs.errhp));
-				
-				{
-					size_t size=(size_t)col_name_len;
-					char *ptr=(char *)services.malloc(size);
-					tolower(ptr, (char *)col_name, size);
-					handlers.add_column(ptr, size);
-				}
-				
-				ub2 coerce_type=dtype;
-				sb4 size=0;
-				void *ptr;
-				
-				switch(dtype) {
-				case SQLT_CLOB: 
-					{
-						check(services, cs, "alloc output var desc", OCIDescriptorAlloc(
-							(dvoid *)cs.envhp, (dvoid **)(ptr=&cols[column_count-1].var), 
-							(ub4)OCI_DTYPE_LOB, 
-							0, (dvoid **)0));
-						
-						size=0;
+			try {
+
+				// idea of preincrementing is that at error time all handles would free up
+				while(++column_count<=MAX_COLS) {
+					/* get next descriptor, if there is one */
+					if(OCIParamGet(stmthp, OCI_HTYPE_STMT, cs.errhp, (void **)&mypard, 
+						(ub4) column_count)!=OCI_SUCCESS) {
+						--column_count;
 						break;
 					}
-				default:
-					coerce_type=SQLT_STR;
-					ptr=cols[column_count-1].str=(char *)services.malloc(MAX_OUT_STRING_LENGTH+1);
-					size=MAX_OUT_STRING_LENGTH;
-					break;
+					
+					/* Retrieve the data type attribute */
+					check(services, cs, "get type", OCIAttrGet(
+						(dvoid*) mypard, (ub4)OCI_DTYPE_PARAM, 
+						(dvoid*) &dtype, (ub4 *)0, (ub4)OCI_ATTR_DATA_TYPE, 
+						(OCIError *)cs.errhp));
+					
+					/* Retrieve the column name attribute */
+					ub4 col_name_len;
+					check(services, cs, "get name", OCIAttrGet(
+						(dvoid*) mypard, (ub4)OCI_DTYPE_PARAM, 
+						(dvoid**) &col_name, (ub4 *) &col_name_len, (ub4)OCI_ATTR_NAME, 
+						(OCIError *)cs.errhp));
+					
+					{
+						size_t size=(size_t)col_name_len;
+						char *ptr=(char *)services.malloc(size);
+						tolower(ptr, (char *)col_name, size);
+						handlers.add_column(ptr, size);
+					}
+					
+					ub2 coerce_type=dtype;
+					sb4 size=0;
+					void *ptr;
+					
+					switch(dtype) {
+					case SQLT_CLOB: 
+						{
+							check(services, cs, "alloc output var desc", OCIDescriptorAlloc(
+								(dvoid *)cs.envhp, (dvoid **)(ptr=&cols[column_count-1].var), 
+								(ub4)OCI_DTYPE_LOB, 
+								0, (dvoid **)0));
+							
+							size=0;
+							break;
+						}
+					default:
+						coerce_type=SQLT_STR;
+						ptr=cols[column_count-1].str=(char *)services.malloc(MAX_OUT_STRING_LENGTH+1);
+						size=MAX_OUT_STRING_LENGTH;
+						break;
+					}
+					
+					cols[column_count-1].type=coerce_type;
+					
+					check(services, cs, "DefineByPos", OCIDefineByPos(
+						stmthp, &cols[column_count-1].def, cs.errhp, 
+						column_count, (ub1 *) ptr, size, 
+						coerce_type, (dvoid *) &cols[column_count-1].indicator, 
+						(ub2 *)0, (ub2 *)0, OCI_DEFAULT));
 				}
 				
-				cols[column_count-1].type=coerce_type;
+				handlers.before_rows();
 				
-				check(services, cs, "DefineByPos", OCIDefineByPos(
-					stmthp, &cols[column_count-1].def, cs.errhp, 
-					column_count, (ub1 *) ptr, size, 
-					coerce_type, (dvoid *) &cols[column_count-1].indicator, 
-					(ub2 *)0, (ub2 *)0, OCI_DEFAULT));
-			}
-			
-			handlers.before_rows();
-			
-			for(unsigned long row=0; !limit||row<offset+limit; row++) {
-				sword status=OCIStmtFetch(stmthp, cs.errhp, (ub4)1,  (ub4)OCI_FETCH_NEXT, 
-					(ub4)OCI_DEFAULT);
-				if(status==OCI_NO_DATA)
-					break;
-				check(services, cs, "fetch", status);
+				for(unsigned long row=0; !limit||row<offset+limit; row++) {
+					sword status=OCIStmtFetch(stmthp, cs.errhp, (ub4)1,  (ub4)OCI_FETCH_NEXT, 
+						(ub4)OCI_DEFAULT);
+					if(status==OCI_NO_DATA)
+						break;
+					check(services, cs, "fetch", status);
 
-				if(row>=offset) {
-					handlers.add_row();
-					for(int i=0; i<column_count; i++) {
-						size_t size=0;
-						void *ptr=0;
-						if(!cols[i].indicator) // not NULL
-							switch(cols[i].type) {
-							case SQLT_CLOB: 
-								{
-									ub4   amtp=4096000000UL;
-									ub4   offset=1;
-									ub4   loblen=0;
-									OCILobLocator *var=(OCILobLocator *)cols[i].var;
-									OCILobGetLength(cs.svchp, cs.errhp, var, &loblen);
-									if(loblen) {
-										size=(size_t)loblen;
+					if(row>=offset) {
+						handlers.add_row();
+						for(int i=0; i<column_count; i++) {
+							size_t size=0;
+							void *ptr=0;
+							if(!cols[i].indicator) // not NULL
+								switch(cols[i].type) {
+								case SQLT_CLOB: 
+									{
+										ub4   amtp=4096000000UL;
+										ub4   offset=1;
+										ub4   loblen=0;
+										OCILobLocator *var=(OCILobLocator *)cols[i].var;
+										OCILobGetLength(cs.svchp, cs.errhp, var, &loblen);
+										if(loblen) {
+											size=(size_t)loblen;
+											ptr=services.malloc(size);
+											check(services, cs, "lobread", OCILobRead(cs.svchp, cs.errhp, 
+												var, &amtp, offset, (dvoid *) ptr, 
+												loblen, (dvoid *)0, 
+												0, 
+												(ub2)0, (ub1) SQLCS_IMPLICIT));
+										}
+										break;
+									}
+								default:
+									if(const char *str=cols[i].str) {
+										size=strlen(str);
 										ptr=services.malloc(size);
-										check(services, cs, "lobread", OCILobRead(cs.svchp, cs.errhp, 
-											var, &amtp, offset, (dvoid *) ptr, 
-											loblen, (dvoid *)0, 
-											0, 
-											(ub2)0, (ub1) SQLCS_IMPLICIT));
+										memcpy(ptr, str, size);
+									} else {
+										size=0;
+										ptr=0;
 									}
 									break;
 								}
-							default:
-								if(const char *str=cols[i].str) {
-									size=strlen(str);
-									ptr=services.malloc(size);
-									memcpy(ptr, str, size);
-								} else {
-									size=0;
-									ptr=0;
-								}
-								break;
-							}
-						handlers.add_row_cell(ptr, size);
+							handlers.add_row_cell(ptr, size);
+						}
 					}
 				}
+			} catch(const SQL_Exception& e) {
+				cs.sql_exception=e;
+				failed=true;
+				goto cleanup;
+			} catch(...) {
+				cs.sql_exception=SQL_Exception("exception occured in SQL_Driver_query_event_handlers"); // out of memory...
+				failed=true;
+				goto cleanup;
 			}
 		}
 
