@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.8 2002/03/22 16:19:13 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.9 2002/12/09 12:36:19 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -229,19 +229,27 @@ public:
 		if(!column_count)
 			PQclear_throw("result contains no columns");
 
+		bool failed=false;
+		SQL_Error sql_error;
+#define CHECK(afailed) \
+		if(afailed) { \
+			failed=true; \
+			goto cleanup; \
+		}
+
 		for(int i=0; i<column_count; i++){
 			char *name=PQfname(res, i);
 			size_t size=strlen(name);
 			void *ptr=services.malloc(size);
 			memcpy(ptr, name, size);
-			handlers.add_column(ptr, size);
+			CHECK(handlers.add_column(sql_error, ptr, size));
 		}
 
-		handlers.before_rows();
+		CHECK(handlers.before_rows(sql_error));
 
 		if(unsigned long row_count=(unsigned long)PQntuples(res))
 			for(unsigned long r=0; r<row_count; r++) {
-				handlers.add_row();
+				CHECK(handlers.add_row(sql_error));
 				for(int i=0; i<column_count; i++){
 					const char *cell=PQgetvalue(res, r, i);
 					size_t size;
@@ -284,11 +292,13 @@ public:
 						} else
 							ptr=0;
 					}
-					handlers.add_row_cell(ptr, size);
+					CHECK(handlers.add_row_cell(sql_error, ptr, size));
 				}
 			}
-
+cleanup:
 		PQclear(res);
+		if(failed)
+			services._throw(sql_error);
 	}
 
 private: // private funcs

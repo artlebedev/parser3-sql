@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.11 2002/10/29 10:17:41 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.12 2002/12/09 12:33:28 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -192,6 +192,9 @@ public:
 				if(column_count>MAX_COLS)
 					column_count=MAX_COLS;
 
+				SQL_Error sql_error;
+#define CHECK(afailed) if(afailed) services._throw(sql_error)
+
 				for(int i=0; i<column_count; i++){
 					CString string;
 					CODBCFieldInfo fieldinfo;
@@ -203,17 +206,17 @@ public:
 						ptr=services.malloc(size);
 						memcpy(ptr, (char *)LPCTSTR(fieldinfo.m_strName), size);
 					}
-					handlers.add_column(ptr, size);
+					CHECK(handlers.add_column(sql_error, ptr, size));
 				}
 
-				handlers.before_rows();
+				CHECK(handlers.before_rows(sql_error));
 
 				unsigned long row=0;
 				CDBVariant v;
 				CString s;
 				while(!rs.IsEOF() && (!limit||(row<offset+limit))) {
 					if(row>=offset) {
-						handlers.add_row();
+						CHECK(handlers.add_row(sql_error));
 						for(int i=0; i<column_count; i++) {
 							size_t size;
 							void *ptr;
@@ -233,7 +236,7 @@ public:
 								getFromString(services, s, ptr, size);
 								break;
 							}
-							handlers.add_row_cell(ptr, size);
+							CHECK(handlers.add_row_cell(sql_error, ptr, size));
 						}
 					}
 					rs.MoveNext();  row++;

@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.8 2002/12/09 11:07:46 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.9 2002/12/09 12:29:03 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -205,42 +205,42 @@ public:
 			services._throw("result contains no columns");
 		}
 		
-		try {
-
-			for(int i=0; i<column_count; i++){
-				MYSQL_FIELD *field=mysql_fetch_field(res);
-				size_t size=strlen(field->name);
-				void *ptr=services.malloc(size);
-				memcpy(ptr, field->name, size);
-				handlers.add_column(ptr, size);
-			}
-
-			handlers.before_rows();
-			
-  			while(MYSQL_ROW mysql_row=mysql_fetch_row(res)) {
-  				handlers.add_row();
-  				unsigned long *lengths=mysql_fetch_lengths(res);
-  				for(int i=0; i<column_count; i++){
-  					size_t size=(size_t)lengths[i];
-  					void *ptr;
-  					if(size) {
-  						ptr=services.malloc(size);
-  						memcpy(ptr, mysql_row[i], size);
-  					} else
-  						ptr=0;
-  					handlers.add_row_cell(ptr, size);
-  				}
-  			}
-
-		} catch(const SQL_Exception& e) { // some SQL_Exception in handlers.*
-			mysql_free_result(res);
-			services._throw(e);
-		} catch(...) { // some parser Exception in handlers.*
-			mysql_free_result(res);
-			services._throw("exception occured in SQL_Driver_query_event_handlers"); // out of memory...
+		bool failed=false;
+		SQL_Error sql_error;
+#define CHECK(afailed) \
+		if(afailed) { \
+			failed=true; \
+			goto cleanup; \
 		}
 
+		for(int i=0; i<column_count; i++){
+			MYSQL_FIELD *field=mysql_fetch_field(res);
+			size_t size=strlen(field->name);
+			void *ptr=services.malloc(size);
+			memcpy(ptr, field->name, size);
+			CHECK(handlers.add_column(sql_error, ptr, size));
+		}
+
+		CHECK(handlers.before_rows(sql_error));
+		
+  		while(MYSQL_ROW mysql_row=mysql_fetch_row(res)) {
+  			CHECK(handlers.add_row(sql_error));
+  			unsigned long *lengths=mysql_fetch_lengths(res);
+  			for(int i=0; i<column_count; i++){
+  				size_t size=(size_t)lengths[i];
+  				void *ptr;
+  				if(size) {
+  					ptr=services.malloc(size);
+  					memcpy(ptr, mysql_row[i], size);
+  				} else
+  					ptr=0;
+  				CHECK(handlers.add_row_cell(sql_error, ptr, size));
+  			}
+  		}
+cleanup:
 		mysql_free_result(res);
+		if(failed)
+			services._throw(sql_error);
 	}
 
 private: // mysql client library funcs
