@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.4 2001/11/10 16:11:24 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.5 2001/11/11 11:02:21 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -38,7 +38,7 @@ inline int max(int a, int b) { return a>b?a:b; }
 inline int min(int a, int b){ return a<b?a:b; }
 #endif
 
-
+/// @test setenv version memory. maybe key/value needs ::malloc?
 static int pa_setenv(const char *name, const char *value) {
 #ifdef HAVE_PUTENV
     // MEM_LEAK_HERE. refer to EOF man putenv
@@ -46,6 +46,15 @@ static int pa_setenv(const char *name, const char *value) {
 	strcpy(buf, name);
 	strcat(buf, "=");
 	strcat(buf, value);
+/*
+	if(FILE *f=fopen("f", "at")) {
+		fprintf(f, "****************************%s\n", buf);
+//		for (char **env = environ; env != NULL && *env != NULL; env++)
+//			fputs(*env, f);
+	
+		fclose(f);
+	}
+*/	
 	return putenv(buf);
 #else 
 	//#ifdef HAVE_SETENV
@@ -74,6 +83,27 @@ static char *lsplit(char **string_ref, char delim) {
 	char *next=lsplit(*string_ref, delim);
     *string_ref=next;
     return result;
+}
+
+static const char *pa_setenv(char *options) {
+	while(options) {
+		if(char *key=lsplit(&options, '&')) {
+			if(*key) {
+				if(char *value=lsplit(key, '=')) {
+					if(strncmp(key, "ORACLE_", 7)==0  // ORACLE_HOME & co
+						|| strncmp(key, "ORA_", 4)==0 // ORA_ENCRYPT_LOGIN & co
+						|| strncmp(key, "NLS_", 4)==0 // NLS_LANG & co
+						) {
+						if(pa_setenv(key, value)!=0)
+							return "problem changing process environment" /*key*/;
+					} else
+						return "unknown connect option (option must start with ORACLE_, ORA_ or NLS_)" /*key*/;
+				} else 
+					return "connect option without =value" /*key*/;
+			}
+		}
+	}
+	return 0;
 }
 
 #ifndef DOXYGEN
@@ -146,19 +176,20 @@ public:
 	/// get api version
 	int api_version() { return SQL_DRIVER_API_VERSION; }
 	/// initialize driver by loading sql dynamic link library
-	const char *initialize(const char *dlopen_file_spec) {
+	const char *initialize(char *dlopen_file_spec) {
+		char *options=lsplit(dlopen_file_spec, '?');
 
 		const char *error=dlopen_file_spec?
 			dlink(dlopen_file_spec):"client library column is empty";
 		if(!error) {
+			error=pa_setenv(options);
 
-//			error="OCIInitialize replacer";/*
-			OCIInitialize((ub4)OCI_THREADED/*| OCI_OBJECT*/, (dvoid *)0, 
-				(dvoid * (*)(void *, unsigned int))0, 
-				(dvoid * (*)(void*, void*, unsigned int))0,  
-				(void (*)(void*, void*))0 );
-
-//			*/
+			if(!error)
+				OCIInitialize((ub4)OCI_THREADED/*| OCI_OBJECT*/, (dvoid *)0, 
+					(dvoid * (*)(void *, unsigned int))0, 
+					(dvoid * (*)(void*, void*, unsigned int))0,  
+					(void (*)(void*, void*))0 
+				);
 		}
 
 		return error;
@@ -168,6 +199,7 @@ public:
 		@param used_only_in_connect_url
 			format: @b user:pass@service?
 			   ORACLE_HOME=/u01/app/oracle/product/8.1.5&
+			   ORA_NLS33=/u01/app/oracle/product/8.1.5/ocommon/nls/admin/data&
 			   NLS_LANG=RUSSIAN_AMERICA.CL8MSWIN1251&
 			   ORA_ENCRYPT_LOGIN=TRUE
 
@@ -190,23 +222,8 @@ public:
 		if(!(user && pwd && service))
 			services._throw("mailformed connect part, must be 'user:pass@service'");
 
-		while(options) {
-			if(char *key=lsplit(&options, '&')) {
-				if(*key) {
-					if(char *value=lsplit(key, '=')) {
-						if(strncmp(key, "ORACLE_", 7)==0  // ORACLE_HOME & co
-							|| strncmp(key, "ORA_", 4)==0 // ORA_ENCRYPT_LOGIN & co
-							|| strncmp(key, "NLS_", 4)==0 // NLS_LANG & co
-							) {
-							if(pa_setenv(key, value)!=0)
-								services._throw("problem changing process environment" /*key*/);
-						} else
-							services._throw("unknown connect option (option must start with ORACLE_, ORA_ or NLS_)" /*key*/);
-					} else 
-						services._throw("connect option without =value" /*key*/);
-				}
-			}
-		}
+		if(const char *error=pa_setenv(options))
+			services._throw(error);
 
 		if(setjmp(cs.mark))
 			services._throw(cs.error);
