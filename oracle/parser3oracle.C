@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.38 2003/10/28 15:25:47 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.39 2003/10/28 15:41:01 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -104,11 +104,17 @@ static char *lsplit(char **string_ref, char delim) {
     return result;
 }
 
-static const char *options2env(char *options) {
+static const char *options2env(char *options, bool* LowerCaseColumnNames) {
 	while(options) {
 		if(char *key=lsplit(&options, '&')) {
 			if(*key) {
 				if(char *value=lsplit(key, '=')) {
+					if( strcmp( key, "LowerCaseColumnNames" ) == 0 ) {
+						if( LowerCaseColumnNames )
+							*LowerCaseColumnNames = atoi(value)!=0;
+						continue;
+					}
+
 					bool do_append=key[strlen(key)-1]=='+'; // PATH+=
 					if(do_append)
 						key[strlen(key)-1]=0; // remove trailing +
@@ -138,6 +144,8 @@ struct OracleSQL_connection_struct {
 	OCIError *errhp;
 	OCISvcCtx *svchp;
 	OCISession *usrhp;
+
+	bool bLowerCaseColumnNames;
 };
 
 struct OracleSQL_query_lobs {
@@ -206,7 +214,7 @@ public:
 		const char *error=dlopen_file_spec?
 			dlink(dlopen_file_spec):"client library column is empty";
 		if(!error) {
-			error=options2env(options);
+			error=options2env(options, 0);
 
 			if(!error)
 				OCIInitialize((ub4)OCI_THREADED/*| OCI_OBJECT*/, (dvoid *)0, 
@@ -237,6 +245,7 @@ public:
 		// connections are cross-request, do not use services._alloc [linked with request]
 		OracleSQL_connection_struct &cs=
 			*(OracleSQL_connection_struct  *)::calloc(sizeof(OracleSQL_connection_struct), 1);
+		cs.bLowerCaseColumnNames = true;
 
 		char *user=used_only_in_connect_url;
 		char *service=lsplit(user, '@');
@@ -246,7 +255,7 @@ public:
 		if(!(user && pwd && service))
 			services._throw("mailformed connect part, must be 'user:pass@service'");
 
-		if(const char *error=options2env(options))
+		if(const char *error=options2env(options, &cs.bLowerCaseColumnNames))
 			services._throw(error);
 
 		if(setjmp(cs.mark))
@@ -664,7 +673,10 @@ private: // private funcs
 				{
 					size_t length=(size_t)col_name_len;
 					char *ptr=(char *)services.malloc_atomic(length+1);
-					tolower(ptr, (char *)col_name, length);
+					if( cs.bLowerCaseColumnNames ) 
+						tolower(ptr, (char *)col_name, length);
+					else
+						memcpy(ptr, col_name, length);						
 					ptr[length]=0;
 					check(cs, handlers.add_column(cs.sql_error, ptr, length));
 				}
