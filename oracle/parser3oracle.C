@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.22 2002/10/31 10:13:57 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.23 2002/10/31 10:14:11 paf Exp $"; 
 
 #include "config_includes.h"
 
