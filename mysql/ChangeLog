@@ -1,3 +1,29 @@
+2003-10-24  paf
+	* Makefile.am 1.15:
+		sln
+
+	* libltdl/Makefile.am 1.7:
+	* libltdl/Makefile.in 1.9:
+		*** empty log message ***
+
+2003-08-18  paf
+	* libltdl/libltdl.dsp 1.3:
+	* parser3mysql.dsp 1.6:
+	* parser3mysql.dsw 1.5:
+		moved to MSVC 7
+
+	* Makefile.in 1.16:
+	* configure 1.21:
+	* configure.in 1.21:
+	* libltdl/Makefile.am 1.6:
+	* libltdl/Makefile.in 1.8:
+		merged 3.1.0 latest changes
+
+2003-08-11  paf
+	* libltdl/Makefile.am [release_3_1_0] 1.5.12.1:
+	* libltdl/Makefile.in [release_3_1_0] 1.7.12.1:
+		config.h dist
+
 2003-07-24  paf
 	* parser3mysql.C 1.13:
 		moved tempate_gc to HEAD
