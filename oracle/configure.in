@@ -63,6 +63,56 @@ ctype.h \
 setjmp.h
 )
 
+AC_MSG_CHECKING(for BSD setenv/getenv/unsetenv)
+AC_TRY_COMPILE(
+#ifdef HAVE_STDLIB_H
+#	include <stdlib.h>
+#endif
+#ifdef HAVE_STRING_H
+#	include <string.h>
+#endif
+,
+#define TEST_NAME "oracle-configure-test-var"
+#define TEST_VALUE "oracle-configure-test-value"
+int result=setenv(TEST_NAME, TEST_VALUE, 1/*overwrite*/);
+char *getenv_value=getenv(TEST_NAME);
+if(!getenv_value)
+	return 1;
+if(strcmp(getenv_value, TEST_VALUE)!=0)
+	return 2;
+unsetenv(TEST_NAME);
+,[
+    AC_MSG_RESULT(yes)
+	AC_DEFINE(HAVE_SETENV,,library has BSD setenv/unsetenv)
+],		
+    AC_MSG_RESULT(no)
+
+    AC_MSG_CHECKING(for POSIX putenv/getenv)
+    AC_TRY_COMPILE(
+    #ifdef HAVE_STDLIB_H
+    #	include <stdlib.h>
+    #endif
+    #ifdef HAVE_STRING_H
+    #	include <string.h>
+    #endif
+    ,
+    #define TEST_NAME "oracle-configure-test-var"
+    #define TEST_VALUE "oracle-configure-test-value"
+    int result=putenv(TEST_NAME"="TEST_VALUE);
+    char *getenv_value=getenv(TEST_NAME);
+    if(!getenv_value)
+    	return 1;
+    if(strcmp(getenv_value, TEST_NAME)!=0)
+    	return 2;
+    ,[
+        AC_MSG_RESULT(yes)
+    	AC_DEFINE(HAVE_PUTENV,,library has POSIX putenv)
+    ],		
+        AC_MSG_RESULT(no)
+        AC_MSG_ERROR("there must be some function to modify environment")
+    )
+)
+
 dnl Checks for typedefs, structures, and compiler characteristics.
 
 AC_TYPE_SIZE_T

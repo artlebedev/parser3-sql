@@ -5,7 +5,7 @@
 
 	Author: Alexander Petrosyan <paf@design.ru> (http://design.ru/paf)
 
-	$Id: config_fixed.h,v 1.2 2001/10/29 08:36:57 paf Exp $
+	$Id: config_fixed.h,v 1.3 2001/11/10 16:11:24 paf Exp $
 
 
 	tested only with MS Visual C++ V6
@@ -17,3 +17,4 @@
 #define HAVE_SETJMP_H
 #define HAVE_CTYPE_H
 #define HAVE_SETJMP_H
+#define HAVE_PUTENV
