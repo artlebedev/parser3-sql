@@ -8,7 +8,7 @@
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
 
-static const char *RCSId="$Id: parser3oracle.C,v 1.64 2004/08/03 11:20:13 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.65 2004/10/07 09:27:02 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -469,6 +469,9 @@ public:
 			};
 
 			int binds_size=sizeof(Bind_info) * placeholders_count;
+			// we DO store OCIBind* into ATOMIC gc memory, 
+			// but we do not allocate/free it, that's done automatically from oracle [using environment handles]
+			// so we don't have to bother with that
 			Bind_info* binds=static_cast<Bind_info*>(services.malloc_atomic(binds_size));
 			{
 				for(size_t i=0; i<placeholders_count; i++) {
@@ -496,25 +499,22 @@ public:
 						value_length=ph.value? strlen(ph.value): 0;
 					}
 
-					{
-						// clone value for possible output binds
-						// note: even empty input can be replaced by huge output
-						char*& buf=connection.bind_buffers[i]; // get cached buffer
-						if(!buf) // allocate if needed, caching it
-							buf=(char *)services.malloc_atomic(MAX_OUT_STRING_LENGTH+1/*terminator*/);
-						if(value_length)
-							memcpy(buf, ph.value, value_length+1);
-						ph.value=buf;
-					}
+					// clone value for possible output binds
+					// note: even empty input can be replaced by huge output
+					char*& value_buf=connection.bind_buffers[i]; // get cached buffer
+					if(!value_buf) // allocate if needed, caching it
+						value_buf=(char *)services.malloc_atomic(MAX_OUT_STRING_LENGTH+1/*terminator*/);
+					if(value_length)
+						memcpy(value_buf, ph.value, value_length+1);
 
-					char placeholder_buf[MAX_STRING];
-					sb4 placeh_len=snprintf(placeholder_buf, sizeof(placeholder_buf), ":%s", ph.name);
+					char name_buf[MAX_STRING];
+					sb4 placeh_len=snprintf(name_buf, sizeof(name_buf), ":%s", ph.name);
 					char check_step_buf[MAX_STRING];
 					snprintf(check_step_buf, sizeof(check_step_buf), "bind by name :%s", ph.name);
 					check(connection, check_step_buf, OCIBindByName(stmthp, 
 						&bi.bind, connection.errhp, 
-						(text*)placeholder_buf, placeh_len,
-						(dvoid *)ph.value, (sword)(MAX_OUT_STRING_LENGTH+1), SQLT_STR, (dvoid *)&bi.indicator, 
+						(text*)name_buf, placeh_len,
+						(dvoid *)value_buf, (sword)(MAX_OUT_STRING_LENGTH+1), SQLT_STR, (dvoid *)&bi.indicator, 
 						(ub2 *)0, (ub2 *)0, (ub4)0, (ub4 *)0, OCI_DEFAULT));
 				}
 
@@ -548,12 +548,11 @@ public:
 
 			{
 				for(size_t i=0; i<placeholders_count; i++) {
-					Placeholder& ph=placeholders[i];
 					Bind_info& bi=binds[i];
-
 					if(bi.indicator==MAGIC_INDICATOR_VALUE_MEANING_NOT_NULL_AND_UNCHANGED/*unchanged*/)
 						continue;
 
+					Placeholder& ph=placeholders[i];
 					if(bi.indicator==-1)
 						ph.is_null=true;
 					else
@@ -565,15 +564,20 @@ public:
 								: "output bind buffer overflow");
 
 					ph.were_updated=true;
+					const char* bind_buffer=connection.bind_buffers[i];
+					if( size_t value_length=strlen(bind_buffer) ) {
+						char* returned_value=(char*)services.malloc_atomic(value_length+1/*terminator*/);
+						memcpy(returned_value, bind_buffer, value_length+1 );
+						ph.value=returned_value;
 
-					if(cstrClientCharset) {
-						if(ph.value) {
-							size_t value_length;
-							services.transcode(ph.value, strlen(ph.value),
-								ph.value, value_length,
+						if(cstrClientCharset) {
+							services.transcode(ph.value, value_length,
+								ph.value, value_length/*<this new value is not used afterwards, actually*/,
 								cstrClientCharset,
 								services.request_charset());
 						}
+					} else {
+						ph.value=0;
 					}
 				}
 			}
