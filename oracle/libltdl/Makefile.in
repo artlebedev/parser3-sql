@@ -130,7 +130,7 @@ AUTOMAKE_OPTIONS = no-dependencies foreign
 
 @INSTALL_LTDL_TRUE@include_HEADERS = ltdl.h
 @INSTALL_LTDL_TRUE@lib_LTLIBRARIES = libltdl.la
-@INSTALL_LTDL_FALSE@noinst_HEADERS = ltdl.h
+@INSTALL_LTDL_FALSE@noinst_HEADERS = config.h ltdl.h
 
 @CONVENIENCE_LTDL_TRUE@noinst_LTLIBRARIES = libltdlc.la
 
@@ -175,7 +175,8 @@ HEADERS = $(include_HEADERS) $(noinst_HEADERS)
 DIST_COMMON = README $(include_HEADERS) $(noinst_HEADERS) \
 	../config.guess ../config.sub ../install-sh ../ltmain.sh \
 	../missing ../mkinstalldirs COPYING.LIB Makefile.am Makefile.in \
-	acinclude.m4 aclocal.m4 config_auto.h.in configure configure.in
+	acconfig.h acinclude.m4 aclocal.m4 config_auto.h.in configure \
+	configure.in
 SOURCES = $(libltdl_la_SOURCES) $(libltdlc_la_SOURCES)
 
 all: config_auto.h
@@ -210,7 +211,7 @@ stamp-h1: $(srcdir)/config_auto.h.in $(top_builddir)/config.status
 	@rm -f stamp-h1
 	cd $(top_builddir) && $(SHELL) ./config.status config_auto.h
 
-$(srcdir)/config_auto.h.in: @MAINTAINER_MODE_TRUE@ $(top_srcdir)/configure.in $(ACLOCAL_M4) 
+$(srcdir)/config_auto.h.in: @MAINTAINER_MODE_TRUE@ $(top_srcdir)/configure.in $(ACLOCAL_M4) $(top_srcdir)/acconfig.h
 	cd $(top_srcdir) && $(AUTOHEADER)
 	touch $(srcdir)/config_auto.h.in
 
