@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.19 2002/02/08 08:32:41 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.20 2002/10/22 10:26:58 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -189,7 +189,6 @@ void tolower(char *out, const char *in, size_t size);
 
 /**
 	OracleSQL server driver
-	@test NLS_LANG=AMERICAN_AMERICA.CL8MSWIN1251
 */
 class OracleSQL_Driver : public SQL_Driver {
 public:
@@ -608,7 +607,7 @@ private: // private funcs
 			(dvoid *)&prefetch_rows, (ub4)0, 
 			(ub4)OCI_ATTR_PREFETCH_ROWS, (OCIError *)cs.errhp));
 
-		ub4 prefetch_mem_size=100*1024;
+		ub4 prefetch_mem_size=100*0x400;
 		check(services, cs, "AttrSet prefetch-memory", OCIAttrSet( 
 			(dvoid *)stmthp, (ub4)OCI_HTYPE_STMT, 
 			(dvoid *)&prefetch_mem_size, (ub4)0, 
@@ -695,7 +694,7 @@ private: // private funcs
 			
 			handlers.before_rows();
 			
-			for(unsigned long row=0; !limit||row<limit+offset; row++) {
+			for(unsigned long row=0; !limit||row<offset+limit; row++) {
 				sword status=OCIStmtFetch(stmthp, cs.errhp, (ub4)1,  (ub4)OCI_FETCH_NEXT, 
 					(ub4)OCI_DEFAULT);
 				if(status==OCI_NO_DATA)
