@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PARSER3ODBC_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\parser3\src\sql" /D "NDEBUG" /D "WIN32" /D "_WINDLL" /D "_AFXDLL" /YX /FD /TP /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\..\parser3\src\sql" /D "NDEBUG" /D "WIN32" /D "_WINDLL" /D "_AFXDLL" /YX /FD /TP /c
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x419 /d "NDEBUG"
@@ -76,7 +76,7 @@ PostBuild_Cmds=net start "world wide web publishing service"	net start apache_re
 # PROP Ignore_Export_Lib 1
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "PARSER3ODBC_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\parser3\src\sql" /D "WIN32" /D "_DEBUG" /D "_WINDLL" /D "_AFXDLL" /YX /FD /GZ /TP /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\..\parser3\src\sql" /D "WIN32" /D "_DEBUG" /D "_WINDLL" /D "_AFXDLL" /YX /FD /GZ /TP /c
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x419 /d "_DEBUG"
@@ -90,9 +90,9 @@ LINK32=link.exe
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
 PreLink_Desc=Stopping apache...
-PreLink_Cmds=rem net stop apache_debug	rem net stop "world wide web publishing service"	dir >nul
+PreLink_Cmds=net stop apache_debug	net stop "world wide web publishing service"	dir >nul
 PostBuild_Desc=Starting apache...
-PostBuild_Cmds=rem net start "world wide web publishing service"	rem net start apache_debug
+PostBuild_Cmds=net start "world wide web publishing service"	net start apache_debug
 # End Special Build Tool
 
 !ENDIF 
