@@ -84,7 +84,7 @@ noinst_HEADERS = ltdl.h config_auto.h.in config.h
 libltdlc_la_SOURCES = ltdl.c
 libltdlc_la_LIBADD = $(LIBADD_DL)
 
-EXTRA_DIST = config_fixed.h libltdl_mysql.dsp
+EXTRA_DIST = config_fixed.h libltdl.dsp
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../config_auto.h
 CONFIG_CLEAN_FILES = 

@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "libltdl_mysql"=.\libltdl\libltdl_mysql.dsp - Package Owner=<4>
+Project: "libltdl_mysql"=.\libltdl\libltdl.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
