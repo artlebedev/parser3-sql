@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.50 2004/01/30 07:29:10 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.51 2004/03/02 13:37:25 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -666,7 +666,7 @@ private: // private funcs
 
 		OCIParam          *mypard;
 		ub2                    dtype;
-		text                  *col_name;
+		const char*           col_name;
 
 		struct Col {
 			ub2 type;
@@ -704,13 +704,20 @@ private: // private funcs
 					(dvoid*) mypard, (ub4)OCI_DTYPE_PARAM, 
 					(dvoid**) &col_name, (ub4 *) &col_name_len, (ub4)OCI_ATTR_NAME, 
 					(OCIError *)connection.errhp));
-				
+				// transcode to $request:charset from connect-string?client_charset
+				if(const char* cstrClientCharset=connection.options.cstrClientCharset) {
+					services.transcode(col_name, col_name_len,
+						col_name, col_name_len,
+						cstrClientCharset,
+						services.request_charset());
+				}
+
 				Col& col=cols[column_count-1];
 				{
 					size_t length=(size_t)col_name_len;
 					char *ptr=(char *)services.malloc_atomic(length+1);
 					if( connection.options.bLowerCaseColumnNames ) 
-						tolower(ptr, (char *)col_name, length);
+						tolower(ptr, col_name, length);
 					else
 						memcpy(ptr, col_name, length);						
 					ptr[length]=0;
