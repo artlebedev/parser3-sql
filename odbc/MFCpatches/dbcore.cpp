@@ -1,5 +1,13 @@
 #include "stdafx.h"
 
+// MSSQL2000, added by PAF
+#ifndef SQL_NVARCHAR
+#define SQL_NVARCHAR (-9)
+#endif
+#ifndef SQL_NTEXT 
+#define SQL_NTEXT (-10)
+#endif
+
 #ifndef _WIN64
 
 #ifdef AFX_DB_SEG
@@ -19,7 +27,8 @@ BOOL bTraceSql = FALSE;
 AFX_STATIC_DATA const TCHAR _afxODBCTrail[] = _T("ODBC;");
 AFX_STATIC_DATA const TCHAR _afxComma[] = _T(",");
 AFX_STATIC_DATA const TCHAR _afxLiteralSeparator = '\'';
-AFX_STATIC_DATA const TCHAR _afxCall[] = _T("{CALL ");
+AFX_STATIC_DATA const TCHAR _afxExec[] = _T("EXEC ");
+AFX_STATIC_DATA const TCHAR _afxCall[] = _T("{CALL "); //paf
 AFX_STATIC_DATA const TCHAR _afxParamCall[] = _T("{?");
 AFX_STATIC_DATA const TCHAR _afxSelect[] = _T("SELECT ");
 AFX_STATIC_DATA const TCHAR _afxFrom[] = _T(" FROM ");
@@ -2714,7 +2723,8 @@ BOOL CRecordset::IsSQLUpdatable(LPCTSTR lpszSQL)
 {
 	// Parse for query procedure call keyword or return param
 	if (!(_tcsnicmp(lpszSQL, _afxCall, lstrlen(_afxCall)-1) == 0 ||
-		_tcsnicmp(lpszSQL, _afxParamCall, lstrlen(_afxParamCall)-1) == 0))
+		_tcsnicmp(lpszSQL, _afxParamCall, lstrlen(_afxParamCall)-1) == 0
+		|| _tcsnicmp(lpszSQL, _afxExec, lstrlen(_afxExec)-1) == 0))
 		// Assume this is a select query
 		return IsSelectQueryUpdatable(lpszSQL);
 	else
@@ -3188,7 +3198,8 @@ void CRecordset::BuildSelectSQL()
 
 	// Ignore queries with procedure call keyword or output param
 	if (!(_tcsnicmp(m_strSQL, _afxCall, lstrlen(_afxCall)-1) == 0 ||
-		_tcsnicmp(m_strSQL, _afxParamCall, lstrlen(_afxParamCall)-1) == 0))
+		_tcsnicmp(m_strSQL, _afxParamCall, lstrlen(_afxParamCall)-1) == 0
+		|| _tcsnicmp(m_strSQL, _afxExec, lstrlen(_afxExec)-1) == 0))
 	{
 		// Ignore queries already built
 		if (_tcsnicmp(m_strSQL, _afxSelect, lstrlen(_afxSelect)-1) != 0)
@@ -4252,7 +4263,9 @@ short PASCAL CRecordset::GetDefaultFieldType(short nSQLType)
 		break;
 
 	default:
-		ASSERT(FALSE);
+		//ASSERT(FALSE);  // PAF here, ntext = SQL_NVARCHAR, and there is nvarchar...
+		nFieldType = SQL_C_CHAR; ///
+		break;	///
 	}
 
 	return nFieldType;
@@ -4363,7 +4376,9 @@ SQLLEN PASCAL CRecordset::GetTextLen(short nSQLType, SQLULEN nPrecision)
 {
 	SQLLEN nLen;
 
-	if (nSQLType == SQL_LONGVARCHAR || nSQLType == SQL_LONGVARBINARY)
+	if (nSQLType == SQL_LONGVARCHAR || nSQLType == SQL_LONGVARBINARY 
+		|| nSQLType == SQL_NVARCHAR /*PAF*/
+		|| nSQLType == SQL_NTEXT /*PAF */)
 	{
 		// Use a dummy length of 1 (will just get NULL terminator)
 		nLen = 1;
@@ -4379,7 +4394,7 @@ SQLLEN PASCAL CRecordset::GetTextLen(short nSQLType, SQLULEN nPrecision)
 		//ASSERT(nPrecision >= 0);
 
 		nLen = nPrecision + 1;
-
+/*
 		switch (nSQLType)
 		{
 		case SQL_INTEGER:
@@ -4392,9 +4407,11 @@ SQLLEN PASCAL CRecordset::GetTextLen(short nSQLType, SQLULEN nPrecision)
 		case SQL_FLOAT:
 		case SQL_REAL:
 		case SQL_DOUBLE:
+			// PAF&paul removed, because there are other types to check, and "more!=less"
+			*/
 			nLen += 2;  // '-' sign and decimal point
-			break;
-		}
+			/*break;
+		}*/
 	}
 
 	return nLen;
@@ -4466,7 +4483,9 @@ inline static void PASCAL GetLongCharDataAndCleanup(CDatabase* pdb,
 	// If long data, may need to call SQLGetData again
 	if (nLen <= nActualSize &&
 		(nSQLType == SQL_WLONGVARCHAR || nSQLType == SQL_LONGVARCHAR ||
-		nSQLType == SQL_LONGVARBINARY))
+		nSQLType == SQL_LONGVARBINARY
+		|| nSQLType == SQL_NVARCHAR /*PAF*/
+		|| nSQLType == SQL_NTEXT /*PAF */))
 	{
 		// Reallocate the size (this will copy the data)
 		if (nActualSize > (INT_MAX-1))

@@ -25,7 +25,7 @@
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="..\..\parser3\src\sql"
-				PreprocessorDefinitions="NDEBUG;WIN32"
+				PreprocessorDefinitions="NDEBUG;WIN32;_AFX_NO_SYNC_SUPPORT;_AFX_NO_INET_SUPPORT;_AFX_NO_OCX_SUPPORT;_AFX_NO_DAO_SUPPORT;_AFX_NO_SOCKET_SUPPORT;_AFX_NO_AFXCMN_SUPPORT;_AFX_NO_RICHEDIT_SUPPORT;_AFX_NO_DHTML_SUPPORT"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="TRUE"
@@ -99,7 +99,7 @@ dir &gt;nul
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\..\parser3\src\sql"
-				PreprocessorDefinitions="WIN32;_DEBUG"
+				PreprocessorDefinitions="WIN32;_DEBUG;_AFX_NO_SYNC_SUPPORT;_AFX_NO_INET_SUPPORT;_AFX_NO_OCX_SUPPORT;_AFX_NO_DAO_SUPPORT;_AFX_NO_SOCKET_SUPPORT;_AFX_NO_AFXCMN_SUPPORT;_AFX_NO_RICHEDIT_SUPPORT;_AFX_NO_DHTML_SUPPORT"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="2"
@@ -205,6 +205,31 @@ dir &gt;nul
 		<Filter
 			Name="Resource Files"
 			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe">
+		</Filter>
+		<Filter
+			Name="MFCpatches"
+			Filter="">
+			<File
+				RelativePath=".\MFCpatches\afximpl.h">
+			</File>
+			<File
+				RelativePath=".\MFCpatches\dbcore.cpp">
+			</File>
+			<File
+				RelativePath=".\MFCpatches\dbimpl.h">
+			</File>
+			<File
+				RelativePath=".\MFCpatches\fixalloc.h">
+			</File>
+			<File
+				RelativePath=".\MFCpatches\oleimpl2.h">
+			</File>
+			<File
+				RelativePath=".\MFCpatches\stdafx.h">
+			</File>
+			<File
+				RelativePath=".\MFCpatches\winhand_.h">
+			</File>
 		</Filter>
 	</Files>
 	<Globals>
