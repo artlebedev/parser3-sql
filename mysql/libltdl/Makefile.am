@@ -47,5 +47,5 @@ local-install-files: $(DISTFILES)
 	  fi; \
 	done
 
-EXTRA_DIST=config_fixed.h libltdl.dsp
+EXTRA_DIST=config.h config_fixed.h libltdl.dsp
 
