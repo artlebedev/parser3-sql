@@ -174,7 +174,7 @@ RECURSIVE_TARGETS = info-recursive dvi-recursive pdf-recursive \
 DIST_COMMON = README $(noinst_HEADERS) AUTHORS COPYING ChangeLog \
 	INSTALL Makefile.am Makefile.in NEWS acinclude.m4 aclocal.m4 \
 	config.guess config.sub config_auto.h.in configure configure.in \
-	install-sh ltconfig ltmain.sh missing mkinstalldirs
+	depcomp install-sh ltconfig ltmain.sh missing mkinstalldirs
 DIST_SUBDIRS = $(SUBDIRS)
 SOURCES = $(libparser3oracle_la_SOURCES)
 
