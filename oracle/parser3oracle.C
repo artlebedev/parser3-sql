@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.45 2003/12/24 08:39:09 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.46 2003/12/24 12:03:32 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -121,6 +121,8 @@ struct OracleSQL_connection_struct {
 	OCIError *errhp;
 	OCISvcCtx *svchp;
 	OCISession *usrhp;
+
+	char* fetch_buffers[MAX_COLS];
 
 	struct Options {
 		bool bLowerCaseColumnNames;
@@ -727,7 +729,11 @@ private: // private funcs
 					}
 				default:
 					coerce_type=SQLT_STR;
-					ptr=col.str=(char *)services.malloc_atomic(MAX_OUT_STRING_LENGTH+1);
+					char*& buf=cs.fetch_buffers[column_count-1];
+					ptr=buf; // get cached buffer
+					if(!ptr) // allocate if needed, caching it
+						ptr=buf=(char *)services.malloc_atomic(MAX_OUT_STRING_LENGTH+1/*terminator*/);
+					col.str=(char*)ptr;
 					size=MAX_OUT_STRING_LENGTH;
 					break;
 				}
