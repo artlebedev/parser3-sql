@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.4 2001/11/11 10:43:22 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.5 2001/11/16 12:38:52 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -159,10 +159,11 @@ public:
 			You must allocate the to buffer to be at least length*2+1 bytes long. 
 			(In the worse case, each character may need to be encoded as using two bytes, 
 			and you need room for the terminating null byte.)
-
-			it's already UNTAINT_TIMES_BIGGER
 		*/
-		return (*mysql_escape_string)(to, from, length);
+		if(to) // store mode
+			return mysql_escape_string(to, from, length);
+		else // estimate mode
+			return length*2+1;
 	}
 	void query(
 		SQL_Driver_services& services, void *connection, 

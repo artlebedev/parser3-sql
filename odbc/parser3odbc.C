@@ -5,7 +5,7 @@
 
 	Author: Alexander Petrosyan <paf@design.ru>(http://design.ru/paf)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.2 2001/10/29 08:36:51 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.3 2001/11/16 12:38:59 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -49,7 +49,7 @@ public:
 
 	/// get api version
 	int api_version() { return SQL_DRIVER_API_VERSION; }
-	const char *initialize(const char *dlopen_file_spec) { return 0; }
+	const char *initialize(char *dlopen_file_spec) { return 0; }
 	/**	connect
 		@param used_only_in_connect_url
 			format: @b DSN=dsn;UID=user;PWD=password (ODBC connect string)
@@ -112,21 +112,17 @@ public:
 	unsigned int quote(
 		SQL_Driver_services&, void *connection,
 		char *to, const char *from, unsigned int length) {
-		/*
-			You must allocate the to buffer to be at least length*2+1 bytes long. 
-			(In the worse case, each character may need to be encoded as using two bytes, 
-			and you need room for the terminating null byte.)
-
-			it's already UNTAINT_TIMES_BIGGER
-		*/
-		// ' -> ''
-		unsigned int result=length;
-		while(length--) {
-			if(*from=='\'')
-				*to++='\'';
-			*to++=*from++;
-		}
-		return result;
+		if(to) { // store mode
+			unsigned int result=length;
+			while(length--) {
+				if(*from=='\'') { // ' -> ''
+					*to++='\''; result++;
+				}
+				*to++=*from++;
+			}
+			return result;
+		} else // estimate mode
+			return length*2;
 	}
 	void query(
 		SQL_Driver_services& services, void *connection, 

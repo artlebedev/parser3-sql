@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.14 2001/11/14 10:46:36 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.15 2001/11/16 12:39:06 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -365,19 +365,19 @@ public:
 	unsigned int quote(
 		SQL_Driver_services&, void *, 
 		char *to, const char *from, unsigned int length) {
-		/*
-			it's already UNTAINT_TIMES_BIGGER
-		*/
-		unsigned int result=length;
-		while(length--) {
-			switch(*from) {
-			case '\'': // "'" -> "''"
-				*to++='\''; result++;
-				break;
+		if(to) { // store mode
+			unsigned int result=length;
+			while(length--) {
+				switch(*from) {
+				case '\'': // "'" -> "''"
+					*to++='\''; result++;
+					break;
+				}
+				*to++=*from++;
 			}
-			*to++=*from++;
-		}
-		return result;
+			return result;
+		} else // estimate mode
+			return length*2;
 	}
 	void query(
 		SQL_Driver_services& services, void *connection, 

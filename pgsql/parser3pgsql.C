@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.3 2001/11/11 11:01:47 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.4 2001/11/16 12:39:15 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -123,22 +123,22 @@ public:
 	unsigned int quote(
 		SQL_Driver_services&, void *connection,
 		char *to, const char *from, unsigned int length) {
-		/*
-			it's already UNTAINT_TIMES_BIGGER
-		*/
-		unsigned int result=length;
-		while(length--) {
-			switch(*from) {
-			case '\'': // "'" -> "''"
-				*to++='\'';
-				break;
-			case '\\': // "\" -> "\\"
-				*to++='\'';
-				break;
+		if(to) { // store mode
+			unsigned int result=length;
+			while(length--) {
+				switch(*from) {
+				case '\'': // "'" -> "''"
+					*to++='\''; result++;
+					break;
+				case '\\': // "\" -> "\\"
+					*to++='\''; result++;
+					break;
+				}
+				*to++=*from++;
 			}
-			*to++=*from++;
-		}
-		return result;
+			return result;
+		} else // estimate mode
+			return length*2;
 	}
 	void query(
 		SQL_Driver_services& services, void *connection, 
