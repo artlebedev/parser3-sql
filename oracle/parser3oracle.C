@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.20 2002/10/22 10:26:58 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.21 2002/10/31 10:00:04 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -920,12 +920,16 @@ void check(
 	const char *msg;
 	char reason[MAX_STRING/2];
 
+	const char *prefix="ERROR";
 	switch (status) {
 	case OCI_SUCCESS:
 		return; // hurrah
 	case OCI_ERROR:
+	case OCI_SUCCESS_WITH_INFO:
 		{
 		sb4 errcode;
+		if(status==OCI_SUCCESS_WITH_INFO)
+			prefix="WARNING";
 		if(OracleSQL_driver->OCIErrorGet((dvoid *)cs.errhp, (ub4)1, (text *)NULL, &errcode, 
 			(text *)reason, (ub4)sizeof(reason), OCI_HTYPE_ERROR)==OCI_SUCCESS)
 			msg=reason;
@@ -933,8 +937,6 @@ void check(
 			msg="[can not get error description]";
 		break;
 		}
-	case OCI_SUCCESS_WITH_INFO:
-		msg="SUCCESS_WITH_INFO"; break;
 	case OCI_NEED_DATA:
 		msg="NEED_DATA"; break;
 	case OCI_NO_DATA:
@@ -949,8 +951,8 @@ void check(
 		msg="unknown"; break;
 	}
 
-	snprintf(cs.error, sizeof(cs.error), "%s (%s, %d)", 
-		msg, step, (int)status);
+	snprintf(cs.error, sizeof(cs.error), "%s: %s (%s, %d)", 
+		prefix, msg, step, (int)status);
 	longjmp(cs.mark, 1);
 }
 
