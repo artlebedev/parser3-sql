@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.16 2004/01/26 15:09:02 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.17 2004/01/26 15:16:42 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -166,6 +166,7 @@ public:
 		Connection& connection=*static_cast<Connection*>(aconnection);
 
 		mysql_close(connection.handle);
+		connection.handle=0;
 	}
 	void commit(void *aconnection) {
 		Connection& connection=*static_cast<Connection*>(aconnection);
