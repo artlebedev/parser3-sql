@@ -137,14 +137,14 @@ dir &gt;nul
 				Name="VCPostBuildEventTool"
 				Description="Starting apache..."
 				CommandLine="rem net start &quot;world wide web publishing service&quot;
-net start apache_debug
+rem net start apache_debug
 "/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
 				Name="VCPreLinkEventTool"
 				Description="Stopping apache..."
-				CommandLine="net stop apache_debug
+				CommandLine="rem net stop apache_debug
 rem net stop &quot;world wide web publishing service&quot;
 dir &gt;nul
 "/>

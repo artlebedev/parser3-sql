@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.19 2004/01/30 07:30:40 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.20 2004/03/05 09:59:58 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -56,10 +56,16 @@ static char *lsplit(char *string, char delim) {
     return 0;
 }
 
+static void toupper(char *out, const char *in, size_t size) {
+	while(size--)
+		*out++=(char)toupper(*in++);
+}
+
 struct Connection {
 	SQL_Driver_services* services;
 
 	CDatabase* db;
+	const char* cstrClientCharset;
 };
 
 /**
@@ -87,6 +93,22 @@ public:
 		Connection& connection=*(Connection  *)services.malloc(sizeof(Connection));
 		*connection_ref=&connection;
 		connection.services=&services;
+		connection.cstrClientCharset=0;
+
+		if(const char* key_start=strstr(used_only_in_connect_url, "ClientCharset=")) {
+			const char* value_start=key_start+14/*strlen("ClientCharset=")*/;
+			const char* value_end=strchr(value_start, ';');
+			if(!value_end)
+				value_end=used_only_in_connect_url+strlen(used_only_in_connect_url);
+
+			if(size_t ClientCharsetLength=value_end-value_start) {
+				char* cstrClientCharset=(char*)services.malloc_atomic(ClientCharsetLength+1);
+				toupper(cstrClientCharset, value_start, ClientCharsetLength);
+				cstrClientCharset[ClientCharsetLength]=0;
+
+				connection.cstrClientCharset=cstrClientCharset;
+			}
+		}
 
 		TRY {
 			connection.db=new CDatabase();
@@ -154,6 +176,15 @@ public:
 		CDatabase *db=connection.db;
 		SQL_Driver_services& services=*connection.services;
 
+		// transcode from $request:charset to connect-string?client_charset
+		if(const char* cstrClientCharset=connection.cstrClientCharset) {
+			size_t transcoded_statement_size;
+			services.transcode(statement, strlen(statement),
+				statement, transcoded_statement_size,
+				services.request_charset(),
+				cstrClientCharset);
+		}
+
 		while(isspace(*statement)) 
 			statement++;
 		
@@ -206,13 +237,21 @@ public:
 					CODBCFieldInfo fieldinfo;
 					rs.GetODBCFieldInfo(i, fieldinfo);
 					column_types[i]=fieldinfo.m_nSQLType;
-					size_t size=fieldinfo.m_strName.GetLength();
+					size_t length=fieldinfo.m_strName.GetLength();
 					char *str=0;
-					if(size) {
-						str=(char*)services.malloc_atomic(size+1);
-						memcpy(str, (char *)LPCTSTR(fieldinfo.m_strName), size+1);
+					if(length) {
+						str=(char*)services.malloc_atomic(length+1);
+						memcpy(str, (char *)LPCTSTR(fieldinfo.m_strName), length+1);
+
+						// transcode to $request:charset from connect-string?client_charset
+						if(const char* cstrClientCharset=connection.cstrClientCharset) {
+							services.transcode(str, length,
+								str, length,
+								cstrClientCharset,
+								services.request_charset());
+						}
 					}
-					CHECK(handlers.add_column(sql_error, str, size));
+					CHECK(handlers.add_column(sql_error, str, length));
 				}
 
 				CHECK(handlers.before_rows(sql_error));
@@ -224,7 +263,7 @@ public:
 					if(row>=offset) {
 						CHECK(handlers.add_row(sql_error));
 						for(int i=0; i<column_count; i++) {
-							size_t size;
+							size_t length;
 							char* str;
 							switch(column_types[i]) {
 							//case xBOOL:
@@ -236,14 +275,22 @@ public:
 							case SQL_SMALLDATETIME:
 							//case SQL_NVARCHAR: // mfc 7.1 has errors with nvarchar(length): SQLGetData in dbcore.cpp truncates last byte for unknown reason.  could be fixed by uncommenting this and handing DBVT_WSTRING inside, but it's UNICODE
 								rs.GetFieldValue(i, v);
-								getFromDBVariant(services, v, str, size);
+								getFromDBVariant(services, v, str, length);
 								break;
 							default:
 								rs.GetFieldValue(i, s);
-								getFromString(services, s, str, size);
+								getFromString(services, s, str, length);
 								break;
 							}
-							CHECK(handlers.add_row_cell(sql_error, str, size));
+
+							// transcode to $request:charset from connect-string?client_charset
+							if(const char* cstrClientCharset=connection.cstrClientCharset)
+								services.transcode(str, length,
+									str, length,
+									cstrClientCharset,
+									services.request_charset());
+
+							CHECK(handlers.add_row_cell(sql_error, str, length));
 						}
 					}
 					rs.MoveNext();  row++;
