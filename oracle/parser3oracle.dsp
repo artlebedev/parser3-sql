@@ -83,9 +83,9 @@ LINK32=link.exe
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
 PreLink_Desc=Stopping apache...
-PreLink_Cmds=net stop apache_debug	dir>nul
+PreLink_Cmds=::net stop apache_debug	::dir>nul
 PostBuild_Desc=Starting apache...
-PostBuild_Cmds=net start apache_debug
+PostBuild_Cmds=::net start apache_debug
 # End Special Build Tool
 
 !ENDIF 
