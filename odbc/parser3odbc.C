@@ -1,11 +1,11 @@
 /** @file
 	Parser ODBC driver.
 
-	Copyright(c) 2001, 2002 ArtLebedev Group (http://www.artlebedev.com)
+	Copyright(c) 2001, 2003 ArtLebedev Group (http://www.artlebedev.com)
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.12 2002/12/09 12:33:28 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.13 2003/01/21 15:51:29 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]

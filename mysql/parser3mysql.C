@@ -1,7 +1,7 @@
 /** @file
 	Parser MySQL driver.
 
-	Copyright(c) 2001, 2002 ArtLebedev Group (http://www.artlebedev.com)
+	Copyright(c) 2001, 2003 ArtLebedev Group (http://www.artlebedev.com)
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.10 2003/01/15 10:53:31 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.11 2003/01/21 15:51:29 paf Exp $"; 
 
 #include "config_includes.h"
 
