@@ -1,4 +1,94 @@
-2003-10-24  paf
+2004-09-13	paf
+	* MFCpatches/afximpl.h 1.1:
+	* MFCpatches/dbcore.cpp 1.1:
+	* MFCpatches/dbimpl.h 1.1:
+	* MFCpatches/fixalloc.h 1.1:
+	* MFCpatches/oleimpl2.h 1.1:
+	* MFCpatches/stdafx.h 1.1:
+	* MFCpatches/winhand_.h 1.1:
+		started to fix MFC again: these were original files
+
+	* parser3odbc.C 1.25:
+		bugfix: date values from database now have ...hh:mm:ss.mmm format (3 digits for fractions of a second)
+		were: 9 digits (exactly that odbc driver returned us, but refuses to eat it on input)
+
+	* parser3odbc.C 1.26:
+		beauty: readonly bit specified [strangly that is not default]
+
+	* MFCpatches/dbcore.cpp 1.2:
+	* parser3odbc.vcproj 1.6:
+		applied old MFCpatches to new MFC sources,
+		sadly all bugs were there [returning empty ntext columns is onle of them]
+
+2004-07-28	paf
+	* parser3odbc.C 1.24:
+		bugfix: isspace((unsigned char)c) everywhere. failed on russian 
+		letters
+
+2004-06-23	paf
+	* parser3odbc.C 1.23:
+	* parser3odbc.vcproj 1.5:
+		new api supported, not implemented yet:
+			^void:sql{call paf(:a)}[
+				$.bind[hash]
+			]
+
+2004-05-25	paf
+	* parser3odbc.C 1.22:
+		beauty: param renamed to reflect it's nature
+
+2004-03-30	paf
+	* parser3odbc.C 1.21:
+		merged bugfixes from 3.1.2
+
+2004-03-26	paf
+	* parser3odbc.C [release_3_1_2] 1.20.2.1:
+		bugfix: tolower/toupper named with _str suffix to work around 
+		cases when they are macros [freebsd]
+
+2004-03-05	paf
+	* parser3odbc.C 1.20:
+	* parser3odbc.vcproj 1.4:
+		new: odbc option [like that recently added to oracle driver]
+		            ClientCharset=parser-charset << charset in which parser thinks client works
+
+2004-01-30	paf
+	* parser3odbc.C 1.19:
+		bugfix: connection struct mem to be controlled by libgc [oracle 
+		already fixed before]
+
+2004-01-26	paf
+	* parser3odbc.C 1.18:
+		change: moved to new interface [without extra 'services' passing 
+		back/forth]
+
+2003-11-19	paf
+	* parser3odbc.C 1.17:
+	* parser3odbc.vcproj 1.3:
+		rename and comment on nvarchar(4) mfc bug
+
+2003-11-10	paf
+	* parser3odbc.C 1.16:
+	* parser3odbc.vcproj 1.2:
+	* parser3odbc.vcproj.vspscc 1.2:
+		removed patches
+		todo: test it
+
+2003-11-03	paf
+	* parser3odbc.vcproj.vspscc [release_3_1_1] 1.1.2.1:
+		*** empty log message ***
+
+	* parser3odbc.vcproj.vspscc 1.1:
+		file parser3odbc.vcproj.vspscc was initially added on branch 
+		release_3_1_1.
+
+2003-10-31	paf
+	* parser3odbc.C [release_3_1_1] 1.15.2.1:
+	* parser3odbc.vcproj [release_3_1_1] 1.1.2.1:
+		removed dbpatches,
+		todo: ask users if it's ok
+
+2003-10-24	paf
 	* parser3odbc.sln 1.1:
 		*** empty log message ***
 
