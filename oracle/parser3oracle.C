@@ -7,7 +7,20 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.62 2004/07/28 14:23:32 paf Exp $"; 
+/*
+prob:
+	kgepop: no error frame to pop to for error 21500
+
+
+> I happy to tell you that I have solved the problem.
+
+Excellent news.
+
+> By allocating a separate
+> environment handle for every database handle I share
+*/
+
+static const char *RCSId="$Id: parser3oracle.C,v 1.63 2004/08/03 11:15:27 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -495,12 +508,14 @@ public:
 						value_length=ph.value? strlen(ph.value): 0;
 					}
 
-					// clone value for possible output binds
-					if(value_length) {
+					{
+						// clone value for possible output binds
+						// note: even empty input can be replaced by huge output
 						char*& buf=connection.bind_buffers[i]; // get cached buffer
 						if(!buf) // allocate if needed, caching it
 							buf=(char *)services.malloc_atomic(MAX_OUT_STRING_LENGTH+1/*terminator*/);
-						memcpy(buf, ph.value, value_length+1);
+						if(value_length)
+							memcpy(buf, ph.value, value_length+1);
 						ph.value=buf;
 					}
 
