@@ -1,10 +1,5 @@
 SUBDIRS = libltdl
 
-LIBTOOL_DEPS = @LIBTOOL_DEPS@
-libtool: $(LIBTOOL_DEPS)
-	$(SHELL) ./config.status --recheck
-
-
 INCLUDES = -I../../parser3/src/sql $(INCLTDL) -I$(ORACLE_OCI_INC) -I$(ORACLE_PUBLIC_INC)
 
 noinst_HEADERS = config_includes.h
@@ -20,14 +15,13 @@ update:
 	$(MAKE)
 
 commit:
-	# trick to make 'make' happy at check out time
-	# without this aclocal.m4 never updates
-	# and becomes older than it's prerequisities
-	# thus causing redundant remaking:
-	# aclocal+autoconf+automake
+#	trick to make 'make' happy at check out time
+#	without this aclocal.m4 never updates
+#	and becomes older than it's prerequisities
+#	thus causing redundant remaking:
+#	aclocal+autoconf+automake
 
 	cvs commit -m "no message" -f acinclude.m4
-#	cvs commit -m "no message" -f acconfig.h
 	cvs commit -m "no message" -f aclocal.m4
 	cvs commit -m "no message" -f Makefile.am
 	cvs commit -m "no message" -f Makefile.in

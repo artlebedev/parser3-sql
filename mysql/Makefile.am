@@ -1,11 +1,5 @@
 SUBDIRS = libltdl
 
-LIBTOOL_DEPS = @LIBTOOL_DEPS@
-libtool: $(LIBTOOL_DEPS)
-	$(SHELL) ./config.status --recheck
-
-
-
 INCLUDES = -I../../parser3/src/sql $(INCLTDL) -I$(MYSQL_INC)
 
 noinst_HEADERS = config_includes.h
