@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.55 2004/03/30 08:18:24 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.56 2004/05/19 08:58:27 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -262,8 +262,10 @@ public:
 		char *used_only_in_connect_url, 
 		SQL_Driver_services& services, 
 		void **connection_ref ///< output: Connection *
-		) {
-		Connection& connection=*(Connection  *)services.malloc(sizeof(Connection));
+		) 
+	{
+		// connections are cross-request, do not use services._alloc [linked with request]
+		Connection& connection=*(Connection  *)::calloc(1, sizeof(Connection));
 		connection.services=&services;
 		connection.options.bLowerCaseColumnNames = true;
 		*connection_ref=&connection;
