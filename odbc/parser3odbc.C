@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.16 2003/11/10 08:44:53 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.17 2003/11/19 12:57:43 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -228,6 +228,7 @@ public:
 							case SQL_VARBINARY:
 							case SQL_LONGVARBINARY:
 							case SQL_SMALLDATETIME:
+							//case SQL_NVARCHAR: // mfc 7.1 has errors with nvarchar(length): SQLGetData in dbcore.cpp truncates last byte for unknown reason.  could be fixed by uncommenting this and handing DBVT_WSTRING inside, but it's UNICODE
 								rs.GetFieldValue(i, v);
 								getFromDBVariant(services, v, str, size);
 								break;
@@ -251,14 +252,14 @@ public:
 		} END_CATCH_ALL
 	}
 
-	void getFromDBVariant(SQL_Driver_services& services, CDBVariant& v, char*& str, size_t& size) {
+	void getFromDBVariant(SQL_Driver_services& services, CDBVariant& v, char*& str, size_t& length) {
 		switch(v.m_dwType) {
 		case DBVT_BINARY: /* << would cause problems with current String implementation
 				  now falling into NULL case, effectively ignoring such columns [not failing]
 			{
-				if(size=v.m_pbinary->m_dwDataLength) {
-					str=services.malloc_atomic(size+1);
-					memcpy(ptr, ::GlobalLock(v.m_pbinary->m_hData), size);
+				if(length=v.m_pbinary->m_dwDataLength) {
+					str=services.malloc_atomic(length+1);
+					memcpy(ptr, ::GlobalLock(v.m_pbinary->m_hData), length);
 					::GlobalUnlock(v.m_pbinary->m_hData);
 				} else 
 					str=0;
@@ -266,36 +267,36 @@ public:
 			}*/ 
 		case DBVT_NULL: // No union member is valid for access. 
 			str=0;
-			size=0;
+			length=0;
 			break;
 /*		case DBVT_BOOL:
 			ptr=v.m_boolVal?"1":"0";
-			size=1;
+			length=1;
 			break;*/
 /*							case DBVT_UCHAR:
-			size=strlen(ptr=v.m_chVal);
+			length=strlen(ptr=v.m_chVal);
 			break;
 		case DBVT_SHORT:
 			char buf[MAX_NUMBER];
-			size=snprintf(HEAPIZE buf, "%d", v.m_iVal);
+			length=snprintf(HEAPIZE buf, "%d", v.m_iVal);
 			break;*/
 /*		case DBVT_LONG: 
 			{
 				char local_buf[MAX_NUMBER];
-				size=snprintf(local_buf, MAX_NUMBER, "%ld", v.m_lVal);
-				ptr=services.malloc_atomic(size);
-				memcpy(ptr, local_buf, size);
+				length=snprintf(local_buf, MAX_NUMBER, "%ld", v.m_lVal);
+				ptr=services.malloc_atomic(length);
+				memcpy(ptr, local_buf, length);
 				break;
 			}*/
 		/*case DBVT_SINGLE:
 			m_fltVal 
 			break;
 	case DBVT_DOUBLE m_dblVal 
-	case DBVT_STRING m_pstring */
+	case DBVT_STRING m_pstring */ 
 		case DBVT_DATE:
 			{
 				char local_buf[MAX_STRING];
-				size=snprintf(local_buf, MAX_STRING, 
+				length=snprintf(local_buf, MAX_STRING, 
 					"%04d-%02d-%02d %02d:%02d:%02d.%03d",
 					v.m_pdate->year, 
 					v.m_pdate->month,
@@ -304,8 +305,8 @@ public:
 					v.m_pdate->minute,
 					v.m_pdate->second,
 					v.m_pdate->fraction);
-				str=(char*)services.malloc_atomic(size+1);
-				memcpy(str, local_buf, size+1);
+				str=(char*)services.malloc_atomic(length+1);
+				memcpy(str, local_buf, length+1);
 				break;
 			}
 		default:
@@ -316,15 +317,15 @@ public:
 		}
 	}
 
-	void getFromString(SQL_Driver_services& services, CString& s, char*& astr, size_t& size) {
+	void getFromString(SQL_Driver_services& services, CString& s, char*& astr, size_t& length) {
 		if(s.IsEmpty()) {
 			astr=0;
-			size=0;
+			length=0;
 		} else {
 			const char *cstr=LPCTSTR(s);
-			size=strlen(cstr); //string.GetLength() works wrong with non-string types: 
-			astr=(char*)services.malloc_atomic(size+1);
-			memcpy(astr, cstr, size+1);
+			length=strlen(cstr); //string.GetLength() works wrong with non-string types: 
+			astr=(char*)services.malloc_atomic(length+1);
+			memcpy(astr, cstr, length+1);
 		}
 	}
 
