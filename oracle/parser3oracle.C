@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.42 2003/12/22 11:44:01 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.43 2003/12/22 12:38:50 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -792,15 +792,16 @@ private: // private funcs
 						if(str && length)
 						{
 							// transcode to $request:charset from connect-string?client_charset
-							const char* dest;
-							size_t dest_length;
-							if(const char* cstrClientCharset=cs.options.cstrClientCharset)
+							if(const char* cstrClientCharset=cs.options.cstrClientCharset) {
+								const char* dest;
+								size_t dest_length;
 								services.transcode(str, length,
 									dest, dest_length,
 									cstrClientCharset,
 									services.request_charset());
-							str=dest;
-							length=dest_length;
+								str=dest;
+								length=dest_length;
+							}
 						}
 
 						check(cs, handlers.add_row_cell(cs.sql_error, str, length));
