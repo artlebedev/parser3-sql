@@ -8,7 +8,7 @@ libparser3mysql_la_SOURCES = parser3mysql.C
 libparser3mysql_la_LIBADD = $(LIBLTDL)
 libparser3mysql_la_LDFLAGS = -module -avoid-version
 
-EXTRA_DIST=config_fixed.h
+EXTRA_DIST=config_fixed.h parser3mysql.sln parser3mysql.vcproj
 
 update:
 	cvs update

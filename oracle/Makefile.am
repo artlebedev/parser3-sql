@@ -8,7 +8,7 @@ libparser3oracle_la_SOURCES = parser3oracle.C
 libparser3oracle_la_LIBADD = $(LIBLTDL)
 libparser3oracle_la_LDFLAGS = -module -avoid-version
 
-EXTRA_DIST=config_fixed.h
+EXTRA_DIST=config_fixed.h parser3oracle.sln parser3oracle.vcproj
 
 update:
 	cvs update
