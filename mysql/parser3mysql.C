@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.18 2004/01/30 07:30:40 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.19 2004/03/04 10:46:52 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -46,10 +46,16 @@ static char *lsplit(char **string_ref, char delim) {
     return result;
 }
 
+static void toupper(char *out, const char *in, size_t size) {
+	while(size--)
+		*out++=(char)toupper(*in++);
+}
+
 struct Connection {
 	SQL_Driver_services* services;
 
 	MYSQL* handle;
+	const char* cstrClientCharset;
 	bool autocommit;
 };
 
@@ -102,11 +108,12 @@ public:
 		int port=port_cstr?strtol(port_cstr, &error_pos, 0):0;
 		char *options=lsplit(db, '?');
 
-		char *charset=0;
+		char *cstrBackwardCompAskServerToTranscode=0;
 
 		Connection& connection=*(Connection  *)services.malloc(sizeof(Connection));
 		connection.services=&services;
 	    connection.handle=mysql_init(NULL);
+		connection.cstrClientCharset=0;	
 		connection.autocommit=true;
 		*connection_ref=&connection;
 
@@ -114,8 +121,11 @@ public:
 			if(char *key=lsplit(&options, '&')) {
 				if(*key) {
 					if(char *value=lsplit(key, '=')) {
-						if(strcasecmp(key, "charset")==0) {
-							charset=value;
+						if(strcmp(key, "ClientCharset" ) == 0) {
+							toupper(value, value, strlen(value));
+							connection.cstrClientCharset=value;
+						} else if(strcasecmp(key, "charset")==0) { // left for backward compatibility, consider using ClientCharset
+							cstrBackwardCompAskServerToTranscode=value;
 						} else if(strcasecmp(key, "timeout")==0) {
 							unsigned int timeout=(unsigned int)atoi(value);
 							if(mysql_options(connection.handle, MYSQL_OPT_CONNECT_TIMEOUT, (const char *)&timeout)!=0)
@@ -140,14 +150,18 @@ public:
 			}
 		}
 
+		if(connection.cstrClientCharset && cstrBackwardCompAskServerToTranscode)
+			services._throw("use 'ClientCharset' option only, "
+				"'charset' option is obsolete and should not be used with new 'ClientCharset' option");
+
 		if(!mysql_real_connect(connection.handle, 
 			host, user, pwd, db, port?port:MYSQL_PORT, unix_socket, 0))
 			services._throw(mysql_error(connection.handle));
 
-		if(charset) {
+		if(cstrBackwardCompAskServerToTranscode) {
 			// set charset
 			char statement[MAX_STRING]="set CHARACTER SET "; // cp1251_koi8
-			strncat(statement, charset, MAX_STRING);
+			strncat(statement, cstrBackwardCompAskServerToTranscode, MAX_STRING);
 			
 			exec(connection, statement);
 		}
@@ -207,6 +221,15 @@ public:
 		SQL_Driver_services& services=*connection.services;
 		MYSQL_RES *res=NULL;
 
+		// transcode from $request:charset to connect-string?client_charset
+		if(const char* cstrClientCharset=connection.cstrClientCharset) {
+			size_t transcoded_statement_size;
+			services.transcode(astatement, strlen(astatement),
+				astatement, transcoded_statement_size,
+				services.request_charset(),
+				cstrClientCharset);
+		}
+
 		const char *statement;
 		if(offset || limit) {
 			size_t statement_size=strlen(astatement);
@@ -252,7 +275,16 @@ public:
 			    size_t length=strlen(field->name);
 			    char* str=(char*)services.malloc_atomic(length+1);
 			    memcpy(str, field->name, length+1);
-			    CHECK(handlers.add_column(sql_error, str, length));
+
+				// transcode to $request:charset from connect-string?client_charset
+				if(const char* cstrClientCharset=connection.cstrClientCharset) {
+					services.transcode(str, length,
+						str, length,
+						cstrClientCharset,
+						services.request_charset());
+				}
+				
+				CHECK(handlers.add_column(sql_error, str, length));
 			} else {
 			    // seen some broken client, 
 			    // which reported "44" for column count of response to "select 2+2"
@@ -273,6 +305,13 @@ public:
   					str=(char*)services.malloc_atomic(length+1);
   					memcpy(str, mysql_row[i], length);
 					str[length]=0;
+
+					// transcode to $request:charset from connect-string?client_charset
+					if(const char* cstrClientCharset=connection.cstrClientCharset)
+						services.transcode(str, length,
+							str, length,
+							cstrClientCharset,
+							services.request_charset());
   				} else
   					str=0;
   				CHECK(handlers.add_row_cell(sql_error, str, length));
