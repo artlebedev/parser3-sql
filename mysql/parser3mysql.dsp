@@ -57,7 +57,7 @@ LINK32=link.exe
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
 PreLink_Desc=Stopping apache...
-PreLink_Cmds=net stop apache_release
+PreLink_Cmds=net stop apache_release	dir>nul
 PostBuild_Desc=Starting apache...
 PostBuild_Cmds=net start apache_release
 # End Special Build Tool
@@ -90,7 +90,7 @@ LINK32=link.exe
 # Begin Special Build Tool
 SOURCE="$(InputPath)"
 PreLink_Desc=Stopping apache...
-PreLink_Cmds=net stop apache_debug
+PreLink_Cmds=net stop apache_debug	dir>nul
 PostBuild_Desc=Starting apache...
 PostBuild_Cmds=net start apache_debug
 # End Special Build Tool
@@ -107,10 +107,6 @@ PostBuild_Cmds=net start apache_debug
 # Begin Source File
 
 SOURCE=.\parser3mysql.C
-# End Source File
-# Begin Source File
-
-SOURCE=.\parser3mysql.def
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -129,5 +125,9 @@ SOURCE=.\config_includes.h
 SOURCE=..\pa_sql_driver.h
 # End Source File
 # End Group
+# Begin Source File
+
+SOURCE=.\parser3mysql.def
+# End Source File
 # End Target
 # End Project

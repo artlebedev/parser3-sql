@@ -7,7 +7,7 @@
 
 	2001.07.30 using MySQL 3.23.22b
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.1 2001/09/21 15:40:55 parser Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.2 2001/10/02 14:52:10 parser Exp $"; 
 
 #include "config_includes.h"
 
@@ -22,6 +22,7 @@ static const char *RCSId="$Id: parser3mysql.C,v 1.1 2001/09/21 15:40:55 parser E
 
 #if _MSC_VER
 #	define snprintf _snprintf
+#	define strcasecmp _stricmp
 #endif
 
 static char *lsplit(char *string, char delim) {
@@ -33,6 +34,13 @@ static char *lsplit(char *string, char delim) {
 		}
     }
     return 0;
+}
+
+static char *lsplit(char **string_ref, char delim) {
+    char *result=*string_ref;
+	char *next=lsplit(*string_ref, delim);
+    *string_ref=next;
+    return result;
 }
 
 /**
@@ -53,7 +61,11 @@ public:
 	}
 	/**	connect
 		@param used_only_in_connect_url
-			format: @b user:pass@host[:port]|[/unix/socket]/database/charset 
+			format: @b user:pass@host[:port]|[/unix/socket]/database?
+				charset=cp1251_koi8&
+				timeout=3&
+				compress=1&
+				named_pipe=1
 			3.23.22b
 			Currently the only option for @b character_set_name is cp1251_koi8.
 			WARNING: must be used only to connect, for buffer doesn't live long
@@ -78,14 +90,43 @@ public:
 		char *error_pos=0;
 		char *port_cstr=lsplit(host, ':');
 		int port=port_cstr?strtol(port_cstr, &error_pos, 0):0;
-		char *charset=lsplit(db, '/');
+		char *options=lsplit(db, '?');
+
+		char *charset=0;
 
 	    MYSQL *mysql=mysql_init(NULL);
+
+		while(options) {
+			if(char *key=lsplit(&options, '&')) {
+				if(*key) {
+					if(char *value=lsplit(key, '=')) {
+						if(strcasecmp(key, "charset")==0) {
+							charset=value;
+						} else if(strcasecmp(key, "timeout")==0) {
+							unsigned int timeout=(unsigned int)atoi(value);
+							if(mysql_options(mysql, MYSQL_OPT_CONNECT_TIMEOUT, (const char *)&timeout)!=0)
+								services._throw(mysql_error(mysql));
+						} else if(strcasecmp(key, "compress")==0) {
+							if(atoi(value))
+								if(mysql_options(mysql, MYSQL_OPT_COMPRESS, 0)!=0)
+									services._throw(mysql_error(mysql));
+						} else if(strcasecmp(key, "named_pipe")==0) {
+							if(atoi(value))
+								if(mysql_options(mysql, MYSQL_OPT_NAMED_PIPE , 0)!=0)
+									services._throw(mysql_error(mysql));
+						} else
+							services._throw("unknown connect option" /*key*/);
+					} else 
+						services._throw("connect option without =value" /*key*/);
+				}
+			}
+		}
+
 		if(!mysql_real_connect(mysql, 
 			host, user, pwd, db, port?port:MYSQL_PORT, unix_socket, 0))
 			services._throw(mysql_error(mysql));
 
-		if(charset) { 
+		if(charset) {
 			// set charset
 			char statement[MAX_STRING]="set CHARACTER SET "; // cp1251_koi8
 			strncat(statement, charset, MAX_STRING);
@@ -194,6 +235,8 @@ private: // mysql client library funcs
 
 	typedef MYSQL* (STDCALL *t_mysql_init)(MYSQL *); 	t_mysql_init mysql_init;
 	
+	typedef int (STDCALL *t_mysql_options)(MYSQL *mysql, enum mysql_option option, const char *arg); t_mysql_options mysql_options;
+	
 	typedef MYSQL_RES* (STDCALL *t_mysql_store_result)(MYSQL *); t_mysql_store_result mysql_store_result;
 	
 	typedef int		(STDCALL *t_mysql_query)(MYSQL *, const char *q); t_mysql_query mysql_query;
@@ -249,6 +292,7 @@ private: // mysql client library funcs linking
 		#define SLINK(name) DSLINK(name, name=subst_##name)
 		
 		DLINK(mysql_init);
+		DLINK(mysql_options);
 		DLINK(mysql_store_result);
 		DLINK(mysql_query);
 		SLINK(mysql_error);
