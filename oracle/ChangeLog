@@ -1,4 +1,13 @@
 2002-02-08  paf
+	* Makefile.am:
+	* Makefile.in:
+	* libltdl/Makefile.am:
+	* libltdl/Makefile.in:
+	* libltdl/libltdl.dsp:
+	* libltdl/libltdl_oracle.dsp:
+	* parser3oracle.dsw:
+		libltdl.dsp now
+
 	* config_fixed.h:
 	* config_includes.h:
 	* parser3oracle.C:
@@ -15,6 +24,16 @@
 	* libltdl/configure.in:
 		removed static lib generation,
 		removed double libtool generation
+
+	* configure:
+	* configure.in:
+		package name & version
+
+	* AUTHORS:
+	* COPYING:
+	* INSTALL:
+	* README:
+		install&others updated
 
 	* parser3oracle.C:
 		name spelling

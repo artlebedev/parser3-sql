@@ -1,4 +1,24 @@
+2002-03-22  paf
+	* parser3pgsql.C:
+		checked empty host
+
+	* Makefile.am:
+	* Makefile.in:
+		make update
+
+	* parser3pgsql.C:
+		?CLIENT_ENCODING=zz&DATESTYLE=zz
+
 2002-02-08  paf
+	* Makefile.am:
+	* Makefile.in:
+	* libltdl/Makefile.am:
+	* libltdl/Makefile.in:
+	* libltdl/libltdl.dsp:
+	* libltdl/libltdl_pgsql.dsp:
+	* parser3pgsql.dsw:
+		libltdl.dsp now
+
 	* config_fixed.h:
 	* config_includes.h:
 	* parser3pgsql.C:
@@ -16,6 +36,16 @@
 	* libltdl/configure.in:
 		removed extra libtool generation,
 		removed needless static lib
+
+	* configure:
+	* configure.in:
+		package name & version
+
+	* AUTHORS:
+	* COPYING:
+	* INSTALL:
+	* README:
+		install&others updated
 
 	* parser3pgsql.C:
 		name spelling

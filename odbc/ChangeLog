@@ -1,6 +1,24 @@
+2002-04-25  paf
+	* MFCpatches/DBCORE.CPP:
+	* parser3odbc.C:
+	* parser3odbc.dsp:
+		create table test (id int, a smalldatetime, b ntext, c nvarchar
+		100))
+
+2002-03-05  paf
+	* MFCpatches/DBCORE.CPP:
+	* parser3odbc.C:
+	* parser3odbc.dsp:
+		another mfc bug: non-string datatypes report wrong string size
+
 2002-02-08  paf
 	* parser3odbc.C:
 		2002
+
+	* AUTHORS:
+	* INSTALL:
+	* README:
+		install&others added
 
 	* COPYING:
 	* parser3odbc.C:
