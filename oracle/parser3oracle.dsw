@@ -7,6 +7,10 @@ Project: "libltdl_oracle"=.\libltdl\libltdl.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
+    begin source code control
+    libltdl_oracle
+    .\libltdl
+    end source code control
 }}}
 
 Package=<4>
@@ -19,6 +23,10 @@ Project: "parser3oracle"=.\parser3oracle.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
+    begin source code control
+    parser3oracle
+    ..
+    end source code control
 }}}
 
 Package=<4>

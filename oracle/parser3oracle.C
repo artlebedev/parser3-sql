@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.24 2002/12/09 07:56:27 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.25 2002/12/09 11:07:52 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -387,6 +387,7 @@ public:
 		OCIStmt *stmthp=0;
 
 		bool failed=false;
+		SQL_Exception sql_exception;
 		if(setjmp(cs.mark)) {
 			failed=true;
 			goto cleanup;
@@ -422,9 +423,15 @@ public:
 				}
 			}
 
-			execute_prepared(services, cs, 
-				statement, stmthp, lobs, 
-				offset, limit, handlers);
+			try {
+				execute_prepared(services, cs, 
+					statement, stmthp, lobs, 
+					offset, limit, handlers);
+			} catch(const SQL_Exception& e) {
+				sql_exception=e;
+			} catch(...) {
+				sql_exception=SQL_Exception("exception occured in SQL_Driver_query_event_handlers"); // out of memory...
+			}
 		}
 cleanup: // no check call after this point!
 		{
@@ -444,6 +451,8 @@ cleanup: // no check call after this point!
 
 		if(failed)
 			services._throw(cs.error);
+		if(sql_exception.defined())
+			services._throw(sql_exception);
 	}
 
 private: // private funcs
