@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.20 2004/03/30 08:18:25 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.21 2004/05/25 07:07:48 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -95,15 +95,15 @@ public:
 	#define PQclear_throwPQerror PQclear_throw(PQerrorMessage(connection.conn))
 
 	/**	connect
-		@param used_only_in_connect_url
+		@param url
 			format: @b user:pass@host[:port]|[local]/database
 	*/
 	void connect(
-		char *used_only_in_connect_url, 
+		char *url, 
 		SQL_Driver_services& services, 
 		void **connection_ref ///< output: Connection*
 		) {
-		char *user=used_only_in_connect_url;
+		char *user=url;
 		char *host=lsplit(user, '@');
 		char *db=lsplit(host, '/');
 		char *pwd=lsplit(user, ':');

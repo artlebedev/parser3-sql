@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.21 2004/03/30 08:18:24 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.22 2004/05/25 07:07:28 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -81,12 +81,12 @@ public:
 	int api_version() { return SQL_DRIVER_API_VERSION; }
 	const char *initialize(char *dlopen_file_spec) { return 0; }
 	/**	connect
-		@param used_only_in_connect_url
+		@param url
 			format: @b DSN=dsn;UID=user;PWD=password (ODBC connect string)
 			WARNING: must be used only to connect, for buffer doesn't live long
 	*/
 	void connect(
-		char *used_only_in_connect_url, 
+		char *url, 
 		SQL_Driver_services& services, 
 		void **connection_ref ///< output: Connection*
 		) {
@@ -95,11 +95,11 @@ public:
 		connection.services=&services;
 		connection.cstrClientCharset=0;
 
-		if(const char* key_start=strstr(used_only_in_connect_url, "ClientCharset=")) {
+		if(const char* key_start=strstr(url, "ClientCharset=")) {
 			const char* value_start=key_start+14/*strlen("ClientCharset=")*/;
 			const char* value_end=strchr(value_start, ';');
 			if(!value_end)
-				value_end=used_only_in_connect_url+strlen(used_only_in_connect_url);
+				value_end=url+strlen(url);
 
 			if(size_t ClientCharsetLength=value_end-value_start) {
 				char* cstrClientCharset=(char*)services.malloc_atomic(ClientCharsetLength+1);
@@ -112,7 +112,7 @@ public:
 
 		TRY {
 			connection.db=new CDatabase();
-			connection.db->OpenEx(used_only_in_connect_url, CDatabase::noOdbcDialog);
+			connection.db->OpenEx(url, CDatabase::noOdbcDialog);
 			connection.db->BeginTrans();
 		} 
 		CATCH_ALL (e) {

@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.22 2004/04/01 11:42:53 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.23 2004/05/25 07:07:07 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -76,7 +76,7 @@ public:
 			dlink(dlopen_file_spec):"client library column is empty";
 	}
 	/**	connect
-		@param used_only_in_connect_url
+		@param url
 			format: @b user:pass@host[:port]|[/unix/socket]/database?
 				charset=cp1251_koi8&
 				timeout=3&
@@ -87,11 +87,11 @@ public:
 			WARNING: must be used only to connect, for buffer doesn't live long
 	*/
 	void connect(
-		char *used_only_in_connect_url, 
+		char *url, 
 		SQL_Driver_services& services, 
 		void **connection_ref ///< output: Connection*
 		) {
-		char *user=used_only_in_connect_url;
+		char *user=url;
 		char *s=lsplit(user, '@');
 		char *host=0;
 		char *unix_socket=0;
