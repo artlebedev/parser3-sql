@@ -14,3 +14,7 @@ libparser3pgsql_la_LIBADD = $(LIBLTDL)
 libparser3pgsql_la_LDFLAGS = -module -avoid-version
 
 EXTRA_DIST=config_fixed.h
+
+update:
+	cvs update
+	$(MAKE)
