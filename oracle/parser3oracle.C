@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.39 2003/10/28 15:41:01 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.40 2003/10/30 12:38:18 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -633,7 +633,7 @@ private: // private funcs
 		ub2                    dtype;
 		text                  *col_name;
 
-		struct {
+		struct Col {
 			ub2 type;
 			char *str;
 			OCILobLocator *var;
@@ -670,6 +670,7 @@ private: // private funcs
 					(dvoid**) &col_name, (ub4 *) &col_name_len, (ub4)OCI_ATTR_NAME, 
 					(OCIError *)cs.errhp));
 				
+				Col& col=cols[column_count-1];
 				{
 					size_t length=(size_t)col_name_len;
 					char *ptr=(char *)services.malloc_atomic(length+1);
@@ -689,7 +690,7 @@ private: // private funcs
 				case SQLT_CLOB: 
 					{
 						check(cs, "alloc output var desc", OCIDescriptorAlloc(
-							(dvoid *)cs.envhp, (dvoid **)(ptr=&cols[column_count-1].var), 
+							(dvoid *)cs.envhp, (dvoid **)(ptr=&col.var), 
 							(ub4)OCI_DTYPE_LOB, 
 							0, (dvoid **)0));
 						
@@ -698,17 +699,17 @@ private: // private funcs
 					}
 				default:
 					coerce_type=SQLT_STR;
-					ptr=cols[column_count-1].str=(char *)services.malloc_atomic(MAX_OUT_STRING_LENGTH+1);
+					ptr=col.str=(char *)services.malloc_atomic(MAX_OUT_STRING_LENGTH+1);
 					size=MAX_OUT_STRING_LENGTH;
 					break;
 				}
 				
-				cols[column_count-1].type=coerce_type;
+				col.type=coerce_type;
 				
-				check(cs, "DefineByPos", OCIDefineByPos(
-					stmthp, &cols[column_count-1].def, cs.errhp, 
+				col.def=0; check(cs, "DefineByPos", OCIDefineByPos(
+					stmthp, &col.def, cs.errhp, 
 					column_count, (ub1 *) ptr, size, 
-					coerce_type, (dvoid *) &cols[column_count-1].indicator, 
+					coerce_type, (dvoid *) &col.indicator, 
 					(ub2 *)0, (ub2 *)0, OCI_DEFAULT));
 			}
 			
