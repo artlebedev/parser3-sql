@@ -80,7 +80,8 @@ stdio.h \
 stdlib.h \
 string.h \
 setjmp.h \
-ctype.h
+ctype.h \
+setjmp.h
 )
 
 dnl Checks for typedefs, structures, and compiler characteristics.

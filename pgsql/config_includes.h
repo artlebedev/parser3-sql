@@ -5,7 +5,7 @@
 
 	Author: Alexander Petrosyan <paf@design.ru> (http://design.ru/paf)
 
-	$Id: config_includes.h,v 1.1 2001/09/21 15:44:37 parser Exp $
+	$Id: config_includes.h,v 1.2 2001/10/29 08:37:01 paf Exp $
 
 
 	when used Configure [HAVE_CONFIG_H] it uses defines from Configure,
@@ -28,4 +28,8 @@
 
 #ifdef HAVE_STDLIB_H
 #	include <stdlib.h>
+#endif
+
+#ifdef HAVE_SETJMP_H
+#	include <setjmp.h>
 #endif
