@@ -143,7 +143,7 @@ libltdl_la_LIBADD = $(LIBADD_DL)
 libltdlc_la_SOURCES = ltdl.c
 libltdlc_la_LIBADD = $(LIBADD_DL)
 
-EXTRA_DIST = config_fixed.h libltdl.dsp
+EXTRA_DIST = config.h config_fixed.h libltdl.dsp
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/../mkinstalldirs
