@@ -6,7 +6,7 @@ libtool: $(LIBTOOL_DEPS)
 
 
 
-INCLUDES = -I.. $(INCLTDL) -I$(MYSQL_INC)
+INCLUDES = -I../parser3/src/sql $(INCLTDL) -I$(MYSQL_INC)
 
 lib_LTLIBRARIES = parser3mysql.la
 parser3mysql_la_SOURCES = parser3mysql.C parser3mysql.h

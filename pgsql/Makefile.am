@@ -6,7 +6,7 @@ libtool: $(LIBTOOL_DEPS)
 
 
 
-INCLUDES = -I.. $(INCLTDL) -I$(PGSQL_INC)
+INCLUDES = -I../parser3/src/sql $(INCLTDL) -I$(PGSQL_INC)
 
 lib_LTLIBRARIES = parser3pgsql.la
 parser3pgsql_la_SOURCES = parser3pgsql.C config_includes.h
