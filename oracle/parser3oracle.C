@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.8 2001/11/13 11:33:47 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.9 2001/11/13 14:37:28 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -582,6 +582,19 @@ private: // private funcs
 	void fetch_table(SQL_Driver_services& services, OracleSQL_connection_struct &cs, 
 		OCIStmt *stmthp, unsigned long offset, unsigned long limit, 
 		SQL_Driver_query_event_handlers& handlers) {
+
+		dword prefetch_rows=100;
+		check(services, cs, "AttrSet prefetch-rows", OCIAttrSet( 
+			(dvoid *)stmthp, (ub4)OCI_HTYPE_STMT, 
+			(dvoid *)&prefetch_rows, (ub4)0, 
+			(ub4)OCI_ATTR_PREFETCH_ROWS, (OCIError *)cs.errhp));
+
+		dword prefetch_mem_size=100*1024;
+		check(services, cs, "AttrSet prefetch-memory", OCIAttrSet( 
+			(dvoid *)stmthp, (ub4)OCI_HTYPE_STMT, 
+			(dvoid *)&prefetch_mem_size, (ub4)0, 
+			(ub4)OCI_ATTR_PREFETCH_MEMORY, (OCIError *)cs.errhp));
+
 
 		OCIParam          *mypard;
 		ub2                    dtype;
