@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.20 2004/03/05 09:59:58 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.20.2.1 2004/03/26 14:39:14 paf Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -56,7 +56,7 @@ static char *lsplit(char *string, char delim) {
     return 0;
 }
 
-static void toupper(char *out, const char *in, size_t size) {
+static void toupper_str(char *out, const char *in, size_t size) {
 	while(size--)
 		*out++=(char)toupper(*in++);
 }
@@ -103,7 +103,7 @@ public:
 
 			if(size_t ClientCharsetLength=value_end-value_start) {
 				char* cstrClientCharset=(char*)services.malloc_atomic(ClientCharsetLength+1);
-				toupper(cstrClientCharset, value_start, ClientCharsetLength);
+				toupper_str(cstrClientCharset, value_start, ClientCharsetLength);
 				cstrClientCharset[ClientCharsetLength]=0;
 
 				connection.cstrClientCharset=cstrClientCharset;
