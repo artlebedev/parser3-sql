@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.10 2002/12/15 08:52:10 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.11 2003/01/15 10:55:38 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -448,6 +448,8 @@ private: // conn client library funcs
 private: // conn client library funcs linking
 
 	const char *dlink(const char *dlopen_file_spec) {
+		if(lt_dlinit())
+			return lt_dlerror();
         lt_dlhandle handle=lt_dlopen(dlopen_file_spec);
         if(!handle)
 			return "can not open the dynamic link module";
