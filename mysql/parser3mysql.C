@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.11 2003/01/21 15:51:29 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.12 2003/01/31 09:33:15 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -214,11 +214,17 @@ public:
 		}
 
 		for(int i=0; i<column_count; i++){
-			MYSQL_FIELD *field=mysql_fetch_field(res);
-			size_t size=strlen(field->name);
-			void *ptr=services.malloc(size);
-			memcpy(ptr, field->name, size);
-			CHECK(handlers.add_column(sql_error, ptr, size));
+			if(MYSQL_FIELD *field=mysql_fetch_field(res)) {
+			    size_t size=strlen(field->name);
+			    void *ptr=services.malloc(size);
+			    memcpy(ptr, field->name, size);
+			    CHECK(handlers.add_column(sql_error, ptr, size));
+			} else {
+			    // seen some broken client, 
+			    // which reported "44" for column count of response to "select 2+2"
+			    column_count=i;
+			    break;
+			}
 		}
 
 		CHECK(handlers.before_rows(sql_error));
