@@ -7,7 +7,7 @@
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
-static const char *RCSId="$Id: parser3oracle.C,v 1.1 2001/09/21 15:43:55 parser Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.2 2001/10/28 14:51:30 paf Exp $"; 
 
 #include "config_includes.h"
 
@@ -223,6 +223,7 @@ public:
 		// return created connection
 		*(OracleSQL_connection_struct **)connection=&cs;
 	}
+	/// @test remove return
 	void disconnect(void *connection) {
 
 		return;

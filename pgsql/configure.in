@@ -24,6 +24,27 @@ AC_PROG_AWK
 AC_LANG_CPLUSPLUS 
 AC_PROG_CXX
 
+AC_DEFUN(GCC_OPTION,
+[
+    AC_MSG_CHECKING(whether gcc accepts $1)
+    save_CXXFLAGS=$CXXFLAGS
+    CXXFLAGS="$save_CXXFLAGS $1"
+    AC_TRY_COMPILE(,,
+        AC_MSG_RESULT(yes)
+        dnl leave CXXFLAGS
+    ,		
+        AC_MSG_RESULT(no)
+        CXXFLAGS=$save_CXXFLAGS
+    )
+])
+
+if test "z$GXX" = "zyes"; then
+	dnl Versions of GCC up to 2.8.0 required -fhandle-exceptions, but it is
+	dnl the default in versions 2.8.0 and after.
+    dnl GCC_OPTION(-fhandle-exceptions)
+    GCC_OPTION(-fno-rtti)
+fi
+
 dnl Enable building of the convenience library
 dnl and set LIBLTDL accordingly
 AC_LIBLTDL_CONVENIENCE

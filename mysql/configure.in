@@ -41,6 +41,9 @@ AC_DEFUN(GCC_OPTION,
 ])
 
 if test "z$GXX" = "zyes"; then
+	dnl Versions of GCC up to 2.8.0 required -fhandle-exceptions, but it is
+	dnl the default in versions 2.8.0 and after.
+    dnl GCC_OPTION(-fhandle-exceptions)
     GCC_OPTION(-fno-rtti)
 fi
 

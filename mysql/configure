@@ -1082,7 +1082,7 @@ fi
 
 
 if test "z$GXX" = "zyes"; then
-    
+		        
     echo $ac_n "checking whether gcc accepts -fno-rtti""... $ac_c" 1>&6
 echo "configure:1088: checking whether gcc accepts -fno-rtti" >&5
     save_CXXFLAGS=$CXXFLAGS
