@@ -6,7 +6,7 @@ if INSTALL_LTDL
 include_HEADERS = ltdl.h
 lib_LTLIBRARIES = libltdl.la
 else
-noinst_HEADERS = config.h ltdl.h
+noinst_HEADERS = ltdl.h
 endif
 
 if CONVENIENCE_LTDL
@@ -47,5 +47,4 @@ local-install-files: $(DISTFILES)
 	  fi; \
 	done
 
-EXTRA_DIST=config_fixed.h libltdl.dsp
-
+EXTRA_DIST=config.h config_fixed.h libltdl.dsp
