@@ -47,6 +47,7 @@ dnl Check for dlopen support
 AC_LIBTOOL_DLOPEN
 dnl Configure libtool
 AC_DISABLE_STATIC
+AC_LIBTOOL_WIN32_DLL
 AM_PROG_LIBTOOL
 dnl Configure libltdl
 AC_CONFIG_SUBDIRS(libltdl)
