@@ -1,3 +1,92 @@
+2004-05-28  paf
+	* Makefile.in 1.15:
+	* configure 1.15:
+	* configure.in 1.17:
+		bugfix: configure.in language to compile tests set to C (were c
+		+)
+
+2004-05-25  paf
+	* parser3oracle.C 1.58:
+		bugfix: connection struct allocated from gc mem, so that
+		pointers to parts of connect url would be known to libgc [they
+		were mistakenly freed]
+
+2004-05-19  paf
+	* parser3oracle.C 1.56:
+		bugfix: connection struct were allocated in services memory, 
+		which were connected with request
+
+	* parser3oracle.C 1.57:
+		bugfix: of several clobs per insert/update were properly
+		processed only last, others became empty
+
+2004-03-30  paf
+	* parser3oracle.C 1.55:
+		merged bugfixes from 3.1.2
+
+2004-03-26  paf
+	* parser3oracle.C 1.54:
+		cstrClientCharset localized
+
+	* parser3oracle.C [release_3_1_2] 1.53.2.1:
+		beauty: merged from HEAD
+
+2004-03-04  paf
+	* parser3oracle.C 1.52:
+		beauty: static to hide some minor helper funcs from linker
+
+	* parser3oracle.C 1.53:
+		beauty: needless temp vars removed
+
+2004-03-02  paf
+	* parser3oracle.C 1.51:
+		feature: ?..&LowerCaseColumnNames=0&ClientCharset=something
+		column names got transcoded to $request:charset too [were only
+		column data]
+
+2004-01-30  paf
+	* parser3oracle.C 1.50:
+		style:
+
+2004-01-26  paf
+	* parser3oracle.C 1.49:
+		beauty: renamed cs to connection & class too
+
+2003-12-24  paf
+	* parser3oracle.vcproj 1.2:
+		beauty: all warnings on, found one minor bug
+
+	* parser3oracle.C 1.45:
+		bugfix: clob now read fully [were truncated]. oracle api is
+		somewhat tricky
+
+	* parser3oracle.C 1.46:
+		better: column fetch buffer cached as allocated [per connection]
+
+	* parser3oracle.C 1.47:
+		bugfix: fetch_buffers allocated with ::malloc so that they
+		would not be collected by gc [freed at disconnect]
+
+	* parser3oracle.C 1.48:
+		comment: about not needing to free handles
+
+2003-12-23  paf
+	* parser3oracle.C 1.44:
+		bugfix: LocalCharset now case insensitive
+
+2003-12-22  paf
+	* parser3oracle.C 1.42:
+		feature: introducing ?ClientCharset=parser_charset
+		charset in which parser thinks client works
+
+	* parser3oracle.C 1.43:
+		bugfix: if ?ClientCharset not defined typo error caused no
+		letters in result
+
+2003-12-15  paf
+	* parser3oracle.C 1.41:
+		two bob in one operation never worked?
+
 2003-10-30  paf
 	* parser3oracle.C 1.40:
 		potential-bug fix: ODIDefine def field were not cleared
