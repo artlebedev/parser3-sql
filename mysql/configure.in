@@ -7,7 +7,7 @@ AM_INIT_AUTOMAKE(parser3mysql, 3.1.HEAD, nodefine)
 AM_CONFIG_HEADER(config_auto.h)
 
 
-AC_DEFUN(MYSQL_INC_CHK,[
+AC_DEFUN([MYSQL_INC_CHK],[
 	if test -r "$1/mysql.h"; then
 		MYSQL_INC=$1
 	fi
