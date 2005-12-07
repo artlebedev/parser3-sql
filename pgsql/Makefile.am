@@ -11,7 +11,7 @@ noinst_HEADERS = config_includes.h
 lib_LTLIBRARIES = libparser3pgsql.la
 libparser3pgsql_la_SOURCES = parser3pgsql.C
 libparser3pgsql_la_LIBADD = $(LIBLTDL)
-libparser3pgsql_la_LDFLAGS = -module -avoid-version -lstdc++
+libparser3pgsql_la_LDFLAGS = -module -avoid-version
 
 EXTRA_DIST=config_fixed.h parser3pgsql.sln parser3pgsql.vcproj
 

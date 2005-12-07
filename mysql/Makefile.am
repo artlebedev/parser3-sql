@@ -6,7 +6,7 @@ noinst_HEADERS = config_includes.h
 lib_LTLIBRARIES = libparser3mysql.la
 libparser3mysql_la_SOURCES = parser3mysql.C
 libparser3mysql_la_LIBADD = $(LIBLTDL)
-libparser3mysql_la_LDFLAGS = -module -avoid-version -lstdc++
+libparser3mysql_la_LDFLAGS = -module -avoid-version
 
 EXTRA_DIST=config_fixed.h parser3mysql.sln parser3mysql.vcproj
 
