@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.25 2004/12/23 16:54:52 paf Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.26 2007/01/26 10:10:32 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -22,7 +22,7 @@ static const char *RCSId="$Id: parser3pgsql.C,v 1.25 2004/12/23 16:54:52 paf Exp
 // actually writing chunks of that size failed, reduced it twice
 #define LO_BUFSIZE		  0x1000
 // from postgres_ext.h
-#define InvalidOid		((Oid) 0)
+//#define InvalidOid		((Oid) 0)
 
 
 #include "ltdl.h"
@@ -152,7 +152,13 @@ public:
 						} else if(strcasecmp(key, "datestyle")==0) {
 							datestyle=value;
 						} else if(strcmp(key, "WithoutDefaultTransaction")==0) {
-							isDefaultTransaction = false;
+							if(strcmp(value, "1" ) == 0) {
+								isDefaultTransaction = false;
+							} else if(strcmp(value, "0" ) == 0) {
+								isDefaultTransaction = true;
+							} else {
+								services._throw("Bad WithoutDefaultTransaction option value. Only 0 or 1 are accepted." /*value*/);
+							}
 						} else
 							services._throw("unknown connect option" /*key*/);
 					} else 
@@ -169,22 +175,16 @@ public:
 			// set CLIENT_ENCODING
 			char statement[MAX_STRING]="set CLIENT_ENCODING="; // win
 			strncat(statement, cstrBackwardCompAskServerToTranscode, MAX_STRING);
-			
-			PGresult *res=PQexec(connection.conn, statement);
-			if(!res) 
-				throwPQerror;
-			PQclear(res); // throw out the result [don't need but must call]
+
+			execute_resultless(connection, statement);
 		}
 
 		if(datestyle) {
 			// set DATESTYLE
 			char statement[MAX_STRING]="set DATESTYLE="; // ISO,SQL,Postgres,European,NonEuropean=US,German,DEFAULT=ISO
 			strncat(statement, charset, MAX_STRING);
-			
-			PGresult *res=PQexec(connection.conn, statement);
-			if(!res) 
-				throwPQerror;
-			PQclear(res); // throw out the result [don't need but must call]
+
+			execute_resultless(connection, statement);
 		}
 
 		begin_transaction(connection);
@@ -196,28 +196,10 @@ public:
 		connection.conn=0;
 	}
 	void commit(void *aconnection) {
-		if(isDefaultTransaction)
-		{
-			Connection& connection=*static_cast<Connection*>(aconnection);
-
-			if(PGresult *res=PQexec(connection.conn, "COMMIT"))
-				PQclear(res);
-			else
-				throwPQerror;
-			begin_transaction(connection);
-		}
+		execute_transaction_cmd(aconnection, "COMMIT");
 	}
 	void rollback(void *aconnection) {
-		if(isDefaultTransaction)
-		{
-			Connection& connection=*static_cast<Connection*>(aconnection);
-
-			if(PGresult *res=PQexec(connection.conn, "ROLLBACK"))
-				PQclear(res);
-			else
-				throwPQerror;
-			begin_transaction(connection);
-		}
+		execute_transaction_cmd(aconnection, "ROLLBACK");
 	}
 
 	bool ping(void *aconnection) {
@@ -232,21 +214,13 @@ public:
 		Connection& connection=*static_cast<Connection*>(aconnection);
 
 		char *result=(char*)connection.services->malloc_atomic(length*2+1);
-		char *to=result;
-		while(length--) {
-			switch(*from) {
-			case '\'': // "'" -> "''"
-				*to++='\'';
-				break;
-			case '\\': // "\" -> "\\"
-				*to++='\\';
-				break;
-			}
-			*to++=*from++;
-		}
-		*to=0;
+		int err = 0;
+		PQescapeStringConn (connection.conn,
+                           result, from, length,
+                           &err);
 		return result;
-		}
+	}
+	
 	void query(void *aconnection, 
 		const char *astatement, 
 		size_t placeholders_count, Placeholder* placeholders, 
@@ -258,8 +232,36 @@ public:
 		SQL_Driver_services& services=*connection.services;
 		PGconn *conn=connection.conn;
 
-		if(placeholders_count>0)
-			services._throw("bind variables not supported (yet)");
+		const char** paramValues;
+		if(placeholders_count>0){
+			//services._throw("bind variables not supported (yet)");
+			int binds_size=sizeof(char) * placeholders_count;
+			paramValues = static_cast<const char**>(services.malloc_atomic(binds_size));
+			for(size_t i=0; i<placeholders_count; ++i) {
+				Placeholder& ph=placeholders[i];
+				size_t value_length;
+				if(cstrClientCharset) {
+					size_t name_length;
+					services.transcode(ph.name, strlen(ph.name),
+						ph.name, name_length,
+						services.request_charset(),
+						cstrClientCharset);
+
+					if(ph.value){
+						services.transcode(ph.value, strlen(ph.value),
+							ph.value, value_length,
+							services.request_charset(),
+							cstrClientCharset);
+					}
+				} else {
+					value_length=ph.value? strlen(ph.value): 0;
+				}
+				if( atoi(ph.name) <= 0 || atoi(ph.name) > placeholders_count) {
+					services._throw("bad bind parameter key");
+				}
+				paramValues[atoi(ph.name)-1] = ph.value;
+			}
+		}
 
 		// transcode from $request:charset to connect-string?client_charset
 		if(cstrClientCharset) {
@@ -273,7 +275,12 @@ public:
 		const char *statement=preprocess_statement(connection,
 			astatement, offset, limit);
 
-		PGresult *res=PQexec(conn, statement);
+		PGresult *res;
+		if(placeholders_count>0){
+			res=PQexecParams(conn, statement, placeholders_count, NULL, paramValues, NULL, NULL, 0);
+		} else {
+			res=PQexec(conn, statement);
+		}
 		if(!res) 
 			throwPQerror;
 
@@ -392,13 +399,29 @@ cleanup:
 
 private: // private funcs
 
+	void execute_transaction_cmd(void *aconnection, const char *query) {
+		if(isDefaultTransaction)
+		{
+			Connection& connection=*static_cast<Connection*>(aconnection);
+			execute_resultless(connection, query);
+			begin_transaction(connection);
+		}
+	}
+	
+	/**
+		Executes a query and throws the result.
+	*/
+	void execute_resultless(const Connection& connection, const char *query) {
+		if(PGresult *res=PQexec(connection.conn, query))
+			PQclear(res); // throw out the result [don't need but must call]
+		else
+			throwPQerror;
+	}
+
 	void begin_transaction(Connection& connection) {
 		if(isDefaultTransaction)
 		{
-			if(PGresult *res=PQexec(connection.conn, "BEGIN"))
-				PQclear(res);
-			else
-				throwPQerror;
+			execute_resultless(connection, "BEGIN");
 		}
 	}
 
@@ -487,19 +510,18 @@ private: // private funcs
 private: // lo_read/write exchancements
 
 	bool lo_read_ex(PGconn *conn, int fd, const/*paf*/ char *buf, size_t len) {
-		int size_read;
-		while(len && (size_read=lo_read(conn, fd, buf, min(LO_BUFSIZE, len)))>0) {
-			buf+=size_read;
-			len-=size_read;									
-		}
-		return len==0;
+		return lo_rw_method (conn, fd, buf, len, lo_read);
 	}
 
 	bool lo_write_ex(PGconn *conn, int fd, const/*paf*/ char *buf, size_t len) {
-		int size_written;
-		while(len && (size_written=lo_write(conn, fd, buf, min(LO_BUFSIZE, len)))>0) {
-			buf+=size_written;
-			len-=size_written;									
+		return lo_rw_method (conn, fd, buf, len, lo_write);
+	}
+
+	bool lo_rw_method(PGconn *conn, int fd, const/*paf*/ char *buf, size_t len, int (*lo_func)(PGconn *conn, int fd, const/*paf*/ char *buf, size_t len)) {
+		int size_op;
+		while(len && (size_op=lo_func(conn, fd, buf, min(LO_BUFSIZE, len)))>0) {
+			buf+=size_op;
+			len-=size_op;									
 		}
 		return len==0;
 	}
@@ -519,6 +541,17 @@ private: // conn client library funcs
 	typedef ConnStatusType (*t_PQstatus)(const PGconn *conn); t_PQstatus PQstatus;
 	typedef PGresult *(*t_PQexec)(PGconn *conn,
 	                 const char *query); t_PQexec PQexec;
+//PQexecParams
+	typedef PGresult *(*t_PQexecParams)(
+					   PGconn *conn,
+					   const char *query, 
+					   int nParams,
+                       const Oid *paramTypes,
+                       const char * const *paramValues,
+                       const int *paramLengths,
+                       const int *paramFormats,
+                       int resultFormat); t_PQexecParams PQexecParams;
+
 	typedef ExecStatusType (*t_PQresultStatus)(const PGresult *res); t_PQresultStatus PQresultStatus;
 	typedef int (*t_PQgetlength)(const PGresult *res,
 					int tup_num,
@@ -533,6 +566,10 @@ private: // conn client library funcs
 	typedef void (*t_PQclear)(PGresult *res); t_PQclear PQclear;
 
 	typedef Oid	(*t_PQftype)(const PGresult *res, int field_num); t_PQftype PQftype;
+
+	typedef size_t (*t_PQescapeStringConn)(PGconn *conn,
+                           char *to, const char *from, size_t length,
+                           int *error); t_PQescapeStringConn PQescapeStringConn;
 
 	typedef int	(*t_lo_open)(PGconn *conn, Oid lobjId, int mode); t_lo_open lo_open;
 	typedef int	(*t_lo_close)(PGconn *conn, int fd); t_lo_close lo_close;
@@ -573,7 +610,9 @@ private: // conn client library funcs linking
 		DLINK(PQclear);
 		DLINK(PQresultStatus);
 		DLINK(PQexec);
+		DLINK(PQexecParams);
 		DLINK(PQftype);
+		DLINK(PQescapeStringConn);
 		DLINK(lo_open);		DLINK(lo_close);
 		DLINK(lo_read);		DLINK(lo_write);
 		DLINK(lo_lseek);		DLINK(lo_creat);
