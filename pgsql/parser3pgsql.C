@@ -7,7 +7,7 @@
 
 	2001.07.30 using PgSQL 7.1.2
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.26 2007/01/26 10:10:32 misha Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.27 2007/01/29 10:22:45 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -237,30 +237,7 @@ public:
 			//services._throw("bind variables not supported (yet)");
 			int binds_size=sizeof(char) * placeholders_count;
 			paramValues = static_cast<const char**>(services.malloc_atomic(binds_size));
-			for(size_t i=0; i<placeholders_count; ++i) {
-				Placeholder& ph=placeholders[i];
-				size_t value_length;
-				if(cstrClientCharset) {
-					size_t name_length;
-					services.transcode(ph.name, strlen(ph.name),
-						ph.name, name_length,
-						services.request_charset(),
-						cstrClientCharset);
-
-					if(ph.value){
-						services.transcode(ph.value, strlen(ph.value),
-							ph.value, value_length,
-							services.request_charset(),
-							cstrClientCharset);
-					}
-				} else {
-					value_length=ph.value? strlen(ph.value): 0;
-				}
-				if( atoi(ph.name) <= 0 || atoi(ph.name) > placeholders_count) {
-					services._throw("bad bind parameter key");
-				}
-				paramValues[atoi(ph.name)-1] = ph.value;
-			}
+			bind_parameters(placeholders_count, placeholders, paramValues, connection);
 		}
 
 		// transcode from $request:charset to connect-string?client_charset
@@ -399,6 +376,37 @@ cleanup:
 
 private: // private funcs
 
+	void bind_parameters(
+		size_t placeholders_count, 
+		Placeholder* placeholders, 
+		const char** paramValues,
+		Connection& connection
+		) {
+		for(size_t i=0; i<placeholders_count; i++) {
+			Placeholder& ph=placeholders[i];
+			size_t value_length;
+			if(connection.cstrClientCharset) {
+				size_t name_length;
+				connection.services->transcode(ph.name, strlen(ph.name),
+					ph.name, name_length,
+					connection.services->request_charset(),
+					connection.cstrClientCharset);
+
+				if(ph.value) {
+					connection.services->transcode(ph.value, strlen(ph.value),
+						ph.value, value_length,
+						connection.services->request_charset(),
+						connection.cstrClientCharset);
+				}
+			}
+			if( atoi(ph.name) <= 0 || atoi(ph.name) > placeholders_count) {
+				connection.services->_throw("bad bind parameter key");
+			}
+			paramValues[atoi(ph.name)-1] = ph.value;
+		}
+	}
+	
+	
 	void execute_transaction_cmd(void *aconnection, const char *query) {
 		if(isDefaultTransaction)
 		{
