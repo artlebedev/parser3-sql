@@ -8,7 +8,7 @@
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
 
-static const char *RCSId="$Id: parser3oracle.C,v 1.67 2004/12/23 16:54:52 paf Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.68 2007/02/13 10:38:09 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -657,7 +657,7 @@ private: // private funcs
 						const char *start=o;
 						bool escaped=false;
 						while(*o && !(o[0]=='\'' && o[1]!='\'' && !escaped)) {
-							escaped=o[0]=='\'' && o[1]=='\'';
+							escaped=!escaped && (o[0]=='\'' && o[1]=='\'');
 							if(escaped) {
 								// write pending, skip "\" or "'"
 								if(size_t size=o-start) {
