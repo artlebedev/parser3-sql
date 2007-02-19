@@ -3,7 +3,7 @@
 1.What is the process to compile Parser3 ODBC driver? 
 
   Start Microsoft Visual Studio
-  open parser3odbc.vcproj project.
+  open parser3odbc.sln solution.
 
   Select build option "parser3odbc - Win32 Release"
   and build the project.
@@ -28,4 +28,4 @@ odbc	C:\Inetpub\parser3sqldrivers\parser3odbc.dll
  
 Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
-$Id: INSTALL,v 1.2 2007/02/19 11:05:26 misha Exp $
+$Id: INSTALL,v 1.3 2007/02/19 13:09:09 misha Exp $
