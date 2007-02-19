@@ -27,22 +27,22 @@
 
   Installation layout:
     $prefix/lib/
-      parser3mysql.x     -- driver's dynamic library
+      libparser3mysql.x     -- driver's dynamic library
 
   NOTE:
   make sure that Parser3 main configuration file, 
   	$prefix/etc/auto.p
   has in $SQL[...] configuration section a line like this:
 
-mysql	$sqldriversdir/parser3mysql.so	/usr/local/lib/mysql/libmysqlclient.so
+mysql	$sqldriversdir/libparser3mysql.so	/usr/local/lib/mysql/libmysqlclient.so
 
   which specifies 
     protocol name
-    path to Parser 'parser3mysql' dynamic library
+    path to Parser 'libparser3mysql' dynamic library
     path to MySQL client 'libmysqlclient' dynamic library
       [you sould have it from from your MySQL client installation]
 
  
 Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
-$Id: INSTALL,v 1.7 2007/02/19 10:13:32 misha Exp $
+$Id: INSTALL,v 1.8 2007/02/19 10:57:04 misha Exp $

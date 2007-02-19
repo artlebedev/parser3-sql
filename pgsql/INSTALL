@@ -31,7 +31,7 @@
 
   NOTE:
   make sure that Parser3 main configuration file, 
-  	$prefix/etc/parser3.conf
+  	$prefix/etc/auto.p
   has in $SQL[...] configuration section a line like this:
 
 pgsql	$sqldriversdir/libparser3pgsql.so	/usr/local/pgsql/lib/libpq.so
@@ -45,4 +45,4 @@ pgsql	$sqldriversdir/libparser3pgsql.so	/usr/local/pgsql/lib/libpq.so
  
 Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
-$Id: INSTALL,v 1.4 2005/11/22 16:38:25 paf Exp $
+$Id: INSTALL,v 1.5 2007/02/19 10:56:53 misha Exp $

@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libltdl", "libltdl\libltdl.vcproj", "{51A4531B-23DB-4ACE-9C1C-9BAD40199048}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "parser3sqlite", "parser3sqlite.vcproj", "{C504D8FB-BF1D-4511-8A58-9A67A20600B6}"
+	ProjectSection(ProjectDependencies) = postProject
+		{51A4531B-23DB-4ACE-9C1C-9BAD40199048} = {51A4531B-23DB-4ACE-9C1C-9BAD40199048}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Release = Release
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{51A4531B-23DB-4ACE-9C1C-9BAD40199048}.Debug.ActiveCfg = Debug|Win32
+		{51A4531B-23DB-4ACE-9C1C-9BAD40199048}.Debug.Build.0 = Debug|Win32
+		{51A4531B-23DB-4ACE-9C1C-9BAD40199048}.Release.ActiveCfg = Release|Win32
+		{51A4531B-23DB-4ACE-9C1C-9BAD40199048}.Release.Build.0 = Release|Win32
+		{C504D8FB-BF1D-4511-8A58-9A67A20600B6}.Debug.ActiveCfg = Debug|Win32
+		{C504D8FB-BF1D-4511-8A58-9A67A20600B6}.Debug.Build.0 = Debug|Win32
+		{C504D8FB-BF1D-4511-8A58-9A67A20600B6}.Release.ActiveCfg = Release|Win32
+		{C504D8FB-BF1D-4511-8A58-9A67A20600B6}.Release.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal
