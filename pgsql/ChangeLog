@@ -1,3 +1,19 @@
+2007-01-29	misha
+	* parser3pgsql.C 1.27:
+		- last version commited
+
+2007-01-26	misha
+	* parser3pgsql.C 1.26:
+		- patch from egr: .bind IN variables support, TODO: OUT, INOUT, 
+		from Egr
+
+2004-12-23	paf
+	* parser3pgsql.C 1.23:
+		egr patch on WithoutDefaultTransaction
+
+	* parser3pgsql.C 1.25:
+		sql connect string, rsplit @
+
 2004-06-23	paf
 	* parser3pgsql.C 1.22:
 		new api supported, not implemented yet:

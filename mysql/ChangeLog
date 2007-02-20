@@ -1,3 +1,11 @@
+2007-02-19	misha
+	* INSTALL 1.7:
+		- some text changes
+
+2004-12-23	paf
+	* parser3mysql.C 1.26:
+		sql connect string, rsplit @
+
 2004-07-28	paf
 	* parser3mysql.C 1.25:
 		beauty: detailed error message on lt_dlopen failure
