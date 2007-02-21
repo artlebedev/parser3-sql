@@ -8,7 +8,7 @@ AM_CONFIG_HEADER(config_auto.h)
 
 
 AC_DEFUN([SQLITE_INC_CHK],[
-	if test -r "$1/sqlite.h"; then
+	if test -r "$1/sqlite3.h"; then
 		SQLITE_INC=$1
 	fi
 ])
