@@ -34,7 +34,7 @@
   	$prefix/etc/auto.p
   has in $SQL[...] configuration section a line like this:
 
-sqlite	$sqldriversdir/libparser3sqlite.so	/usr/local/lib/sqlite/sqlite3.so
+sqlite	$sqldriversdir/libparser3sqlite.so	/usr/local/lib/sqlite/libsqlite3.so
 
   which specifies 
     protocol name
@@ -45,4 +45,4 @@ sqlite	$sqldriversdir/libparser3sqlite.so	/usr/local/lib/sqlite/sqlite3.so
  
 Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
-$Id: INSTALL,v 1.2 2007/02/21 17:16:36 misha Exp $
+$Id: INSTALL,v 1.3 2007/02/22 11:03:30 misha Exp $
