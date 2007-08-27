@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.26 2004/12/23 16:54:52 paf Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.27 2007/08/27 14:49:34 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -166,7 +166,7 @@ public:
 				"'charset' option is obsolete and should not be used with new 'ClientCharset' option");
 
 		if(!mysql_real_connect(connection.handle, 
-			host, user, pwd, db, port?port:MYSQL_PORT, unix_socket, 0))
+			host, user, pwd, db, port?port:MYSQL_PORT, unix_socket, CLIENT_MULTI_STATEMENTS))
 			services._throw(mysql_error(connection.handle));
 
 		if(cstrBackwardCompAskServerToTranscode) {
