@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.27 2007/08/27 14:49:34 misha Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.28 2007/09/17 17:00:58 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -94,8 +94,10 @@ public:
 				compress=1&
 				named_pipe=1
 			3.23.22b
-			Currently the only option for @b character_set_name is cp1251_koi8.
-			WARNING: must be used only to connect, for buffer doesn't live long
+				Currently the only option for @b character_set_name is cp1251_koi8.
+				WARNING: must be used only to connect, for buffer doesn't live long
+			4.1+ accept not only 'cp1251_koi8' but 'cp1251', 'utf8' and much more
+				it can be usable for transcoding using sql server
 	*/
 	void connect(
 		char *url, 
@@ -161,9 +163,9 @@ public:
 			}
 		}
 
-		if(connection.cstrClientCharset && cstrBackwardCompAskServerToTranscode)
-			services._throw("use 'ClientCharset' option only, "
-				"'charset' option is obsolete and should not be used with new 'ClientCharset' option");
+		// if(connection.cstrClientCharset && cstrBackwardCompAskServerToTranscode)
+		//	services._throw("use 'ClientCharset' option only, "
+		//		"'charset' option is obsolete and should not be used with new 'ClientCharset' option");
 
 		if(!mysql_real_connect(connection.handle, 
 			host, user, pwd, db, port?port:MYSQL_PORT, unix_socket, CLIENT_MULTI_STATEMENTS))
@@ -171,7 +173,7 @@ public:
 
 		if(cstrBackwardCompAskServerToTranscode) {
 			// set charset
-			char statement[MAX_STRING]="set CHARACTER SET "; // cp1251_koi8
+			char statement[MAX_STRING]="set CHARACTER SET ";
 			strncat(statement, cstrBackwardCompAskServerToTranscode, MAX_STRING);
 			
 			exec(connection, statement);
