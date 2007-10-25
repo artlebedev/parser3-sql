@@ -5,9 +5,9 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
-	2001.07.30 using PgSQL 7.1.2
+	2007.10.25 using PgSQL 8.1.5
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.27 2007/01/29 10:22:45 misha Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.28 2007/10/25 17:08:41 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -167,9 +167,9 @@ public:
 			}
 		}
 
-		if(connection.cstrClientCharset && cstrBackwardCompAskServerToTranscode)
-			services._throw("use 'ClientCharset' option only, "
-				"'charset' option is obsolete and should not be used with new 'ClientCharset' option");
+		// if(connection.cstrClientCharset && cstrBackwardCompAskServerToTranscode)
+		// 	services._throw("use 'ClientCharset' option only, "
+		// 		"'charset' option is obsolete and should not be used with new 'ClientCharset' option");
 
 		if(cstrBackwardCompAskServerToTranscode) {
 			// set CLIENT_ENCODING
