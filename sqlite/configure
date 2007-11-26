@@ -1789,7 +1789,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=parser3sqlite
- VERSION=9.1
+ VERSION=9.2
 
 
 # Some tools Automake needs.
