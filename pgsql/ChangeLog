@@ -1,3 +1,7 @@
+2007-10-25	misha
+	* parser3pgsql.C 1.28:
+		- allow ?charset and ?ClientCharset at once
+
 2007-01-29	misha
 	* parser3pgsql.C 1.27:
 		- last version commited

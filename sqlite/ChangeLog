@@ -1,3 +1,12 @@
+2007-11-26	misha
+	* parser3sqlite.C 1.2:
+		-author's bugfix: http://www.parser.ru/forum/?id=63712
+
+2007-09-17	misha
+	* configure 1.2:
+	* configure.in 1.3:
+		version corrected
+
 2007-02-22	misha
 	* Makefile.in 1.1:
 	* acinclude.m4 1.1:

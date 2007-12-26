@@ -1,3 +1,14 @@
+2007-09-17	misha
+	* parser3mysql.C 1.28:
+		- charser and ClientCharset options now can be specified together.
+		  it can be usable for transcoding text from utf8 (in DB) to koi8: &charset=utf-8&ClientCharset=utf8
+		  in this case sql server return data in utf and parser itself transcode it from utf to koi8
+
+2007-08-27	misha
+	* parser3mysql.C 1.27:
+		- support storage procedure for MySQL 5 (patch from Sumo: http://
+		www.parser.ru/forum/?id=54595 )
+
 2007-02-19	misha
 	* INSTALL 1.7:
 		- some text changes
