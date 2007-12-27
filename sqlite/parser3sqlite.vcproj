@@ -3,7 +3,10 @@
 	ProjectType="Visual C++"
 	Version="7.10"
 	Name="parser3sqlite"
-	RootNamespace="parser3sqlite">
+	SccProjectName="parser3sqlite"
+	SccAuxPath=""
+	SccLocalPath=".."
+	SccProvider="MSSCCI:Jalindi Igloo">
 	<Platforms>
 		<Platform
 			Name="Win32"/>

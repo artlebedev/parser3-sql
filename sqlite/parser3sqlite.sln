@@ -9,6 +9,23 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "parser3sqlite", "parser3sql
 	EndProjectSection
 EndProject
 Global
+	GlobalSection(SourceCodeControl) = preSolution
+		SccNumberOfProjects = 3
+		SccProjectUniqueName0 = libltdl\\libltdl.vcproj
+		SccProjectName0 = libltdl
+		SccLocalPath0 = libltdl
+		CanCheckoutShared = true
+		SccProjectUniqueName1 = parser3sqlite.vcproj
+		SccProjectName1 = parser3sqlite
+		SccLocalPath1 = ..
+		CanCheckoutShared = true
+		SccProjectFilePathRelativizedFromConnection1 = sqlite\\
+		SccProjectName2 = sql/sqlite
+		SccLocalPath2 = .
+		SccProvider2 = MSSCCI:Jalindi\u0020Igloo
+		CanCheckoutShared = true
+		SolutionUniqueID = {00064CAE-50C0-4ECB-98EC-DDE66C38BEF2}
+	EndGlobalSection
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
 		Release = Release
