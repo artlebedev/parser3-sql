@@ -3,7 +3,7 @@
 
 	(c) Dmitry "Creator" Bobrik, 2004
 */
-//static const char *RCSId="$Id: parser3sqlite.C,v 1.2 2007/11/26 07:49:36 misha Exp $"; 
+//static const char *RCSId="$Id: parser3sqlite.C,v 1.3 2007/12/27 14:24:21 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -207,7 +207,7 @@ public:
 			statement=astatement;
 
 
-		char *zErr;
+//		char *zErr;
 		const char *pzTail;
 		sqlite3_stmt *SQL;
 		int rc;
@@ -224,7 +224,7 @@ public:
 			if( SQLITE_OK!=rc ){
 				MBox(sqlite3_errmsg(connection.handle), "query_error");
 				services._throw(sqlite3_errmsg(connection.handle));
-				sqlite3_free(zErr);
+//				sqlite3_free(zErr);
 			}
 			
 
