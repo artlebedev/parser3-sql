@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.28 2007/09/17 17:00:58 misha Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.29 2008/01/25 19:00:52 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -70,13 +70,18 @@ struct Connection {
 	bool autocommit;
 };
 
+ 
 /**
 	MySQL server driver
 */
 class MySQL_Driver : public SQL_Driver {
 public:
 
-	MySQL_Driver() : SQL_Driver() {
+	MySQL_Driver() : SQL_Driver() {}
+
+	~MySQL_Driver() {
+		if(mysql_server_end)
+			mysql_server_end();
 	}
 
 	/// get api version
@@ -348,6 +353,8 @@ private: // mysql client library funcs
 
 	typedef MYSQL* (STDCALL *t_mysql_init)(MYSQL *); 	t_mysql_init mysql_init;
 	
+	typedef void (STDCALL *t_mysql_server_end)(); 	t_mysql_server_end mysql_server_end;
+
 	typedef int (STDCALL *t_mysql_options)(MYSQL *mysql, enum mysql_option option, const char *arg); t_mysql_options mysql_options;
 	
 	typedef MYSQL_RES* (STDCALL *t_mysql_store_result)(MYSQL *); t_mysql_store_result mysql_store_result;
@@ -399,8 +406,11 @@ private: // mysql client library funcs linking
 			return "can not open the dynamic link module";
 		}
 
+		#define GLINK(name) \
+			name=(t_##name)lt_dlsym(handle, #name);
+
 		#define DSLINK(name, action) \
-			name=(t_##name)lt_dlsym(handle, #name); \
+			GLINK(name) \
 				if(!name) \
 					action;
 
@@ -408,6 +418,7 @@ private: // mysql client library funcs linking
 		#define SLINK(name) DSLINK(name, name=subst_##name)
 		
 		DLINK(mysql_init);
+		GLINK(mysql_server_end);
 		DLINK(mysql_options);
 		DLINK(mysql_store_result);
 		DLINK(mysql_query);
@@ -428,5 +439,6 @@ private: // mysql client library funcs linking
 };
 
 extern "C" SQL_Driver *SQL_DRIVER_CREATE() {
-	return new MySQL_Driver();
+	static MySQL_Driver Driver;
+	return &Driver;
 }
