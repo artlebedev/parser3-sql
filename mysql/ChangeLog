@@ -1,3 +1,15 @@
+2008-05-04	misha
+	* parser3mysql.C 1.31:
+		- multi statements now can be switched on with option 
+		multi_statements=1
+
+	* parser3mysql.C 1.30:
+		- CLIENT_MULTI_STATEMENTS => CLIENT_MULTI_RESULTS
+
+2008-01-25	misha
+	* parser3mysql.C 1.29:
+		- call mysql_server_end before unload driver
+
 2007-09-17	misha
 	* parser3mysql.C 1.28:
 		- charser and ClientCharset options now can be specified together.
