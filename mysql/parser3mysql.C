@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.30 2008/05/04 07:37:31 misha Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.31 2008/05/04 08:29:46 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -68,6 +68,7 @@ struct Connection {
 	MYSQL* handle;
 	const char* cstrClientCharset;
 	bool autocommit;
+	bool multi_statements;
 };
 
  
@@ -133,16 +134,17 @@ public:
 	    connection.handle=mysql_init(NULL);
 		connection.cstrClientCharset=0;	
 		connection.autocommit=true;
+		connection.multi_statements=false;
 		*connection_ref=&connection;
 
 		while(options) {
 			if(char *key=lsplit(&options, '&')) {
 				if(*key) {
 					if(char *value=lsplit(key, '=')) {
-						if(strcmp(key, "ClientCharset" ) == 0) {
+						if(strcmp(key, "ClientCharset" ) == 0) { // transcoding with parser
 							toupper_str(value, value, strlen(value));
 							connection.cstrClientCharset=value;
-						} else if(strcasecmp(key, "charset")==0) { // left for backward compatibility, consider using ClientCharset
+						} else if(strcasecmp(key, "charset")==0) { // transcoding with mysql server
 							cstrBackwardCompAskServerToTranscode=value;
 						} else if(strcasecmp(key, "timeout")==0) {
 							unsigned int timeout=(unsigned int)atoi(value);
@@ -156,10 +158,12 @@ public:
 							if(atoi(value))
 								if(mysql_options(connection.handle, MYSQL_OPT_NAMED_PIPE , 0)!=0)
 									services._throw(mysql_error(connection.handle));
+						} else if(strcasecmp(key, "multi_statements")==0) {
+							if(atoi(value)!=0)
+								connection.multi_statements=true;
 						} else if(strcasecmp(key, "autocommit")==0) {
-							if(atoi(value)==0) {
+							if(atoi(value)==0)
 								connection.autocommit=false;
-							}
 						} else
 							services._throw("unknown connect option" /*key*/);
 					} else 
@@ -171,9 +175,9 @@ public:
 		// if(connection.cstrClientCharset && cstrBackwardCompAskServerToTranscode)
 		//	services._throw("use 'ClientCharset' option only, "
 		//		"'charset' option is obsolete and should not be used with new 'ClientCharset' option");
-
+		
 		if(!mysql_real_connect(connection.handle, 
-			host, user, pwd, db, port?port:MYSQL_PORT, unix_socket, CLIENT_MULTI_RESULTS))
+			host, user, pwd, db, port?port:MYSQL_PORT, unix_socket, (connection.multi_statements) ? CLIENT_MULTI_STATEMENTS : CLIENT_MULTI_RESULTS))
 			services._throw(mysql_error(connection.handle));
 
 		if(cstrBackwardCompAskServerToTranscode) {
