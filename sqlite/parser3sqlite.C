@@ -3,7 +3,7 @@
 
 	(c) Dmitry "Creator" Bobrik, 2004
 */
-//static const char *RCSId="$Id: parser3sqlite.C,v 1.4 2008/06/24 17:46:57 misha Exp $"; 
+//static const char *RCSId="$Id: parser3sqlite.C,v 1.5 2008/06/24 17:50:47 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -27,7 +27,7 @@
 static char *lsplit(char *string, char delim) {
     if(string) {
 		char *v=strchr(string, delim);
-		if(v) {
+		if(v){
 			*v=0;
 			return v+1;
 		}
@@ -94,12 +94,16 @@ public:
 		connection.cstrClientCharset=SQLITE_DEFAULT_CHARSET;	
 		connection.autocommit=true;
 
-		char *db = url;
-		char *options = lsplit(db, '?');
-
-		char *db_path=(char*)services.malloc(strlen((char*)services.request_document_root()) + strlen(db) + 2); 
-		db_path=strncat(db_path, (char*)services.request_document_root(), MAX_STRING);
-		db_path+="/";
+		char* db = url;
+		char* options = lsplit(db, '?');
+		
+		//char* document_root=(char*)services.request_document_root();
+		char* document_root=0;
+		char *db_path=(char*)services.malloc(strlen(document_root) + strlen(db) + 2); 
+		if(document_root){
+			db_path=strncat(db_path, document_root, MAX_STRING);
+			db_path+='/';
+		}
 		db_path=strncat(db_path, db, MAX_STRING);
 
 		while(options) {
@@ -130,23 +134,22 @@ public:
 			services.request_charset(),
 			SQLITE_DEFAULT_CHARSET);
 		
-                rc = sqlite3_open(db_path, &connection.handle);
+		rc=sqlite3_open(db_path, &connection.handle);
 
-		if( SQLITE_OK != rc ){
-			const char* errmsg = sqlite3_errmsg(connection.handle);
-			_throw(connection, errmsg);
+		if(rc!=SQLITE_OK){
+			_throw(connection, sqlite3_errmsg(connection.handle));
 			sqlite3_close(connection.handle);
 		}
 
 		*connection_ref=&connection;
-		
+
 		if(!connection.autocommit)
 			exec(connection, "SET AUTOCOMMIT=0");
 			
 	}
 
 	void exec(Connection& connection, const char* statement) {
-		char *zErr;
+		char* zErr;
 		int rc;
 		rc=sqlite3_exec(connection.handle, statement, 0, 0, &zErr);
 		if(rc!=SQLITE_OK){
@@ -210,7 +213,7 @@ public:
 		const char* cstrClientCharset=connection.cstrClientCharset;
 
 		if(placeholders_count>0)
-			_throw(connection, "bind variables not supported yet");
+			services._throw("bind variables not supported yet");
    
 		// transcode from $request:charset to ClientCharset
 		if(cstrClientCharset) {
@@ -243,7 +246,7 @@ public:
 		int rc;
 		int i;
 		SQL_Error sql_error;
-		bool failed = false;
+		bool failed=false;
 
 		do{ // cycling through SQL commands
 
@@ -251,7 +254,7 @@ public:
 
 			if(rc!=SQLITE_OK){
 				_throw(connection, sqlite3_errmsg(connection.handle));
-				sqlite3_free(pzTail); // error? can't free memory after throw
+				sqlite3_free((char*)pzTail); // error? can't free memory after throw
 			}
 			
 
@@ -283,7 +286,7 @@ public:
 				CHECK(handlers.before_rows(sql_error));
 
 				int column_type;
-				const unsigned char *str;
+				const char *str;
 				size_t length = 0;
 
 				do{
@@ -302,27 +305,27 @@ public:
 							// но switch я всё-таки сделал - так, на будущее
 							switch(column_type) {
 								case SQLITE_TEXT:
-									str=(const unsigned char*)sqlite3_column_text(SQL, i);
-									length=strlen(str);
+									str=(const char*)sqlite3_column_text(SQL, i);
+									length=strlen((const char*)str);
 									break;
 								case SQLITE_INTEGER:
-									str=(const unsigned char*)sqlite3_column_text(SQL, i);
-									length=strlen(str);
+									str=(const char*)sqlite3_column_text(SQL, i);
+									length=strlen((const char*)str);
 									break;
 								case SQLITE_NULL:
 									str=NULL;
 									length=0;
 									break;
 								default:
-									str=(const unsigned char*)sqlite3_column_text(SQL, i);
-									length=strlen(str);
+									str=(const char*)sqlite3_column_text(SQL, i);
+									length=strlen((const char*)str);
 									break;
 							}
 
 							if(length){
 								char* strm=(char*)services.malloc_atomic(length+1);
 								memcpy(strm, str, length+1);
-								str = strm;
+								str=strm;
 
 								// transcode to $request:charset from connect-string?ClientCharset
 								if(cstrClientCharset) {
@@ -338,11 +341,11 @@ public:
 
 						}
 					}
-				} while( rc == SQLITE_BUSY || rc == SQLITE_ROW );
+				} while(rc == SQLITE_BUSY || rc == SQLITE_ROW);
 
 			}  // if column
 
-			if( rc == SQLITE_ERROR || rc == SQLITE_MISUSE ){
+			if(rc == SQLITE_ERROR || rc == SQLITE_MISUSE){
 				_throw(connection, sqlite3_errmsg(connection.handle));
 			}
 
@@ -352,11 +355,11 @@ public:
 		} while (strlen(pzTail) > 0);
 
 		if(failed)
-			_throw(connection, sql_error);
+			services._throw(sql_error);
 	}
 
 private:
-        void _throw(Connection& connection, const char* aerr_msg) {
+        void _throw(Connection& connection, const char* aerr_msg){
 			size_t err_length=strlen(aerr_msg);
 			if(err_length && connection.cstrClientCharset) {
 				connection.services->transcode(aerr_msg, err_length,
@@ -366,7 +369,6 @@ private:
 			}
 			connection.services->_throw(aerr_msg);
         }
-
 
 private: // sqlite client library funcs
 
@@ -393,6 +395,7 @@ private: // sqlite client library funcs
 	typedef int (* t_sqlite3_column_type)(sqlite3_stmt*, int iCol); t_sqlite3_column_type sqlite3_column_type;
 
 	typedef const unsigned char *(* t_sqlite3_column_text)(sqlite3_stmt*, int iCol); t_sqlite3_column_text sqlite3_column_text;
+
 
 private: // sqlite client library funcs linking
 
