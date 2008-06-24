@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.31 2008/05/04 08:29:46 misha Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.32 2008/06/24 17:21:10 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -29,32 +29,32 @@ static const char *RCSId="$Id: parser3mysql.C,v 1.31 2008/05/04 08:29:46 misha E
 #endif
 
 static char *lsplit(char *string, char delim) {
-    if(string) {
+	if(string) {
 		char *v=strchr(string, delim);
 		if(v) {
 			*v=0;
 			return v+1;
 		}
-    }
-    return 0;
+	}
+	return 0;
 }
 
 static char *lsplit(char **string_ref, char delim) {
-    char *result=*string_ref;
+	char *result=*string_ref;
 	char *next=lsplit(*string_ref, delim);
-    *string_ref=next;
-    return result;
+	*string_ref=next;
+	return result;
 }
 
 static char* rsplit(char* string, char delim) {
-    if(string) {
+	if(string) {
 		char* v=strrchr(string, delim); 
 		if(v) {
 			*v=0;
 			return v+1;
 		}
-    }
-    return NULL;	
+	}
+	return NULL;	
 }
 
 static void toupper_str(char *out, const char *in, size_t size) {
@@ -95,10 +95,12 @@ public:
 	/**	connect
 		@param url
 			format: @b user:pass@host[:port]|[/unix/socket]/database?
-				charset=cp1251_koi8&
+				ClientCharset=charset&	// transcode by parser
+				charset=cp1251_koi8&	// transcode by server with 'set CHARACTER SET xyz'
 				timeout=3&
-				compress=1&
-				named_pipe=1
+				compress=0&
+				named_pipe=1&
+				autocommit=1
 			3.23.22b
 				Currently the only option for @b character_set_name is cp1251_koi8.
 				WARNING: must be used only to connect, for buffer doesn't live long
@@ -131,37 +133,37 @@ public:
 
 		Connection& connection=*(Connection  *)services.malloc(sizeof(Connection));
 		connection.services=&services;
-	    connection.handle=mysql_init(NULL);
+		connection.handle=mysql_init(NULL);
 		connection.cstrClientCharset=0;	
 		connection.autocommit=true;
 		connection.multi_statements=false;
 		*connection_ref=&connection;
 
-		while(options) {
-			if(char *key=lsplit(&options, '&')) {
-				if(*key) {
-					if(char *value=lsplit(key, '=')) {
-						if(strcmp(key, "ClientCharset" ) == 0) { // transcoding with parser
+		while(options){
+			if(char *key=lsplit(&options, '&')){
+				if(*key){
+					if(char *value=lsplit(key, '=')){
+						if(strcmp(key, "ClientCharset" )==0){ // transcoding with parser
 							toupper_str(value, value, strlen(value));
 							connection.cstrClientCharset=value;
-						} else if(strcasecmp(key, "charset")==0) { // transcoding with mysql server
+						} else if(strcasecmp(key, "charset")==0){ // transcoding with server
 							cstrBackwardCompAskServerToTranscode=value;
-						} else if(strcasecmp(key, "timeout")==0) {
+						} else if(strcasecmp(key, "timeout")==0){
 							unsigned int timeout=(unsigned int)atoi(value);
 							if(mysql_options(connection.handle, MYSQL_OPT_CONNECT_TIMEOUT, (const char *)&timeout)!=0)
 								services._throw(mysql_error(connection.handle));
-						} else if(strcasecmp(key, "compress")==0) {
+						} else if(strcasecmp(key, "compress")==0){
 							if(atoi(value))
 								if(mysql_options(connection.handle, MYSQL_OPT_COMPRESS, 0)!=0)
 									services._throw(mysql_error(connection.handle));
-						} else if(strcasecmp(key, "named_pipe")==0) {
+						} else if(strcasecmp(key, "named_pipe")==0){
 							if(atoi(value))
 								if(mysql_options(connection.handle, MYSQL_OPT_NAMED_PIPE , 0)!=0)
 									services._throw(mysql_error(connection.handle));
 						} else if(strcasecmp(key, "multi_statements")==0) {
 							if(atoi(value)!=0)
 								connection.multi_statements=true;
-						} else if(strcasecmp(key, "autocommit")==0) {
+						} else if(strcasecmp(key, "autocommit")==0){
 							if(atoi(value)==0)
 								connection.autocommit=false;
 						} else
@@ -172,24 +174,20 @@ public:
 			}
 		}
 
-		// if(connection.cstrClientCharset && cstrBackwardCompAskServerToTranscode)
-		//	services._throw("use 'ClientCharset' option only, "
-		//		"'charset' option is obsolete and should not be used with new 'ClientCharset' option");
-		
 		if(!mysql_real_connect(connection.handle, 
 			host, user, pwd, db, port?port:MYSQL_PORT, unix_socket, (connection.multi_statements) ? CLIENT_MULTI_STATEMENTS : CLIENT_MULTI_RESULTS))
 			services._throw(mysql_error(connection.handle));
 
 		if(cstrBackwardCompAskServerToTranscode) {
 			// set charset
-			char statement[MAX_STRING]="set CHARACTER SET ";
+			char statement[MAX_STRING]="SET CHARACTER SET ";
 			strncat(statement, cstrBackwardCompAskServerToTranscode, MAX_STRING);
 			
 			exec(connection, statement);
 		}
 
 		if(!connection.autocommit)
-			exec(connection, "set autocommit=0");
+			exec(connection, "SET AUTOCOMMIT=0");
 	}
 
 	void exec(Connection& connection, const char* statement) {
@@ -204,18 +202,20 @@ public:
 		mysql_close(connection.handle);
 		connection.handle=0;
 	}
+
 	void commit(void *aconnection) {
 		//_asm int 3;
 		Connection& connection=*static_cast<Connection*>(aconnection);
 
 		if(!connection.autocommit)
-			exec(connection, "commit");
+			exec(connection, "COMMIT");
 	}
+
 	void rollback(void *aconnection) {
 		Connection& connection=*static_cast<Connection*>(aconnection);
 
 		if(!connection.autocommit)
-			exec(connection, "rollback");
+			exec(connection, "ROLLBACK");
 	}
 
 	bool ping(void *aconnection) {
@@ -315,10 +315,10 @@ public:
 				
 				CHECK(handlers.add_column(sql_error, str, length));
 			} else {
-			    // seen some broken client, 
-			    // which reported "44" for column count of response to "select 2+2"
-			    column_count=i;
-			    break;
+				// seen some broken client, 
+				// which reported "44" for column count of response to "select 2+2"
+				column_count=i;
+				break;
 			}
 		}
 
@@ -342,11 +342,11 @@ public:
 							str, length,
 							cstrClientCharset,
 							services.request_charset());
-  				} else
-  					str=0;
-  				CHECK(handlers.add_row_cell(sql_error, str, length));
-  			}
-  		}
+				} else
+					str=0;
+				CHECK(handlers.add_row_cell(sql_error, str, length));
+			}
+		}
 cleanup:
 		mysql_free_result(res);
 		if(failed)
