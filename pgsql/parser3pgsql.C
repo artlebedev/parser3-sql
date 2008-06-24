@@ -7,7 +7,7 @@
 
 	2007.10.25 using PgSQL 8.1.5
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.28 2007/10/25 17:08:41 misha Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.29 2008/06/24 17:43:48 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -41,32 +41,32 @@ inline int min(int a,int b){ return a<b?a:b; }
 #endif
 
 static char *lsplit(char *string, char delim) {
-    if(string) {
+	if(string) {
 		char *v=strchr(string, delim);
 		if(v) {
 			*v=0;
 			return v+1;
 		}
-    }
-    return 0;
+	}
+	return 0;
 }
 
 static char *lsplit(char **string_ref, char delim) {
-    char *result=*string_ref;
+	char *result=*string_ref;
 	char *next=lsplit(*string_ref, delim);
-    *string_ref=next;
-    return result;
+	*string_ref=next;
+	return result;
 }
 
 static char* rsplit(char* string, char delim) {
-    if(string) {
+	if(string) {
 		char* v=strrchr(string, delim); 
 		if(v) {
 			*v=0;
 			return v+1;
 		}
-    }
-    return NULL;	
+	}
+	return NULL;	
 }
 
 static void toupper_str(char *out, const char *in, size_t size) {
@@ -79,6 +79,7 @@ struct Connection {
 
 	PGconn *conn;
 	const char* cstrClientCharset;
+	bool autocommit;
 };
 
 /**
@@ -92,6 +93,7 @@ public:
 
 	/// get api version
 	int api_version() { return SQL_DRIVER_API_VERSION; }
+
 	/// initialize driver by loading sql dynamic link library
 	const char *initialize(char *dlopen_file_spec) {
 		return dlopen_file_spec?
@@ -107,7 +109,12 @@ public:
 
 	/**	connect
 		@param url
-			format: @b user:pass@host[:port]|[local]/database
+			format: @b user:pass@host[:port]|[local]/database?
+			ClientCharset=xyz&	// transcode by parser
+			charset=xyz&		// transcode by server with 'set CLIENT_ENCODING=xyz'
+			datestyle=xyz&		// set DATESTYLE=xyz
+			autocommit=1&
+			WithoutDefaultTransaction=1	// == autocommit=0
 	*/
 	void connect(
 		char *url, 
@@ -123,42 +130,40 @@ public:
 		char *options=lsplit(db, '?');
 
 		char *cstrBackwardCompAskServerToTranscode=0;
+		char* datestyle=0;
 
 		Connection& connection=*(Connection  *)services.malloc(sizeof(Connection));
 		*connection_ref=&connection;
 		connection.services=&services;
 		connection.cstrClientCharset=0;	
+		connection.autocommit=true;
 		connection.conn=PQsetdbLogin(
 			(host&&strcasecmp(host, "local")==0)?NULL/* local Unix domain socket */:host, port, 
 			NULL, NULL, db, user, pwd);
+
 		if(!connection.conn)
 			services._throw("PQsetdbLogin failed");
-		if(PQstatus(connection.conn)!=CONNECTION_OK)  
+
+		if(PQstatus(connection.conn)!=CONNECTION_OK)
 			throwPQerror;
 
-		char *charset=0;
-		char *datestyle=0;
-		isDefaultTransaction = true;
-
-		while(options) {
-			if(char *key=lsplit(&options, '&')) {
-				if(*key) {
-					if(char *value=lsplit(key, '=')) {
-						if(strcmp(key, "ClientCharset" ) == 0) {
+		while(options){
+			if(char *key=lsplit(&options, '&')){
+				if(*key){
+					if(char *value=lsplit(key, '=')){
+						if(strcmp(key, "ClientCharset")==0) { // transcoding with parser
 							toupper_str(value, value, strlen(value));
 							connection.cstrClientCharset=value;
-						} else if(strcasecmp(key, "charset")==0) { // left for backward compatibility, consider using ClientCharset
+						} else if(strcasecmp(key, "charset")==0){ // transcoding with server
 							cstrBackwardCompAskServerToTranscode=value;
 						} else if(strcasecmp(key, "datestyle")==0) {
 							datestyle=value;
-						} else if(strcmp(key, "WithoutDefaultTransaction")==0) {
-							if(strcmp(value, "1" ) == 0) {
-								isDefaultTransaction = false;
-							} else if(strcmp(value, "0" ) == 0) {
-								isDefaultTransaction = true;
-							} else {
-								services._throw("Bad WithoutDefaultTransaction option value. Only 0 or 1 are accepted." /*value*/);
-							}
+						} else if(strcasecmp(key, "autocommit")==0){
+							if(atoi(value)==0)
+								connection.autocommit=false;
+						} else if(strcmp(key, "WithoutDefaultTransaction")==0){ // backward, use autocommit=0
+							if(atoi(value)==1)
+								connection.autocommit=false;
 						} else
 							services._throw("unknown connect option" /*key*/);
 					} else 
@@ -167,37 +172,34 @@ public:
 			}
 		}
 
-		// if(connection.cstrClientCharset && cstrBackwardCompAskServerToTranscode)
-		// 	services._throw("use 'ClientCharset' option only, "
-		// 		"'charset' option is obsolete and should not be used with new 'ClientCharset' option");
-
-		if(cstrBackwardCompAskServerToTranscode) {
-			// set CLIENT_ENCODING
-			char statement[MAX_STRING]="set CLIENT_ENCODING="; // win
+		if(cstrBackwardCompAskServerToTranscode){
+			char statement[MAX_STRING]="set CLIENT_ENCODING=";
 			strncat(statement, cstrBackwardCompAskServerToTranscode, MAX_STRING);
 
 			execute_resultless(connection, statement);
 		}
 
-		if(datestyle) {
-			// set DATESTYLE
+		if(datestyle){
 			char statement[MAX_STRING]="set DATESTYLE="; // ISO,SQL,Postgres,European,NonEuropean=US,German,DEFAULT=ISO
-			strncat(statement, charset, MAX_STRING);
+			strncat(statement, datestyle, MAX_STRING);
 
 			execute_resultless(connection, statement);
 		}
 
 		begin_transaction(connection);
 	}
+
 	void disconnect(void *aconnection) {
 		Connection& connection=*static_cast<Connection*>(aconnection);
 
-	    PQfinish(connection.conn);
+		PQfinish(connection.conn);
 		connection.conn=0;
 	}
+
 	void commit(void *aconnection) {
 		execute_transaction_cmd(aconnection, "COMMIT");
 	}
+
 	void rollback(void *aconnection) {
 		execute_transaction_cmd(aconnection, "ROLLBACK");
 	}
@@ -214,10 +216,10 @@ public:
 		Connection& connection=*static_cast<Connection*>(aconnection);
 
 		char *result=(char*)connection.services->malloc_atomic(length*2+1);
-		int err = 0;
+		int err=0;
 		PQescapeStringConn (connection.conn,
-                           result, from, length,
-                           &err);
+							result, from, length,
+							&err);
 		return result;
 	}
 	
@@ -240,7 +242,7 @@ public:
 			bind_parameters(placeholders_count, placeholders, paramValues, connection);
 		}
 
-		// transcode from $request:charset to connect-string?client_charset
+		// transcode from $request:charset to ?ClientCharset
 		if(cstrClientCharset) {
 			size_t transcoded_statement_size;
 			services.transcode(astatement, strlen(astatement),
@@ -295,7 +297,7 @@ public:
 			memcpy(strm, name, length+1);
 			const char* str=strm;
 
-			// transcode to $request:charset from connect-string?client_charset
+			// transcode from ?ClientCharset to $request:charset
 			if(cstrClientCharset) 
 				services.transcode(str, length,
 					str, length,
@@ -357,7 +359,7 @@ public:
 					}
 
 					if(str && length) {
-						// transcode to $request:charset from connect-string?client_charset
+						// transcode from ?ClientCharset to $request:charset
 						if(cstrClientCharset)
 							services.transcode(str, length,
 								str, length,
@@ -408,12 +410,14 @@ private: // private funcs
 	
 	
 	void execute_transaction_cmd(void *aconnection, const char *query) {
-		if(isDefaultTransaction)
-		{
+		Connection& connection=*static_cast<Connection*>(aconnection);
+
+		if(connection.autocommit){
 			Connection& connection=*static_cast<Connection*>(aconnection);
 			execute_resultless(connection, query);
-			begin_transaction(connection);
 		}
+
+		begin_transaction(connection);
 	}
 	
 	/**
@@ -427,8 +431,7 @@ private: // private funcs
 	}
 
 	void begin_transaction(Connection& connection) {
-		if(isDefaultTransaction)
-		{
+		if(connection.autocommit){
 			execute_resultless(connection, "BEGIN");
 		}
 	}
@@ -529,7 +532,7 @@ private: // lo_read/write exchancements
 		int size_op;
 		while(len && (size_op=lo_func(conn, fd, buf, min(LO_BUFSIZE, len)))>0) {
 			buf+=size_op;
-			len-=size_op;									
+			len-=size_op;
 		}
 		return len==0;
 	}
@@ -548,25 +551,24 @@ private: // conn client library funcs
 	typedef char *(*t_PQerrorMessage)(const PGconn* conn); t_PQerrorMessage PQerrorMessage;
 	typedef ConnStatusType (*t_PQstatus)(const PGconn *conn); t_PQstatus PQstatus;
 	typedef PGresult *(*t_PQexec)(PGconn *conn,
-	                 const char *query); t_PQexec PQexec;
-//PQexecParams
+						const char *query); t_PQexec PQexec;
 	typedef PGresult *(*t_PQexecParams)(
-					   PGconn *conn,
-					   const char *query, 
-					   int nParams,
-                       const Oid *paramTypes,
-                       const char * const *paramValues,
-                       const int *paramLengths,
-                       const int *paramFormats,
-                       int resultFormat); t_PQexecParams PQexecParams;
+						PGconn *conn,
+						const char *query, 
+						int nParams,
+						const Oid *paramTypes,
+						const char * const *paramValues,
+						const int *paramLengths,
+						const int *paramFormats,
+						int resultFormat); t_PQexecParams PQexecParams;
 
 	typedef ExecStatusType (*t_PQresultStatus)(const PGresult *res); t_PQresultStatus PQresultStatus;
 	typedef int (*t_PQgetlength)(const PGresult *res,
-					int tup_num,
-					int field_num); t_PQgetlength PQgetlength;
+						int tup_num,
+						int field_num); t_PQgetlength PQgetlength;
 	typedef char* (*t_PQgetvalue)(const PGresult *res,
-					 int tup_num,
-					 int field_num); t_PQgetvalue PQgetvalue;
+						int tup_num,
+						int field_num); t_PQgetvalue PQgetvalue;
 	typedef int (*t_PQntuples)(const PGresult *res); t_PQntuples PQntuples;
 	typedef char *(*t_PQfname)(const PGresult *res,
 						int field_index); t_PQfname PQfname;
@@ -576,8 +578,8 @@ private: // conn client library funcs
 	typedef Oid	(*t_PQftype)(const PGresult *res, int field_num); t_PQftype PQftype;
 
 	typedef size_t (*t_PQescapeStringConn)(PGconn *conn,
-                           char *to, const char *from, size_t length,
-                           int *error); t_PQescapeStringConn PQescapeStringConn;
+						char *to, const char *from, size_t length,
+						int *error); t_PQescapeStringConn PQescapeStringConn;
 
 	typedef int	(*t_lo_open)(PGconn *conn, Oid lobjId, int mode); t_lo_open lo_open;
 	typedef int	(*t_lo_close)(PGconn *conn, int fd); t_lo_close lo_close;
@@ -595,8 +597,8 @@ private: // conn client library funcs linking
 	const char *dlink(const char *dlopen_file_spec) {
 		if(lt_dlinit())
 			return lt_dlerror();
-        lt_dlhandle handle=lt_dlopen(dlopen_file_spec);
-        if(!handle)
+		lt_dlhandle handle=lt_dlopen(dlopen_file_spec);
+		if(!handle)
 			return "can not open the dynamic link module";
 
 		#define DSLINK(name, action) \
@@ -629,8 +631,6 @@ private: // conn client library funcs linking
 
 		return 0;
 	}
-
-	bool isDefaultTransaction;
 };
 
 extern "C" SQL_Driver *SQL_DRIVER_CREATE() {
