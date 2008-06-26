@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT(parser3sqlite.C)
 AC_PREREQ(2.57)
 
-AM_INIT_AUTOMAKE(parser3sqlite, 9.2, nodefine)
+AM_INIT_AUTOMAKE(parser3sqlite, 10.0, nodefine)
 
 AM_CONFIG_HEADER(config_auto.h)
 
@@ -19,9 +19,9 @@ dnl Arguments
 AC_ARG_WITH(sqlite-inc,[  --with-sqlite-inc=DIR        DIR is the SQLite includes directory],
 	SQLITE_INC_CHK($withval)
 
-    if test -z "$SQLITE_INC"; then
+	if test -z "$SQLITE_INC"; then
 		AC_MSG_ERROR($SQLITE_INC does not seem to be valid SQLite includes directory)
-    fi
+	fi
 ,
 	AC_MSG_CHECKING(for SQLITE_INC directory)
 	for d in \
@@ -30,9 +30,9 @@ AC_ARG_WITH(sqlite-inc,[  --with-sqlite-inc=DIR        DIR is the SQLite include
 		SQLITE_INC_CHK($d)
 	done
 
-    if test -z "$SQLITE_INC"; then
-    	AC_MSG_ERROR(use --with-sqlite-inc=DIR to specify SQLite includes directory)
-    fi
+	if test -z "$SQLITE_INC"; then
+		AC_MSG_ERROR(use --with-sqlite-inc=DIR to specify SQLite includes directory)
+	fi
 
 	AC_MSG_RESULT($SQLITE_INC)
 )
