@@ -7,7 +7,7 @@
 
 	2007.10.25 using PgSQL 8.1.5
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.29 2008/06/24 17:43:48 misha Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.30 2008/06/26 15:49:40 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -36,14 +36,13 @@ static const char *RCSId="$Id: parser3pgsql.C,v 1.29 2008/06/24 17:43:48 misha E
 #endif
 
 #ifndef max
-inline int max(int a,int b) { return a>b?a:b; }
+inline int max(int a,int b){ return a>b?a:b; }
 inline int min(int a,int b){ return a<b?a:b; }
 #endif
 
-static char *lsplit(char *string, char delim) {
-	if(string) {
-		char *v=strchr(string, delim);
-		if(v) {
+static char *lsplit(char *string, char delim){
+	if(string){
+		if(char *v=strchr(string, delim)){
 			*v=0;
 			return v+1;
 		}
@@ -51,17 +50,16 @@ static char *lsplit(char *string, char delim) {
 	return 0;
 }
 
-static char *lsplit(char **string_ref, char delim) {
+static char *lsplit(char **string_ref, char delim){
 	char *result=*string_ref;
 	char *next=lsplit(*string_ref, delim);
 	*string_ref=next;
 	return result;
 }
 
-static char* rsplit(char* string, char delim) {
-	if(string) {
-		char* v=strrchr(string, delim); 
-		if(v) {
+static char* rsplit(char* string, char delim){
+	if(string){
+		if(char* v=strrchr(string, delim)){
 			*v=0;
 			return v+1;
 		}
@@ -69,7 +67,7 @@ static char* rsplit(char* string, char delim) {
 	return NULL;	
 }
 
-static void toupper_str(char *out, const char *in, size_t size) {
+static void toupper_str(char *out, const char *in, size_t size){
 	while(size--)
 		*out++=(char)toupper(*in++);
 }
@@ -78,7 +76,7 @@ struct Connection {
 	SQL_Driver_services* services;
 
 	PGconn *conn;
-	const char* cstrClientCharset;
+	const char* client_charset;
 	bool autocommit;
 };
 
@@ -92,10 +90,10 @@ public:
 	}
 
 	/// get api version
-	int api_version() { return SQL_DRIVER_API_VERSION; }
+	int api_version(){ return SQL_DRIVER_API_VERSION; }
 
 	/// initialize driver by loading sql dynamic link library
-	const char *initialize(char *dlopen_file_spec) {
+	const char *initialize(char *dlopen_file_spec){
 		return dlopen_file_spec?
 			dlink(dlopen_file_spec):"client library column is empty";
 	}
@@ -110,32 +108,32 @@ public:
 	/**	connect
 		@param url
 			format: @b user:pass@host[:port]|[local]/database?
-			ClientCharset=xyz&	// transcode by parser
-			charset=xyz&		// transcode by server with 'set CLIENT_ENCODING=xyz'
-			datestyle=xyz&		// set DATESTYLE=xyz
+			ClientCharset=charset&	// transcode by parser
+			charset=value&			// transcode by server with 'SET CLIENT_ENCODING=value'
+			datestyle=value&		// 'SET DATESTYLE=value' available values are: ISO|SQL|Postgres|European|US|German [default=ISO]
 			autocommit=1&
 			WithoutDefaultTransaction=1	// == autocommit=0
 	*/
 	void connect(
-		char *url, 
-		SQL_Driver_services& services, 
-		void **connection_ref ///< output: Connection*
-		) {
-		char *user=url;
-		char *host=rsplit(user, '@');
-		char *db=lsplit(host, '/');
-		char *pwd=lsplit(user, ':');
-		char *port=lsplit(host, ':');
+				char* url, 
+				SQL_Driver_services& services, 
+				void** connection_ref ///< output: Connection*
+	){
+		char* user=url;
+		char* host=rsplit(user, '@');
+		char* db=lsplit(host, '/');
+		char* pwd=lsplit(user, ':');
+		char* port=lsplit(host, ':');
 
 		char *options=lsplit(db, '?');
 
-		char *cstrBackwardCompAskServerToTranscode=0;
+		char* charset=0;
 		char* datestyle=0;
 
-		Connection& connection=*(Connection  *)services.malloc(sizeof(Connection));
+		Connection& connection=*(Connection *)services.malloc(sizeof(Connection));
 		*connection_ref=&connection;
 		connection.services=&services;
-		connection.cstrClientCharset=0;	
+		connection.client_charset=0;	
 		connection.autocommit=true;
 		connection.conn=PQsetdbLogin(
 			(host&&strcasecmp(host, "local")==0)?NULL/* local Unix domain socket */:host, port, 
@@ -151,12 +149,12 @@ public:
 			if(char *key=lsplit(&options, '&')){
 				if(*key){
 					if(char *value=lsplit(key, '=')){
-						if(strcmp(key, "ClientCharset")==0) { // transcoding with parser
+						if(strcmp(key, "ClientCharset")==0){ // transcoding with parser
 							toupper_str(value, value, strlen(value));
-							connection.cstrClientCharset=value;
+							connection.client_charset=value;
 						} else if(strcasecmp(key, "charset")==0){ // transcoding with server
-							cstrBackwardCompAskServerToTranscode=value;
-						} else if(strcasecmp(key, "datestyle")==0) {
+							charset=value;
+						} else if(strcasecmp(key, "datestyle")==0){
 							datestyle=value;
 						} else if(strcasecmp(key, "autocommit")==0){
 							if(atoi(value)==0)
@@ -172,87 +170,90 @@ public:
 			}
 		}
 
-		if(cstrBackwardCompAskServerToTranscode){
-			char statement[MAX_STRING]="set CLIENT_ENCODING=";
-			strncat(statement, cstrBackwardCompAskServerToTranscode, MAX_STRING);
+		if(charset){
+			char statement[MAX_STRING]="SET CLIENT_ENCODING=";
+			strncat(statement, charset, MAX_STRING);
 
-			execute_resultless(connection, statement);
+			_execute_cmd(connection, statement);
 		}
 
 		if(datestyle){
-			char statement[MAX_STRING]="set DATESTYLE="; // ISO,SQL,Postgres,European,NonEuropean=US,German,DEFAULT=ISO
+			char statement[MAX_STRING]="SET DATESTYLE=";
 			strncat(statement, datestyle, MAX_STRING);
 
-			execute_resultless(connection, statement);
+			_execute_cmd(connection, statement);
 		}
 
-		begin_transaction(connection);
+		_begin_transaction(connection);
 	}
 
-	void disconnect(void *aconnection) {
+	void disconnect(void *aconnection){
 		Connection& connection=*static_cast<Connection*>(aconnection);
-
 		PQfinish(connection.conn);
 		connection.conn=0;
 	}
 
-	void commit(void *aconnection) {
-		execute_transaction_cmd(aconnection, "COMMIT");
+	void commit(void *aconnection){
+		Connection& connection=*static_cast<Connection*>(aconnection);
+		if(connection.autocommit){
+			_execute_cmd(connection, "COMMIT");
+		}
+		_begin_transaction(connection);
 	}
 
-	void rollback(void *aconnection) {
-		execute_transaction_cmd(aconnection, "ROLLBACK");
+	void rollback(void *aconnection){
+		Connection& connection=*static_cast<Connection*>(aconnection);
+		if(connection.autocommit){
+			_execute_cmd(connection, "ROLLBACK");
+		}
+		_begin_transaction(connection);
 	}
 
 	bool ping(void *aconnection) {
 		Connection& connection=*static_cast<Connection*>(aconnection);
-
 		return PQstatus(connection.conn)==CONNECTION_OK;
 	}
 
-	const char* quote(
-		void *aconnection,
-		const char *from, unsigned int length) {
+	const char* quote(void *aconnection, const char *from, unsigned int length){
 		Connection& connection=*static_cast<Connection*>(aconnection);
 
 		char *result=(char*)connection.services->malloc_atomic(length*2+1);
 		int err=0;
-		PQescapeStringConn (connection.conn,
-							result, from, length,
-							&err);
+		PQescapeStringConn(connection.conn, result, from, length, &err);
 		return result;
 	}
 	
 	void query(void *aconnection, 
-		const char *astatement, 
-		size_t placeholders_count, Placeholder* placeholders, 
-		unsigned long offset, unsigned long limit,
-		SQL_Driver_query_event_handlers& handlers) {
-//		_asm int 3;
+				const char *astatement, 
+				size_t placeholders_count, Placeholder* placeholders, 
+				unsigned long offset, unsigned long limit,
+				SQL_Driver_query_event_handlers& handlers
+	){
 		Connection& connection=*static_cast<Connection*>(aconnection);
-		const char* cstrClientCharset=connection.cstrClientCharset;
+		const char* client_charset=connection.client_charset;
 		SQL_Driver_services& services=*connection.services;
 		PGconn *conn=connection.conn;
 
+		bool transcode_needed=_transcode_required(connection);
+
 		const char** paramValues;
 		if(placeholders_count>0){
-			//services._throw("bind variables not supported (yet)");
-			int binds_size=sizeof(char) * placeholders_count;
+			int binds_size=sizeof(char)*placeholders_count;
 			paramValues = static_cast<const char**>(services.malloc_atomic(binds_size));
-			bind_parameters(placeholders_count, placeholders, paramValues, connection);
+			_bind_parameters(placeholders_count, placeholders, paramValues, connection, transcode_needed);
 		}
 
-		// transcode from $request:charset to ?ClientCharset
-		if(cstrClientCharset) {
-			size_t transcoded_statement_size;
-			services.transcode(astatement, strlen(astatement),
-				astatement, transcoded_statement_size,
+		// transcode query from $request:charset to ?ClientCharset
+		if(transcode_needed){
+			size_t length=strlen(astatement);
+			services.transcode(astatement, length,
+				astatement, length,
 				services.request_charset(),
-				cstrClientCharset);
+				connection.client_charset);
 		}
 
-		const char *statement=preprocess_statement(connection,
-			astatement, offset, limit);
+		const char *statement=_preprocess_statement(connection, astatement, offset, limit);
+		// error after prepare?
 
 		PGresult *res;
 		if(placeholders_count>0){
@@ -264,18 +265,17 @@ public:
 			throwPQerror;
 
 		switch(PQresultStatus(res)) {
-		case PGRES_EMPTY_QUERY: 
-			PQclear_throw("no query");
-			break;
-		case PGRES_COMMAND_OK:
-			// empty result: insert|delete|update|...
-			PQclear(res);
-			return;
-		case PGRES_TUPLES_OK: 
-			break;	
-		default:
-			PQclear_throwPQerror;
-			break;
+			case PGRES_EMPTY_QUERY: 
+				PQclear_throw("no query");
+				break;
+			case PGRES_COMMAND_OK: // empty result: insert|delete|update|...
+				PQclear(res);
+				return;
+			case PGRES_TUPLES_OK: 
+				break;	
+			default:
+				PQclear_throwPQerror;
+				break;
 		}
 		
 		int column_count=PQnfields(res);
@@ -297,11 +297,11 @@ public:
 			memcpy(strm, name, length+1);
 			const char* str=strm;
 
-			// transcode from ?ClientCharset to $request:charset
-			if(cstrClientCharset) 
+			// transcode column name from ?ClientCharset to $request:charset
+			if(transcode_needed) 
 				services.transcode(str, length,
 					str, length,
-					cstrClientCharset,
+					connection.client_charset,
 					services.request_charset());
 
 			CHECK(handlers.add_column(sql_error, str, length));
@@ -358,13 +358,12 @@ public:
 							str=0;
 					}
 
-					if(str && length) {
-						// transcode from ?ClientCharset to $request:charset
-						if(cstrClientCharset)
-							services.transcode(str, length,
-								str, length,
-								cstrClientCharset,
-								services.request_charset());
+					if(transcode_needed && str && length){
+						// transcode cell value from ?ClientCharset to $request:charset
+						services.transcode(str, length,
+							str, length,
+							connection.client_charset,
+							services.request_charset());
 					}
 
 					CHECK(handlers.add_row_cell(sql_error, str, length));
@@ -376,68 +375,61 @@ cleanup:
 			services._throw(sql_error);
 	}
 
-private: // private funcs
-
-	void bind_parameters(
-		size_t placeholders_count, 
-		Placeholder* placeholders, 
-		const char** paramValues,
-		Connection& connection
-		) {
-		for(size_t i=0; i<placeholders_count; i++) {
+private:
+	void _bind_parameters(
+				size_t placeholders_count, 
+				Placeholder* placeholders, 
+				const char** paramValues,
+				Connection& connection,
+				bool transcode_needed
+	){
+		for(size_t i=0; i<placeholders_count; i++){
 			Placeholder& ph=placeholders[i];
-			size_t value_length;
-			if(connection.cstrClientCharset) {
+			if(transcode_needed){
 				size_t name_length;
+				size_t value_length;
 				connection.services->transcode(ph.name, strlen(ph.name),
 					ph.name, name_length,
 					connection.services->request_charset(),
-					connection.cstrClientCharset);
+					connection.client_charset);
 
 				if(ph.value) {
 					connection.services->transcode(ph.value, strlen(ph.value),
 						ph.value, value_length,
 						connection.services->request_charset(),
-						connection.cstrClientCharset);
+						connection.client_charset);
 				}
 			}
-			if( atoi(ph.name) <= 0 || atoi(ph.name) > placeholders_count) {
+			int name_numner=atoi(ph.name);
+			if(name_numner <= 0 || name_numner > placeholders_count)
 				connection.services->_throw("bad bind parameter key");
-			}
-			paramValues[atoi(ph.name)-1] = ph.value;
+
+			paramValues[name_numner-1]=ph.value;
 		}
 	}
 	
-	
-	void execute_transaction_cmd(void *aconnection, const char *query) {
-		Connection& connection=*static_cast<Connection*>(aconnection);
-
-		if(connection.autocommit){
-			Connection& connection=*static_cast<Connection*>(aconnection);
-			execute_resultless(connection, query);
-		}
-
-		begin_transaction(connection);
-	}
 	
 	/**
-		Executes a query and throws the result.
+		Executes a query and throw away the result.
 	*/
-	void execute_resultless(const Connection& connection, const char *query) {
+	void _execute_cmd(const Connection& connection, const char *query){
 		if(PGresult *res=PQexec(connection.conn, query))
 			PQclear(res); // throw out the result [don't need but must call]
 		else
 			throwPQerror;
 	}
 
-	void begin_transaction(Connection& connection) {
-		if(connection.autocommit){
-			execute_resultless(connection, "BEGIN");
-		}
+	void _begin_transaction(Connection& connection){
+		if(connection.autocommit)
+			_execute_cmd(connection, "BEGIN");
 	}
 
-	const char *preprocess_statement(Connection& connection,
-		const char *astatement, unsigned long offset, unsigned long limit) {
+	const char *_preprocess_statement(
+					Connection& connection,
+					const char *astatement,
+					unsigned long offset,
+					unsigned long limit
+	){
 		PGconn *conn=connection.conn;
 
 		size_t statement_size=strlen(astatement);
@@ -448,10 +440,10 @@ private: // private funcs
 			+1);
 		// offset & limit -> suffixes
 		const char *o;
-		if(offset || limit) {
+		if(offset || limit!=SQL_NO_LIMIT){
 			char *cur=result;
 			memcpy(cur, astatement, statement_size); cur+=statement_size;
-			if(limit)
+			if(limit!=SQL_NO_LIMIT)
 				cur+=snprintf(cur, 7+MAX_NUMBER, " limit %u", limit);
 			if(offset)
 				cur+=snprintf(cur, 8+MAX_NUMBER, " offset %u", offset);
@@ -518,6 +510,10 @@ private: // private funcs
 		return result;
 	}
 
+	bool _transcode_required(Connection& connection){
+		return (connection.client_charset && strcmp(connection.client_charset, connection.services->request_charset())!=0);
+	}
+
 private: // lo_read/write exchancements
 
 	bool lo_read_ex(PGconn *conn, int fd, const/*paf*/ char *buf, size_t len) {
@@ -569,7 +565,7 @@ private: // conn client library funcs
 	typedef char* (*t_PQgetvalue)(const PGresult *res,
 						int tup_num,
 						int field_num); t_PQgetvalue PQgetvalue;
-	typedef int (*t_PQntuples)(const PGresult *res); t_PQntuples PQntuples;
+	typedef int	(*t_PQntuples)(const PGresult *res); t_PQntuples PQntuples;
 	typedef char *(*t_PQfname)(const PGresult *res,
 						int field_index); t_PQfname PQfname;
 	typedef int (*t_PQnfields)(const PGresult *res); t_PQnfields PQnfields;
