@@ -9,9 +9,9 @@
   and build the project.
 
   
-2.What is the process to install Parser3 MySQL driver?
+2.What is the process to install Parser3 ODBC driver?
 
-  Copy \parser3project\odbc\Release\parser3odbc.dll to the directory
+  Copy \parser3project\sql\odbc\Release\parser3odbc.dll to the directory
   where you decided to store Parser3 SQL drivers.
 
   NOTE:
@@ -28,4 +28,4 @@ odbc	C:\Inetpub\parser3sqldrivers\parser3odbc.dll
  
 Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
-$Id: INSTALL,v 1.3 2007/02/19 13:09:09 misha Exp $
+$Id: INSTALL,v 1.4 2008/06/26 16:31:22 misha Exp $
