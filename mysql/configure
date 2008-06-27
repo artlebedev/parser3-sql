@@ -1789,7 +1789,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=parser3mysql
- VERSION=9.6
+ VERSION=10.0
 
 
 # Some tools Automake needs.

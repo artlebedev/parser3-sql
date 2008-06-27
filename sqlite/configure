@@ -1789,7 +1789,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=parser3sqlite
- VERSION=9.2
+ VERSION=10.0
 
 
 # Some tools Automake needs.
@@ -1929,11 +1929,11 @@ if test "${with_sqlite_inc+set}" = set; then
 	fi
 
 
-    if test -z "$SQLITE_INC"; then
+	if test -z "$SQLITE_INC"; then
 		{ { echo "$as_me:$LINENO: error: $SQLITE_INC does not seem to be valid SQLite includes directory" >&5
 echo "$as_me: error: $SQLITE_INC does not seem to be valid SQLite includes directory" >&2;}
    { (exit 1); exit 1; }; }
-    fi
+	fi
 
 else
   echo "$as_me:$LINENO: checking for SQLITE_INC directory" >&5
@@ -1948,11 +1948,11 @@ echo $ECHO_N "checking for SQLITE_INC directory... $ECHO_C" >&6
 
 	done
 
-    if test -z "$SQLITE_INC"; then
-    	{ { echo "$as_me:$LINENO: error: use --with-sqlite-inc=DIR to specify SQLite includes directory" >&5
+	if test -z "$SQLITE_INC"; then
+		{ { echo "$as_me:$LINENO: error: use --with-sqlite-inc=DIR to specify SQLite includes directory" >&5
 echo "$as_me: error: use --with-sqlite-inc=DIR to specify SQLite includes directory" >&2;}
    { (exit 1); exit 1; }; }
-    fi
+	fi
 
 	echo "$as_me:$LINENO: result: $SQLITE_INC" >&5
 echo "${ECHO_T}$SQLITE_INC" >&6
