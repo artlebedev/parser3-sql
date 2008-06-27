@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.26 2004/09/13 14:47:43 paf Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.27 2008/06/27 12:54:44 misha Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -45,18 +45,17 @@ static const char *RCSId="$Id: parser3odbc.C,v 1.26 2004/09/13 14:47:43 paf Exp 
 #	define strncasecmp _strnicmp
 #endif
 
-static char *lsplit(char *string, char delim) {
-    if(string) {
-		char *v=strchr(string, delim);
-		if(v) {
+static char *lsplit(char *string, char delim){
+	if(string){
+		if(char* v=strchr(string, delim)){
 			*v=0;
 			return v+1;
 		}
-    }
-    return 0;
+	}
+	return 0;
 }
 
-static void toupper_str(char *out, const char *in, size_t size) {
+static void toupper_str(char *out, const char *in, size_t size){
 	while(size--)
 		*out++=(char)toupper(*in++);
 }
@@ -65,7 +64,9 @@ struct Connection {
 	SQL_Driver_services* services;
 
 	CDatabase* db;
-	const char* cstrClientCharset;
+	const char* client_charset;
+	bool autocommit;
+	bool use_multi_row_fetch;
 };
 
 /**
@@ -79,48 +80,88 @@ public:
 
 	/// get api version
 	int api_version() { return SQL_DRIVER_API_VERSION; }
+
 	const char *initialize(char *dlopen_file_spec) { return 0; }
 	/**	connect
 		@param url
 			format: @b DSN=dsn;UID=user;PWD=password (ODBC connect string)
+				;ClientCharset=charset	// transcode with parser
+				;MultiRowFetch=1	// 0 -- disable (slower)
+				;autocommit=1		// 0 -- disable auto commit
 			WARNING: must be used only to connect, for buffer doesn't live long
 	*/
+
 	void connect(
-		char *url, 
-		SQL_Driver_services& services, 
-		void **connection_ref ///< output: Connection*
-		) {
-		Connection& connection=*(Connection  *)services.malloc(sizeof(Connection));
+			char *url, 
+			SQL_Driver_services& services, 
+			void **connection_ref ///< output: Connection*
+	){
+		Connection& connection=*(Connection *)services.malloc(sizeof(Connection));
 		*connection_ref=&connection;
 		connection.services=&services;
-		connection.cstrClientCharset=0;
+		connection.client_charset=0;
+		connection.use_multi_row_fetch=true;
+		connection.autocommit=true;
 
-		if(const char* key_start=strstr(url, "ClientCharset=")) {
+		size_t url_length=strlen(url);
+
+		if(const char* key_start=strstr(url, "ClientCharset=")){
 			const char* value_start=key_start+14/*strlen("ClientCharset=")*/;
 			const char* value_end=strchr(value_start, ';');
 			if(!value_end)
-				value_end=url+strlen(url);
+				value_end=url+url_length;
 
-			if(size_t ClientCharsetLength=value_end-value_start) {
-				char* cstrClientCharset=(char*)services.malloc_atomic(ClientCharsetLength+1);
-				toupper_str(cstrClientCharset, value_start, ClientCharsetLength);
-				cstrClientCharset[ClientCharsetLength]=0;
+			if(size_t value_length=value_end-value_start){
+				char* client_charset=(char*)services.malloc_atomic(value_length+1);
+				toupper_str(client_charset, value_start, value_length);
+				client_charset[value_length]=0;
 
-				connection.cstrClientCharset=cstrClientCharset;
+				connection.client_charset=client_charset;
+			}
+		}
+		if(const char* key_start=strstr(url, "MultiRowFetch=")){
+			const char* value_start=key_start+14/*strlen("MultiRowFetch=")*/;
+			const char* value_end=strchr(value_start, ';');
+			if(!value_end)
+				value_end=url+url_length;
+
+			if(size_t value_length=value_end-value_start){
+				char* value=(char*)services.malloc_atomic(value_length+1);
+				memcpy(value, value_start, value_length);
+				value[value_length]=0;
+				if(atoi(value)==0)
+					connection.use_multi_row_fetch=false;
+			}
+		}
+		if(const char* key_start=strstr(url, "autocommit=")){
+			const char* value_start=key_start+11/*strlen("autocommit=")*/;
+			const char* value_end=strchr(value_start, ';');
+			if(!value_end)
+				value_end=url+url_length;
+
+			if(size_t value_length=value_end-value_start){
+				char* value=(char*)services.malloc_atomic(value_length+1);
+				memcpy(value, value_start, value_length);
+				value[value_length]=0;
+				if(atoi(value)==0)
+					connection.autocommit=false;
 			}
 		}
 
 		TRY {
 			connection.db=new CDatabase();
 			connection.db->OpenEx(url, CDatabase::noOdbcDialog);
-			connection.db->BeginTrans();
+
+			if(!connection.autocommit)
+				connection.db->BeginTrans();
 		} 
 		CATCH_ALL (e) {
 			_throw(services, e);
 		}
 		END_CATCH_ALL
 	}
-	void disconnect(void *aconnection) {
+
+	void disconnect(void *aconnection){
 		Connection& connection=*static_cast<Connection*>(aconnection);
 		TRY
 			delete connection.db;
@@ -130,36 +171,42 @@ public:
 		}
 		END_CATCH_ALL
 	}
-	void commit(void *aconnection) {
+
+	void commit(void *aconnection){
 		Connection& connection=*static_cast<Connection*>(aconnection);
-		TRY
-			connection.db->CommitTrans();
-			connection.db->BeginTrans();
-		CATCH_ALL (e) {
-			_throw(*connection.services, e);
+		if(!connection.autocommit){
+			TRY
+				connection.db->CommitTrans();
+				connection.db->BeginTrans();
+			CATCH_ALL (e) {
+				_throw(*connection.services, e);
+			}
+			END_CATCH_ALL
 		}
-		END_CATCH_ALL
-	}
-	void rollback(void *aconnection) {
-		Connection& connection=*static_cast<Connection*>(aconnection);
-		TRY
-			connection.db->Rollback();
-			connection.db->BeginTrans();
-		CATCH_ALL (e) {
-			_throw(*connection.services, e);
-		}
-		END_CATCH_ALL
 	}
 
-	bool ping(void *connection) {
+	void rollback(void *aconnection){
+		Connection& connection=*static_cast<Connection*>(aconnection);
+		if(!connection.autocommit){
+			TRY
+				connection.db->Rollback();
+				connection.db->BeginTrans();
+			CATCH_ALL (e) {
+				_throw(*connection.services, e);
+			}
+			END_CATCH_ALL
+		}
+	}
+
+	bool ping(void *connection){
 		return true;
 	}
 
-	const char* quote(void *aconnection, const char *from, unsigned int length) {
+	const char* quote(void *aconnection, const char *from, unsigned int length){
 		Connection& connection=*static_cast<Connection*>(aconnection);
 		char *result=(char*)connection.services->malloc_atomic(length*2+1);
 		char *to=result;
-		while(length--) {
+		while(length--){
 			if(*from=='\'') { // ' -> ''
 				*to++='\'';
 			}
@@ -168,12 +215,15 @@ public:
 		*to=0;
 		return result;
 	}
-	void query(void *aconnection, 
-		const char *statement, 
-		size_t placeholders_count, Placeholder* placeholders, 
-		unsigned long offset, unsigned long limit,
-		SQL_Driver_query_event_handlers& handlers) {
 
+	void query(void *aconnection, 
+			const char *statement, 
+			size_t placeholders_count,
+			Placeholder* placeholders, 
+			unsigned long offset,
+			unsigned long limit,
+			SQL_Driver_query_event_handlers& handlers
+	){
 		Connection& connection=*static_cast<Connection*>(aconnection);
 		CDatabase *db=connection.db;
 		SQL_Driver_services& services=*connection.services;
@@ -181,20 +231,23 @@ public:
 		if(placeholders_count>0)
 			services._throw("bind variables not supported (yet)");
 
-		// transcode from $request:charset to connect-string?client_charset
-		if(const char* cstrClientCharset=connection.cstrClientCharset) {
-			size_t transcoded_statement_size;
-			services.transcode(statement, strlen(statement),
-				statement, transcoded_statement_size,
+		bool transcode_needed=_transcode_required(connection);
+
+		// transcode query from $request:charset to ?ClientCharset
+		if(transcode_needed){
+			size_t length=strlen(statement);
+			services.transcode(statement, length,
+				statement, length,
 				services.request_charset(),
-				cstrClientCharset);
+				connection.client_charset);
 		}
 
 		while(isspace((unsigned char)*statement)) 
 			statement++;
-		
+
 		TRY {
 			// mk:@MSITStore:C:\Program%20Files\Microsoft%20SQL%20Server\80\Tools\Books\adosql.chm::/adoprg02_4g33.htm
+			// or http://msdn.microsoft.com/en-us/library/aa905899(SQL.80).aspx
 			// Server cursors are created only for statements that begin with: 
 			// SELECT
 			// EXEC[ute] procedure_name
@@ -202,18 +255,30 @@ public:
 			// mk:@MSITStore:C:\Program%20Files\Microsoft%20SQL%20Server\80\Tools\Books\odbcsql.chm::/od_6_035_5dnp.htm
 			// The ODBC CALL escape sequence for calling a procedure is:
 			// {[?=]call procedure_name[([parameter][,[parameter]]...)]}
-			if(strncasecmp(statement, "select", 6)==0
+			if(strncasecmp(statement, "SELECT", 6)==0
 				|| strncasecmp(statement, "EXEC", 4)==0
 				|| strncasecmp(statement, "call", 4)==0
-				|| strncasecmp(statement, "{", 1)==0) {
-				CRecordset rs(db); 
+				|| strncasecmp(statement, "{", 1)==0
+			){
+				CRecordset rs(db);
+				DWORD options=CRecordset::executeDirect|CRecordset::readOnly;
+				//CRecordset::skipDeletedRecords
+				//CRecordset::useMultiRowFetch
+				//CRecordset::userAllocMultiRowBuffers
+				//CRecordset::useExtendedFetch
+				/*
+				if(connection.use_multi_row_fetch){
+					options+=CRecordset::useMultiRowFetch+CRecordset::userAllocMultiRowBuffers;
+				} else {
+					options+=CRecordset::skipDeletedRecords;
+				}
+				*/
 				TRY {
 					rs.Open(
-						CRecordset::forwardOnly
-						||CRecordset::readOnly, 
+						(connection.use_multi_row_fetch)?CRecordset::dynamic:CRecordset::forwardOnly,
 						statement,
-						CRecordset::executeDirect   
-						);
+						options
+					);
 				} CATCH_ALL (e) {
 					// could not fetch a table
 					TRY {
@@ -231,9 +296,10 @@ public:
 				if(!column_count)
 					services._throw("result contains no columns");
 
-				SWORD column_types[MAX_COLS];
 				if(column_count>MAX_COLS)
 					column_count=MAX_COLS;
+
+				SWORD column_types[MAX_COLS];
 
 				SQL_Error sql_error;
 #define CHECK(afailed) if(afailed) services._throw(sql_error)
@@ -245,15 +311,15 @@ public:
 					column_types[i]=fieldinfo.m_nSQLType;
 					size_t length=fieldinfo.m_strName.GetLength();
 					char *str=0;
-					if(length) {
+					if(length){
 						str=(char*)services.malloc_atomic(length+1);
-						memcpy(str, (char *)LPCTSTR(fieldinfo.m_strName), length+1);
+						memcpy(str, (char*)LPCTSTR(fieldinfo.m_strName), length+1);
 
-						// transcode to $request:charset from connect-string?client_charset
-						if(const char* cstrClientCharset=connection.cstrClientCharset) {
+						// transcode column name from ?ClientCharset to $request:charset
+						if(transcode_needed){
 							services.transcode(str, length,
 								str, length,
-								cstrClientCharset,
+								connection.client_charset,
 								services.request_charset());
 						}
 					}
@@ -261,25 +327,38 @@ public:
 				}
 
 				CHECK(handlers.before_rows(sql_error));
+				
+				// skip offset rows
+				if(offset){
+					if(connection.use_multi_row_fetch){
+						rs.Move(offset);
+					} else {
+						unsigned long row=offset;
+						while(!rs.IsEOF() && row>0){
+							rs.MoveNext();
+							row--;
+						}
+					}
+				}
 
 				unsigned long row=0;
 				CDBVariant v;
 				CString s;
-				while(!rs.IsEOF() && (!limit||(row<offset+limit))) {
-					if(row>=offset) {
-						CHECK(handlers.add_row(sql_error));
-						for(int i=0; i<column_count; i++) {
-							size_t length;
-							char* str;
-							switch(column_types[i]) {
+				while(!rs.IsEOF() && (limit==SQL_NO_LIMIT || row<limit)){
+					CHECK(handlers.add_row(sql_error));
+					for(int i=0; i<column_count; i++){
+						size_t length;
+						char* str;
+						switch(column_types[i]){
 							//case xBOOL:
-//							case SQL_INTEGER: // serg@design.ru did that in parser2. test first!
+							//case SQL_INTEGER: // serg@design.ru did that in parser2. test first!
 							//case SQL_DATETIME: << default: handles that more properly (?)
 							case SQL_BINARY: 
 							case SQL_VARBINARY:
 							case SQL_LONGVARBINARY:
 							case SQL_SMALLDATETIME:
-							//case SQL_NVARCHAR: // mfc 7.1 has errors with nvarchar(length): SQLGetData in dbcore.cpp truncates last byte for unknown reason.  could be fixed by uncommenting this and handing DBVT_WSTRING inside, but it's UNICODE
+							//case SQL_NVARCHAR:	// mfc 7.1 has errors with nvarchar(length): SQLGetData in dbcore.cpp truncates last byte for unknown reason.
+													// could be fixed by uncommenting this and handing DBVT_WSTRING inside, but it's UNICODE
 								rs.GetFieldValue(i, v);
 								getFromDBVariant(services, v, str, length);
 								break;
@@ -287,19 +366,19 @@ public:
 								rs.GetFieldValue(i, s);
 								getFromString(services, s, str, length);
 								break;
-							}
-
-							// transcode to $request:charset from connect-string?client_charset
-							if(const char* cstrClientCharset=connection.cstrClientCharset)
-								services.transcode(str, length,
-									str, length,
-									cstrClientCharset,
-									services.request_charset());
-
-							CHECK(handlers.add_row_cell(sql_error, str, length));
 						}
+
+						// transcode cell value from ?ClientCharset to $request:charset
+						if(transcode_needed && length)
+							services.transcode(str, length,
+								str, length,
+								connection.client_charset,
+								services.request_charset());
+
+						CHECK(handlers.add_row_cell(sql_error, str, length));
 					}
-					rs.MoveNext();  row++;
+					rs.MoveNext();
+					row++;
 				}
 				
 				rs.Close();
@@ -311,8 +390,9 @@ public:
 		} END_CATCH_ALL
 	}
 
-	void getFromDBVariant(SQL_Driver_services& services, CDBVariant& v, char*& str, size_t& length) {
-		switch(v.m_dwType) {
+private:
+	void getFromDBVariant(SQL_Driver_services& services, CDBVariant& v, char*& str, size_t& length){
+		switch(v.m_dwType){
 		case DBVT_BINARY: /* << would cause problems with current String implementation
 				  now falling into NULL case, effectively ignoring such columns [not failing]
 			{
@@ -338,7 +418,8 @@ public:
 		case DBVT_SHORT:
 			char buf[MAX_NUMBER];
 			length=snprintf(HEAPIZE buf, "%d", v.m_iVal);
-			break;*/
+			break;
+*/
 /*		case DBVT_LONG: 
 			{
 				char local_buf[MAX_NUMBER];
@@ -346,12 +427,15 @@ public:
 				ptr=services.malloc_atomic(length);
 				memcpy(ptr, local_buf, length);
 				break;
-			}*/
-		/*case DBVT_SINGLE:
+			}
+*/
+/*
+		case DBVT_SINGLE:
 			m_fltVal 
 			break;
-	case DBVT_DOUBLE m_dblVal 
-	case DBVT_STRING m_pstring */ 
+		case DBVT_DOUBLE m_dblVal 
+		case DBVT_STRING m_pstring
+*/ 
 		case DBVT_DATE:
 			{
 				char local_buf[MAX_STRING];
@@ -376,8 +460,8 @@ public:
 		}
 	}
 
-	void getFromString(SQL_Driver_services& services, CString& s, char*& astr, size_t& length) {
-		if(s.IsEmpty()) {
+	void getFromString(SQL_Driver_services& services, CString& s, char*& astr, size_t& length){
+		if(s.IsEmpty()){
 			astr=0;
 			length=0;
 		} else {
@@ -388,14 +472,25 @@ public:
 		}
 	}
 
-	void _throw(SQL_Driver_services& services, CException *e) {
-		char szCause[MAX_STRING]; szCause[0]=0;
+	void _throw(SQL_Driver_services& services, CException *e){
+		char szCause[MAX_STRING];
+		szCause[0]=0;
 		e->GetErrorMessage(szCause, MAX_STRING);
 		char msg[MAX_STRING];
 		snprintf(msg, MAX_STRING, "%s: %s",
 			e->GetRuntimeClass()->m_lpszClassName,
 			*szCause?szCause:"unknown");
 		services._throw(msg);
+	}
+
+	void _throw(Connection& connection, long value){
+		char msg[MAX_STRING];
+		snprintf(msg, MAX_STRING, "%u", value);
+		connection.services->_throw(msg);
+	}
+
+	bool _transcode_required(Connection& connection){
+		return (connection.client_charset && strcmp(connection.client_charset, connection.services->request_charset())!=0);
 	}
 
 };
