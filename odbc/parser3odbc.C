@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.28 2008/06/27 13:38:36 misha Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.29 2008/06/27 14:02:24 misha Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -96,7 +96,7 @@ public:
 		@param url
 			format: @b DSN=dsn;UID=user;PWD=password? (ODBC connect string)
 				ClientCharset=charset&	// transcode with parser
-				MultiRowFetch=1&	// 0 -- disable (slower)
+				FastOffsetSearch=0&	// 0 -- disable (slower)
 				autocommit=1&		// 0 -- disable auto commit
 			WARNING: must be used only to connect, for buffer doesn't live long
 	*/
@@ -110,7 +110,7 @@ public:
 		*connection_ref=&connection;
 		connection.services=&services;
 		connection.client_charset=0;
-		connection.fast_offset_search=true;
+		connection.fast_offset_search=false;
 		connection.autocommit=true;
 
 		size_t url_length=strlen(url);
@@ -127,8 +127,8 @@ public:
 							if(atoi(value)==0)
 								connection.autocommit=false;
 						} else if(strcmp(key, "FastOffsetSearch")==0){
-							if(atoi(value)==0)
-								connection.fast_offset_search=false;
+							if(atoi(value)==1)
+								connection.fast_offset_search=true;
 						} else
 							services._throw("unknown connect option" /*key*/);
 					} else 
