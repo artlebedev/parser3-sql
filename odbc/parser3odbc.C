@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.27 2008/06/27 12:54:44 misha Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.28 2008/06/27 13:38:36 misha Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -44,6 +44,9 @@ static const char *RCSId="$Id: parser3odbc.C,v 1.27 2008/06/27 12:54:44 misha Ex
 #ifndef strncasecmp
 #	define strncasecmp _strnicmp
 #endif
+#ifndef strcasecmp
+#	define strcasecmp _stricmp
+#endif
 
 static char *lsplit(char *string, char delim){
 	if(string){
@@ -53,6 +56,13 @@ static char *lsplit(char *string, char delim){
 		}
 	}
 	return 0;
+}
+
+static char *lsplit(char **string_ref, char delim){
+	char *result=*string_ref;
+	char *next=lsplit(*string_ref, delim);
+	*string_ref=next;
+	return result;
 }
 
 static void toupper_str(char *out, const char *in, size_t size){
@@ -66,7 +76,7 @@ struct Connection {
 	CDatabase* db;
 	const char* client_charset;
 	bool autocommit;
-	bool use_multi_row_fetch;
+	bool fast_offset_search;
 };
 
 /**
@@ -84,10 +94,10 @@ public:
 	const char *initialize(char *dlopen_file_spec) { return 0; }
 	/**	connect
 		@param url
-			format: @b DSN=dsn;UID=user;PWD=password (ODBC connect string)
-				;ClientCharset=charset	// transcode with parser
-				;MultiRowFetch=1	// 0 -- disable (slower)
-				;autocommit=1		// 0 -- disable auto commit
+			format: @b DSN=dsn;UID=user;PWD=password? (ODBC connect string)
+				ClientCharset=charset&	// transcode with parser
+				MultiRowFetch=1&	// 0 -- disable (slower)
+				autocommit=1&		// 0 -- disable auto commit
 			WARNING: must be used only to connect, for buffer doesn't live long
 	*/
 
@@ -100,51 +110,30 @@ public:
 		*connection_ref=&connection;
 		connection.services=&services;
 		connection.client_charset=0;
-		connection.use_multi_row_fetch=true;
+		connection.fast_offset_search=true;
 		connection.autocommit=true;
 
 		size_t url_length=strlen(url);
+		char *options=lsplit(url, '?');
 
-		if(const char* key_start=strstr(url, "ClientCharset=")){
-			const char* value_start=key_start+14/*strlen("ClientCharset=")*/;
-			const char* value_end=strchr(value_start, ';');
-			if(!value_end)
-				value_end=url+url_length;
-
-			if(size_t value_length=value_end-value_start){
-				char* client_charset=(char*)services.malloc_atomic(value_length+1);
-				toupper_str(client_charset, value_start, value_length);
-				client_charset[value_length]=0;
-
-				connection.client_charset=client_charset;
-			}
-		}
-		if(const char* key_start=strstr(url, "MultiRowFetch=")){
-			const char* value_start=key_start+14/*strlen("MultiRowFetch=")*/;
-			const char* value_end=strchr(value_start, ';');
-			if(!value_end)
-				value_end=url+url_length;
-
-			if(size_t value_length=value_end-value_start){
-				char* value=(char*)services.malloc_atomic(value_length+1);
-				memcpy(value, value_start, value_length);
-				value[value_length]=0;
-				if(atoi(value)==0)
-					connection.use_multi_row_fetch=false;
-			}
-		}
-		if(const char* key_start=strstr(url, "autocommit=")){
-			const char* value_start=key_start+11/*strlen("autocommit=")*/;
-			const char* value_end=strchr(value_start, ';');
-			if(!value_end)
-				value_end=url+url_length;
-
-			if(size_t value_length=value_end-value_start){
-				char* value=(char*)services.malloc_atomic(value_length+1);
-				memcpy(value, value_start, value_length);
-				value[value_length]=0;
-				if(atoi(value)==0)
-					connection.autocommit=false;
+		while(options){
+			if(char *key=lsplit(&options, '&')){
+				if(*key){
+					if(char *value=lsplit(key, '=')){
+						if(strcmp(key, "ClientCharset")==0){
+							toupper_str(value, value, strlen(value));
+							connection.client_charset=value;
+						} else if(strcasecmp(key, "autocommit")==0){
+							if(atoi(value)==0)
+								connection.autocommit=false;
+						} else if(strcmp(key, "FastOffsetSearch")==0){
+							if(atoi(value)==0)
+								connection.fast_offset_search=false;
+						} else
+							services._throw("unknown connect option" /*key*/);
+					} else 
+						services._throw("connect option without =value" /*key*/);
+				}
 			}
 		}
 
@@ -266,16 +255,16 @@ public:
 				//CRecordset::useMultiRowFetch
 				//CRecordset::userAllocMultiRowBuffers
 				//CRecordset::useExtendedFetch
-				/*
-				if(connection.use_multi_row_fetch){
+/*
+				if(connection.fast_offset_search){
 					options+=CRecordset::useMultiRowFetch+CRecordset::userAllocMultiRowBuffers;
 				} else {
 					options+=CRecordset::skipDeletedRecords;
 				}
-				*/
+*/
 				TRY {
 					rs.Open(
-						(connection.use_multi_row_fetch)?CRecordset::dynamic:CRecordset::forwardOnly,
+						(connection.fast_offset_search)?CRecordset::dynamic:CRecordset::forwardOnly,
 						statement,
 						options
 					);
@@ -330,7 +319,7 @@ public:
 				
 				// skip offset rows
 				if(offset){
-					if(connection.use_multi_row_fetch){
+					if(connection.fast_offset_search){
 						rs.Move(offset);
 					} else {
 						unsigned long row=offset;
