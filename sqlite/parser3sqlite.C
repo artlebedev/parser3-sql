@@ -3,7 +3,7 @@
 
 	(c) Dmitry "Creator" Bobrik, 2004
 */
-//static const char *RCSId="$Id: parser3sqlite.C,v 1.6 2008/06/26 09:59:56 misha Exp $"; 
+//static const char *RCSId="$Id: parser3sqlite.C,v 1.7 2008/06/27 17:36:30 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -108,12 +108,12 @@ public:
 		} else { // build path to DB-file from document_root (as anywhere in parser)
 			if(char* document_root=(char*)services.request_document_root()){
 				db_path=(char*)services.malloc_atomic(strlen(document_root)+strlen(db)+1+1);
-				db_path=strncat(db_path, document_root, strlen(document_root));
-				db_path=strncat(db_path, "/", 1);
+				db_path=strncpy(db_path, document_root, MAX_STRING);
+				db_path=strncat(db_path, "/", MAX_STRING);
 			} else {
 				// if document root empty -- build path from executable file
 				db_path=(char*)services.malloc_atomic(strlen(db)+2+1);
-				db_path=strncat(db_path, "./", 2);
+				db_path=strncpy(db_path, "./", MAX_STRING);
 			}
 			db_path=strncat(db_path, db, strlen(db));
 		}
@@ -132,9 +132,9 @@ public:
 								connection.autocommit=false;
 							continue;
 						} else if(strcmp(key, "ClientCharset")==0){	// transcoding with parser. 
-																// by default we always transcode to UTF-8 (sqlite default)
-																// so use this option only if you already stored data in your sqlite DB
-																// in wrong encoding (1251 for ex.)
+												// by default we always transcode to UTF-8 (sqlite default)
+												// so use this option only if you already stored data in your sqlite DB
+												// in wrong encoding (1251 for ex.)
 							toupper_str(value, value, strlen(value));
 							connection.client_charset=value;
 							continue;
