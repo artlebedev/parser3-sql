@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.33 2008/06/26 14:30:48 misha Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.34 2008/06/30 14:00:19 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -28,10 +28,9 @@ static const char *RCSId="$Id: parser3mysql.C,v 1.33 2008/06/26 14:30:48 misha E
 #	define strcasecmp _stricmp
 #endif
 
-static char *lsplit(char *string, char delim) {
+static char *lsplit(char *string, char delim){
 	if(string) {
-		char *v=strchr(string, delim);
-		if(v) {
+		if(char *v=strchr(string, delim)){
 			*v=0;
 			return v+1;
 		}
@@ -39,17 +38,16 @@ static char *lsplit(char *string, char delim) {
 	return 0;
 }
 
-static char *lsplit(char **string_ref, char delim) {
+static char *lsplit(char **string_ref, char delim){
 	char *result=*string_ref;
 	char *next=lsplit(*string_ref, delim);
 	*string_ref=next;
 	return result;
 }
 
-static char* rsplit(char* string, char delim) {
-	if(string) {
-		char* v=strrchr(string, delim); 
-		if(v) {
+static char* rsplit(char* string, char delim){
+	if(string){
+		if(char* v=strrchr(string, delim)){
 			*v=0;
 			return v+1;
 		}
@@ -57,7 +55,7 @@ static char* rsplit(char* string, char delim) {
 	return NULL;	
 }
 
-static void toupper_str(char *out, const char *in, size_t size) {
+static void toupper_str(char *out, const char *in, size_t size){
 	while(size--)
 		*out++=(char)toupper(*in++);
 }
@@ -68,7 +66,6 @@ struct Connection {
 	MYSQL* handle;
 	const char* client_charset;
 	bool autocommit;
-	bool multi_statements;
 };
 
  
@@ -104,6 +101,7 @@ public:
 				named_pipe=1&
 				autocommit=1&
 				multi_statements=0	// allow more then one statement in one query
+				old_client=1		// simulate 3.xx client. not compatible with multi_statements option
 			3.x, 4.0 
 				only option for charset is cp1251_koi8.
 			4.1+ accept not 'cp1251_koi8' but 'cp1251', 'utf8' and much more
@@ -132,6 +130,7 @@ public:
 		char *options=lsplit(db, '?');
 
 		char *charset=0;
+		int client_flag=CLIENT_MULTI_RESULTS;
 
 		Connection& connection=*(Connection *)services.malloc(sizeof(Connection));
 		*connection_ref=&connection;
@@ -139,7 +138,6 @@ public:
 		connection.handle=mysql_init(NULL);
 		connection.client_charset=0;	
 		connection.autocommit=true;
-		connection.multi_statements=false;
 
 		while(options){
 			if(char *key=lsplit(&options, '&')){
@@ -162,12 +160,19 @@ public:
 							if(atoi(value))
 								if(mysql_options(connection.handle, MYSQL_OPT_NAMED_PIPE, 0)!=0)
 									services._throw(mysql_error(connection.handle));
-						} else if(strcasecmp(key, "multi_statements")==0) {
-							if(atoi(value)!=0)
-								connection.multi_statements=true;
 						} else if(strcasecmp(key, "autocommit")==0){
 							if(atoi(value)==0)
 								connection.autocommit=false;
+						} else if(strcasecmp(key, "multi_statements")==0){
+							if(!(client_flag==CLIENT_MULTI_RESULTS || client_flag==CLIENT_MULTI_STATEMENTS))
+								services._throw("you can't specify together options old_client and multi_statements");
+							if(atoi(value)!=0)
+								client_flag=CLIENT_MULTI_STATEMENTS;
+						} else if(strcasecmp(key, "old_client")==0){
+							if(!(client_flag==CLIENT_MULTI_RESULTS || client_flag==0))
+								services._throw("you can't specify together options old_client and multi_statements");
+							if(atoi(value)!=0)
+								client_flag=0;
 						} else
 							services._throw("unknown connect option" /*key*/);
 					} else 
@@ -181,7 +186,7 @@ public:
 					host, user, pwd, db,
 					port?port:MYSQL_PORT,
 					unix_socket,
-					(connection.multi_statements) ? CLIENT_MULTI_STATEMENTS : CLIENT_MULTI_RESULTS
+					client_flag
 				)
 		){
 			services._throw(mysql_error(connection.handle));
