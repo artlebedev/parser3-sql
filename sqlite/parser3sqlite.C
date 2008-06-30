@@ -3,7 +3,7 @@
 
 	(c) Dmitry "Creator" Bobrik, 2004
 */
-//static const char *RCSId="$Id: parser3sqlite.C,v 1.7 2008/06/27 17:36:30 misha Exp $"; 
+//static const char *RCSId="$Id: parser3sqlite.C,v 1.8 2008/06/30 09:29:55 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -78,10 +78,11 @@ public:
 
 	/**	connect
 		@param url
-			format: @b [localhost/]dbfile?
-			autocommit=1&
-			multi_statements=0&
-			ClientCharset=UTF-8
+			format: @b db-file|:memory:|temporary:?
+			autocommit=1&			// =0 disable autocommit. in this case 1 connect == 1 transaction.
+									//	or you can use begin/commit|rollback explicitly
+			multi_statements=0&		// =1 allow many statements in 1 query
+			ClientCharset=UTF-8		// will transcode to/from specified charset instead of UTF-8 (default for sqlite)
 	*/
 	void connect(
 				char *url, 
@@ -101,21 +102,19 @@ public:
 		char* db=url;
 		char* options=lsplit(db, '?');
 
-		if(strcmp(db, ":memory:")==0){ // in-memory table
+		if(strcmp(db, ":memory:")==0){ // in-memory temporary DB
 			db_path=db;
-		} else if(strcmp(db, ":temporary:")==0){ // on disk temporary table (in :memory: style)
+		} else if(strcmp(db, ":temporary:")==0){ // on-disk temporary DB
 			// do nothing: empty path mean temporary table on disk
-		} else { // build path to DB-file from document_root (as anywhere in parser)
-			if(char* document_root=(char*)services.request_document_root()){
-				db_path=(char*)services.malloc_atomic(strlen(document_root)+strlen(db)+1+1);
-				db_path=strncpy(db_path, document_root, MAX_STRING);
-				db_path=strncat(db_path, "/", MAX_STRING);
-			} else {
-				// if document root empty -- build path from executable file
-				db_path=(char*)services.malloc_atomic(strlen(db)+2+1);
-				db_path=strncpy(db_path, "./", MAX_STRING);
-			}
-			db_path=strncat(db_path, db, strlen(db));
+		} else {
+			char* document_root=(char*)services.request_document_root();
+			if(!document_root) // path to DB-file which was specified by user is path from document_root as anywhere in parser
+				services._throw("document_root is empty");
+
+			db_path=(char*)services.malloc_atomic(strlen(document_root)+1+strlen(db)+1);
+			db_path=strcpy(db_path, document_root);
+			db_path=strcat(db_path, "/");
+			db_path=strcat(db_path, db);
 		}
 
 		//services._throw(db_path);
@@ -124,17 +123,14 @@ public:
 			if(char* key=lsplit(&options, '&')){
 				if(*key) {
 					if(char* value=lsplit(key, '=')){
-						if(strcasecmp(key, "multi_statements")==0) {
+						if(strcasecmp(key, "multi_statements")==0){
 							if(atoi(value)!=0)
 								connection.multi_statements=true;
 						} else if(strcasecmp(key, "autocommit")==0){
 							if(atoi(value)==0)
 								connection.autocommit=false;
 							continue;
-						} else if(strcmp(key, "ClientCharset")==0){	// transcoding with parser. 
-												// by default we always transcode to UTF-8 (sqlite default)
-												// so use this option only if you already stored data in your sqlite DB
-												// in wrong encoding (1251 for ex.)
+						} else if(strcmp(key, "ClientCharset")==0){
 							toupper_str(value, value, strlen(value));
 							connection.client_charset=value;
 							continue;
@@ -267,12 +263,12 @@ public:
 			rc=sqlite3_prepare(connection.handle, statement, -1, &SQL, &pzTail);
 			next_statement_length=strlen(pzTail);
 			if(rc!=SQLITE_OK){
-				sqlite3_free((char*)pzTail);
+				//sqlite3_free((char*)pzTail);
 				_throw(connection, sqlite3_errmsg(connection.handle));
 			}
 			if(!connection.multi_statements && next_statement_length>0){ // multi statements was not allowed but pzTail point to not empty one
-				sqlite3_free((char*)pzTail);
-				_throw(connection, "multi statements are not allowed in this connection");
+				//sqlite3_free((char*)pzTail);
+				_throw(connection, "multi statements are not allowed until opption ?multi_statements=1 in connect string is specified.");
 			}
 			
 			#define CHECK(afailed) if(afailed){ failed=true; goto cleanup; }
