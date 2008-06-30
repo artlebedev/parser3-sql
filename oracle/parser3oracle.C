@@ -8,7 +8,7 @@
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
 
-static const char *RCSId="$Id: parser3oracle.C,v 1.68 2007/02/13 10:38:09 misha Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.69 2008/06/30 15:22:28 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -95,33 +95,40 @@ static int pa_setenv(const char *name, const char *value, bool do_append) {
 #endif
 }
 
-static char *lsplit(char *string, char delim) {
-    if(string) {
-		char *v=strchr(string, delim);
-		if(v) {
+static char *lsplit(char *string, char delim){
+	if(string){
+		if(char* v=strchr(string, delim)){
 			*v=0;
 			return v+1;
 		}
-    }
-    return 0;
+	}
+	return 0;
 }
 
-static char *lsplit(char **string_ref, char delim) {
-    char *result=*string_ref;
+static char *lsplit(char **string_ref, char delim){
+	char *result=*string_ref;
 	char *next=lsplit(*string_ref, delim);
-    *string_ref=next;
-    return result;
+	*string_ref=next;
+	return result;
 }
 
-static char* rsplit(char* string, char delim) {
-    if(string) {
-		char* v=strrchr(string, delim); 
-		if(v) {
+static char* rsplit(char* string, char delim){
+	if(string){
+		if(char* v=strrchr(string, delim)){
 			*v=0;
 			return v+1;
 		}
-    }
-    return NULL;	
+	}
+	return NULL;	
+}
+
+static void tolower_str(char *out, const char *in, size_t size) {
+	while(size--)
+		*out++=(char)tolower(*in++);
+}
+static void toupper_str(char *out, const char *in, size_t size) {
+	while(size--)
+		*out++=(char)toupper(*in++);
 }
 
 #ifndef DOXYGEN
@@ -141,7 +148,7 @@ struct Connection {
 
 	struct Options {
 		bool bLowerCaseColumnNames;
-		const char* cstrClientCharset;
+		const char* client_charset;
 	} options;
 };
 
@@ -187,25 +194,23 @@ static sb4 cbf_get_data(dvoid *ctxp,
 						ub1 *piecep, 
 						dvoid **indpp, 
 						ub2 **rcodepp);
-static void tolower_str(char *out, const char *in, size_t size);
-static void toupper_str(char *out, const char *in, size_t size);
 
 static const char *options2env(char *s, Connection::Options* options) {
-	while(s) {
-		if(char *key=lsplit(&s, '&')) {
-			if(*key) {
-				if(char *value=lsplit(key, '=')) {
-					if( strcmp( key, "ClientCharset" ) == 0 ) {
-						if(options) {
+	while(s){
+		if(char *key=lsplit(&s, '&')){
+			if(*key){
+				if(char *value=lsplit(key, '=')){
+					if(strcmp(key, "ClientCharset")== 0){
+						if(options){
 							toupper_str(value, value, strlen(value));
-							options->cstrClientCharset = value;
+							options->client_charset=value;
 						}
 						continue;
 					}
 
-					if( strcmp( key, "LowerCaseColumnNames" ) == 0 ) {
+					if(strcmp(key, "LowerCaseColumnNames")==0){
 						if(options)
-							options->bLowerCaseColumnNames = atoi(value)!=0;
+							options->bLowerCaseColumnNames=atoi(value)!=0;
 						continue;
 					}
 
@@ -240,6 +245,7 @@ public:
 
 	/// get api version
 	int api_version() { return SQL_DRIVER_API_VERSION; }
+
 	/** initialize driver by loading sql dynamic link library
 		@todo ?objects=1 which would turn on OCI_OBJECT init flag
 	*/
@@ -265,24 +271,26 @@ public:
 	/**	connect
 		@param url
 			format: @b user:pass@service?
-			   ORACLE_HOME=/u01/app/oracle/product/8.1.5&
-			   ORA_NLS33=/u01/app/oracle/product/8.1.5/ocommon/nls/admin/data&
-			   NLS_LANG=RUSSIAN_AMERICA.CL8MSWIN1251&
-			   ORA_ENCRYPT_LOGIN=TRUE
+				ORACLE_HOME=/u01/app/oracle/product/8.1.5&
+				ORA_NLS33=/u01/app/oracle/product/8.1.5/ocommon/nls/admin/data&
+				NLS_LANG=RUSSIAN_AMERICA.CL8MSWIN1251&
+				ORA_ENCRYPT_LOGIN=TRUE&
+				ClientCharset=charset&
+				LowerCaseColumnNames=0
 
 		@todo environment manupulation doesnt look thread safe
 		@todo allocate 'aused_only_in_connect_url' on gc heap, so it can be manipulated directly
 	*/
 	void connect(
-		char *url, 
-		SQL_Driver_services& services, 
-		void **connection_ref ///< output: Connection *
+			char *url, 
+			SQL_Driver_services& services, 
+			void **connection_ref ///< output: Connection *
 		) 
 	{
 		// connections are cross-request, do not use services._alloc [linked with request]
-		Connection& connection=*(Connection  *)services.malloc(sizeof(Connection));
+		Connection& connection=*(Connection *)services.malloc(sizeof(Connection));
 		connection.services=&services;
-		connection.options.bLowerCaseColumnNames = true;
+		connection.options.bLowerCaseColumnNames=true;
 		*connection_ref=&connection;
 
 		char *user=url;
@@ -359,6 +367,7 @@ public:
 			(dvoid *)connection.usrhp, (ub4)0, 
 			OCI_ATTR_SESSION, connection.errhp));
 	}
+
 	void disconnect(void *aconnection) {
 	    Connection& connection=*static_cast<Connection *>(aconnection);
 
@@ -394,6 +403,7 @@ public:
 		// free connection. leave that to GC [no such services func. yet?]
 		// connection.services->free(&connection);
 	}
+
 	void commit(void *aconnection) {
 	    Connection& connection=*static_cast<Connection *>(aconnection);
 		if(setjmp(connection.mark))
@@ -401,6 +411,7 @@ public:
 
 		check(connection, "commit", OCITransCommit(connection.svchp, connection.errhp, 0));
 	}
+
 	void rollback(void *aconnection) {
 	    Connection& connection=*static_cast<Connection *>(aconnection);
 		if(setjmp(connection.mark))
@@ -434,27 +445,29 @@ public:
 		*to=0;
 		return result;
 	}
+
 	void query(void* aconnection, 
-		const char* astatement, 
-		size_t placeholders_count, Placeholder* placeholders, 
-		unsigned long offset, unsigned long limit,
-		SQL_Driver_query_event_handlers& handlers) 
-	{
+			const char* astatement, 
+			size_t placeholders_count, Placeholder* placeholders, 
+			unsigned long offset, unsigned long limit,
+			SQL_Driver_query_event_handlers& handlers
+	){
 
 		Connection& connection=*static_cast<Connection *>(aconnection);
-		const char* cstrClientCharset=connection.options.cstrClientCharset;
 		Query_lobs lobs={{0}, 0};
 		OCIStmt *stmthp=0;
 
 		SQL_Driver_services& services=*connection.services;
 
-		// transcode from $request:charset to connect-string?client_charset
-		if(cstrClientCharset) {
+		bool transcode_needed=_transcode_required(connection);
+
+		if(transcode_needed){
+			// transcode query from $request:charset to ?ClientCharset
 			size_t transcoded_xxx_size;
 			services.transcode(astatement, strlen(astatement),
 				astatement, transcoded_xxx_size,
 				services.request_charset(),
-				cstrClientCharset);
+				connection.options.client_charset);
 		}
 
 		bool failed=false;
@@ -494,18 +507,19 @@ public:
 
 					size_t value_length;
 
-					if(cstrClientCharset) {
+					if(transcode_needed){
+						// transcode bind variables names and their values from $request:charset to ?ClientCharset
 						size_t name_length;
 						services.transcode(ph.name, strlen(ph.name),
 							ph.name, name_length,
 							services.request_charset(),
-							cstrClientCharset);
+							connection.options.client_charset);
 
 						if(ph.value)
 							services.transcode(ph.value, strlen(ph.value),
 								ph.value, value_length,
 								services.request_charset(),
-								cstrClientCharset);
+								connection.options.client_charset);
 					} else {
 						value_length=ph.value? strlen(ph.value): 0;
 					}
@@ -583,10 +597,11 @@ public:
 						memcpy(returned_value, bind_buffer, value_length+1 );
 						ph.value=returned_value;
 
-						if(cstrClientCharset) {
+						if(transcode_needed){
+							// transcode bind variable output from ?ClientCharset to $request:charset
 							services.transcode(ph.value, value_length,
 								ph.value, value_length/*<this new value is not used afterwards, actually*/,
-								cstrClientCharset,
+								connection.options.client_charset,
 								services.request_charset());
 						}
 					} else {
@@ -774,7 +789,8 @@ private: // private funcs
 		OCIStmt *stmthp, unsigned long offset, unsigned long limit, 
 		SQL_Driver_query_event_handlers& handlers) 
 	{
-		const char* cstrClientCharset=connection.options.cstrClientCharset;
+		bool transcode_needed=_transcode_required(connection);
+
 		SQL_Driver_services& services=*connection.services;
 
 		ub4 prefetch_rows=100;
@@ -789,9 +805,9 @@ private: // private funcs
 			(dvoid *)&prefetch_mem_size, (ub4)0, 
 			(ub4)OCI_ATTR_PREFETCH_MEMORY, (OCIError *)connection.errhp));
 
-		OCIParam          *mypard;
-		ub2                    dtype;
-		const char*           col_name;
+		OCIParam		*mypard;
+		ub2				dtype;
+		const char*		col_name;
 
 		struct Col {
 			ub2 type;
@@ -829,11 +845,12 @@ private: // private funcs
 					(dvoid*) mypard, (ub4)OCI_DTYPE_PARAM, 
 					(dvoid**) &col_name, (ub4 *) &col_name_len, (ub4)OCI_ATTR_NAME, 
 					(OCIError *)connection.errhp));
-				// transcode to $request:charset from connect-string?client_charset
-				if(cstrClientCharset) {
+
+				if(transcode_needed){
+					// transcode column name from ?ClientCharset to $request:charset
 					services.transcode(col_name, col_name_len,
 						col_name, col_name_len,
-						cstrClientCharset,
+						connection.options.client_charset,
 						services.request_charset());
 				}
 
@@ -854,25 +871,25 @@ private: // private funcs
 				void *ptr;
 				
 				switch(dtype) {
-				case SQLT_CLOB: 
-					{
-						check(connection, "alloc output var desc", OCIDescriptorAlloc(
-							(dvoid *)connection.envhp, (dvoid **)(ptr=&col.var), 
-							(ub4)OCI_DTYPE_LOB, 
-							0, (dvoid **)0));
-						
-						size=0;
+					case SQLT_CLOB: 
+						{
+							check(connection, "alloc output var desc", OCIDescriptorAlloc(
+								(dvoid *)connection.envhp, (dvoid **)(ptr=&col.var), 
+								(ub4)OCI_DTYPE_LOB, 
+								0, (dvoid **)0));
+							
+							size=0;
+							break;
+						}
+					default:
+						coerce_type=SQLT_STR;
+						char*& buf=connection.fetch_buffers[column_count-1];
+						ptr=buf; // get cached buffer
+						if(!ptr) // allocate if needed, caching it
+							ptr=buf=(char *)services.malloc_atomic(MAX_OUT_STRING_LENGTH+1/*terminator*/);
+						col.str=(char*)ptr;
+						size=MAX_OUT_STRING_LENGTH;
 						break;
-					}
-				default:
-					coerce_type=SQLT_STR;
-					char*& buf=connection.fetch_buffers[column_count-1];
-					ptr=buf; // get cached buffer
-					if(!ptr) // allocate if needed, caching it
-						ptr=buf=(char *)services.malloc_atomic(MAX_OUT_STRING_LENGTH+1/*terminator*/);
-					col.str=(char*)ptr;
-					size=MAX_OUT_STRING_LENGTH;
-					break;
 				}
 				
 				col.type=coerce_type;
@@ -891,7 +908,7 @@ private: // private funcs
 			
 			check(connection, handlers.before_rows(connection.sql_error));
 			
-			for(unsigned long row=0; !limit||row<offset+limit; row++) {
+			for(unsigned long row=0; limit==SQL_NO_LIMIT || row<offset+limit; row++) {
 				sword status=OCIStmtFetch(stmthp, connection.errhp, (ub4)1,  (ub4)OCI_FETCH_NEXT, 
 					(ub4)OCI_DEFAULT);
 				if(status==OCI_NO_DATA)
@@ -903,6 +920,7 @@ private: // private funcs
 					for(int i=0; i<column_count; i++) {
 						size_t length=0;
 						char* strm=0;
+						bool transcode_value=transcode_needed;
 
 						sb2 indicator=cols[i].indicator;
 						if(indicator!=-1) { // not NULL
@@ -910,58 +928,70 @@ private: // private funcs
 								fail(connection, indicator<0?
 									"column return buffer overflow, additionally size too big to be returned in 'indicator'"
 									: "column return buffer overflow");
+							
+							switch(cols[i].type){
+								case SQLT_CLOB: 
+									{
+										ub4   offset=1;
+										OCILobLocator *var=(OCILobLocator *)cols[i].var;
+										size_t read_size=0;
+										strm=(char*)services.malloc_atomic(1/*for terminator*/); // set type of memory block
+										do {
+											char buf[MAX_STRING*10];
+											ub4   amtp=0/*to be read in stream mode*/;
+											// http://i/docs/oracle/server.804/a58234/oci_func.htm#427818
+											status=OCILobRead(connection.svchp, connection.errhp, 
+												var, &amtp, offset, (dvoid *)buf, 
+												sizeof(buf), 
+												(dvoid *)0, 0, 
+												(ub2)0, (ub1)SQLCS_IMPLICIT);
+											if(status!=OCI_SUCCESS && status!=OCI_NEED_DATA)
+												check(connection, "lobread", status);
 
-							switch(cols[i].type) {
-							case SQLT_CLOB: 
-								{
-									ub4   offset=1;
-									OCILobLocator *var=(OCILobLocator *)cols[i].var;
-									size_t read_size=0;
-									strm=(char*)services.malloc_atomic(1/*for terminator*/); // set type of memory block
-									do {
-										char buf[MAX_STRING*10];
-										ub4   amtp=0/*to be read in stream mode*/;
-										// http://i/docs/oracle/server.804/a58234/oci_func.htm#427818
-										status=OCILobRead(connection.svchp, connection.errhp, 
-											var, &amtp, offset, (dvoid *)buf, 
-											sizeof(buf), 
-											(dvoid *)0, 0, 
-											(ub2)0, (ub1)SQLCS_IMPLICIT);
-                                        if(status!=OCI_SUCCESS && status!=OCI_NEED_DATA)
-											check(connection, "lobread", status);
+											strm=(char*)services.realloc(strm, read_size+amtp+1/*for termintator*/);
+											memcpy(strm+read_size, buf, amtp);
+											read_size+=amtp;
+											offset+=amtp;
+										} while(status==OCI_NEED_DATA);
 
-										strm=(char*)services.realloc(strm, read_size+amtp+1/*for termintator*/);
-										memcpy(strm+read_size, buf, amtp);
-										read_size+=amtp;
-										offset+=amtp;
-									} while(status==OCI_NEED_DATA);
-
-									length=(size_t)read_size;
-									strm[length]=0;
+										length=(size_t)read_size;
+										strm[length]=0;
+										break;
+									}
+								case SQLT_NUM:
+								case SQLT_INT:
+								case SQLT_FLT:
+								case SQLT_LNG:
+								case SQLT_RID:
+								case SQLT_UIN:
+								case SQLT_DATE:
+								case SQLT_TIME:
+								case SQLT_TIME_TZ:
+								case SQLT_TIMESTAMP:
+								case SQLT_TIMESTAMP_TZ:
+								case SQLT_TIMESTAMP_LTZ:
+									transcode_value=false; // not needed to call transcode method for numbers and dated
+								default:
+									if(const char *value=cols[i].str) {
+										length=strlen(value);
+										strm=(char*)services.malloc_atomic(length+1);
+										memcpy(strm, value, length+1);
+									} else {
+										length=0;
+										strm=0;
+									}
 									break;
-								}
-							default:
-								if(const char *value=cols[i].str) {
-									length=strlen(value);
-									strm=(char*)services.malloc_atomic(length+1);
-									memcpy(strm, value, length+1);
-								} else {
-									length=0;
-									strm=0;
-								}
-								break;
 							}
 						}
 
 						const char* str=strm;
-						if(str && length)
-						{
-							// transcode to $request:charset from connect-string?client_charset
-							if(cstrClientCharset)
-								services.transcode(str, length,
-									str, length,
-									cstrClientCharset,
-									services.request_charset());
+						if(transcode_value && str && length){
+							// transcode cell value from ?ClientCharset to $request:charset
+							// todo: skip transcode for numbers/dates
+							services.transcode(str, length,
+								str, length,
+								connection.options.client_charset,
+								services.request_charset());
 						}
 
 						check(connection, handlers.add_row_cell(connection.sql_error, str, length));
@@ -984,6 +1014,10 @@ cleanup: // no check call after this point!
 
 		if(failed) // need rethrow?
 			longjmp(saved_mark, 1);
+	}
+
+	bool _transcode_required(Connection& connection){
+		return (connection.options.client_charset && strcmp(connection.options.client_charset, connection.services->request_charset())!=0);
 	}
 
 private: // conn client library funcs
@@ -1154,15 +1188,13 @@ void check(Connection& connection, const char *step, sword status) {
 				(text *)reason, (ub4)sizeof(reason), OCI_HTYPE_ERROR)==OCI_SUCCESS) {
 				msg=reason;
 
-				// transcode to $request:charset from connect-string?client_charset
-				if(const char* cstrClientCharset=connection.options.cstrClientCharset) {
-					if(msg) {
-						if(size_t msg_length=strlen(msg)) {
-							connection.services->transcode(msg, msg_length,
-								msg, msg_length,
-								cstrClientCharset,
-								connection.services->request_charset());
-						}
+				// transcode server error message from ?ClientCharset to $request:charset
+				if(msg && connection.options.client_charset && strcmp(connection.options.client_charset, connection.services->request_charset())!=0){
+					if(size_t msg_length=strlen(msg)){
+						connection.services->transcode(msg, msg_length,
+							msg, msg_length,
+							connection.options.client_charset,
+							connection.services->request_charset());
 					}
 				}
 			} else
@@ -1257,16 +1289,6 @@ static sb4 cbf_get_data(dvoid *ctxp,
 	
 	return OCI_CONTINUE;
 }
-
-static void tolower_str(char *out, const char *in, size_t size) {
-	while(size--)
-		*out++=(char)tolower(*in++);
-}
-static void toupper_str(char *out, const char *in, size_t size) {
-	while(size--)
-		*out++=(char)toupper(*in++);
-}
-
 
 extern "C" SQL_Driver *SQL_DRIVER_CREATE() {
 	return OracleSQL_driver=new OracleSQL_Driver();
