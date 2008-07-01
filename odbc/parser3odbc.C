@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.30 2008/07/01 08:51:16 misha Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.31 2008/07/01 08:56:06 misha Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -491,12 +491,6 @@ private:
 			e->GetRuntimeClass()->m_lpszClassName,
 			*szCause?szCause:"unknown");
 		services._throw(msg);
-	}
-
-	void _throw(Connection& connection, long value){
-		char msg[MAX_STRING];
-		snprintf(msg, MAX_STRING, "%u", value);
-		connection.services->_throw(msg);
 	}
 
 };
