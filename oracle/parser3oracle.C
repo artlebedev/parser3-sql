@@ -8,7 +8,7 @@
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
 
-static const char *RCSId="$Id: parser3oracle.C,v 1.69 2008/06/30 15:22:28 misha Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.70 2008/07/01 14:13:07 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -969,7 +969,6 @@ private: // private funcs
 								case SQLT_TIME_TZ:
 								case SQLT_TIMESTAMP:
 								case SQLT_TIMESTAMP_TZ:
-								case SQLT_TIMESTAMP_LTZ:
 									transcode_value=false; // not needed to call transcode method for numbers and dated
 								default:
 									if(const char *value=cols[i].str) {
