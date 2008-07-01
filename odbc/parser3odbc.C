@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.31 2008/07/01 08:56:06 misha Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.32 2008/07/01 10:21:03 misha Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -116,6 +116,8 @@ public:
 		size_t url_length=strlen(url);
 		char *options=lsplit(url, '?');
 
+		// todo: analize connect string and if 'SQL Server' found, modify query and add TOP into SELECTs
+
 		while(options){
 			if(char *key=lsplit(&options, '&')){
 				if(*key){
@@ -140,9 +142,7 @@ public:
 		TRY {
 			connection.db=new CDatabase();
 			connection.db->OpenEx(url, CDatabase::noOdbcDialog);
-
-			if(!connection.autocommit)
-				connection.db->BeginTrans();
+			connection.db->BeginTrans();
 		} 
 		CATCH_ALL (e) {
 			_throw(services, e);
@@ -163,28 +163,24 @@ public:
 
 	void commit(void *aconnection){
 		Connection& connection=*static_cast<Connection*>(aconnection);
-		if(!connection.autocommit){
-			TRY
-				connection.db->CommitTrans();
-				connection.db->BeginTrans();
-			CATCH_ALL (e) {
-				_throw(*connection.services, e);
-			}
-			END_CATCH_ALL
+		TRY
+			connection.db->CommitTrans();
+			connection.db->BeginTrans();
+		CATCH_ALL (e) {
+			_throw(*connection.services, e);
 		}
+		END_CATCH_ALL
 	}
 
 	void rollback(void *aconnection){
 		Connection& connection=*static_cast<Connection*>(aconnection);
-		if(!connection.autocommit){
-			TRY
-				connection.db->Rollback();
-				connection.db->BeginTrans();
-			CATCH_ALL (e) {
-				_throw(*connection.services, e);
-			}
-			END_CATCH_ALL
+		TRY
+			connection.db->Rollback();
+			connection.db->BeginTrans();
+		CATCH_ALL (e) {
+			_throw(*connection.services, e);
 		}
+		END_CATCH_ALL
 	}
 
 	bool ping(void *connection){
@@ -317,7 +313,7 @@ public:
 							break;
 						default:
 							transcode_column[i]=transcode_needed;
-
+							break;
 					}
 					size_t length=fieldinfo.m_strName.GetLength();
 					char *str=0;
@@ -344,10 +340,8 @@ public:
 						rs.Move(offset);
 					} else {
 						unsigned long row=offset;
-						while(!rs.IsEOF() && row>0){
+						while(!rs.IsEOF() && row--)
 							rs.MoveNext();
-							row--;
-						}
 					}
 				}
 
@@ -398,6 +392,9 @@ public:
 		} CATCH_ALL (e) {
 			_throw(services, e);
 		} END_CATCH_ALL
+
+		if(connection.autocommit)
+			commit(aconnection);
 	}
 
 private:
@@ -422,7 +419,7 @@ private:
 			ptr=v.m_boolVal?"1":"0";
 			length=1;
 			break;*/
-/*							case DBVT_UCHAR:
+/*		case DBVT_UCHAR:
 			length=strlen(ptr=v.m_chVal);
 			break;
 		case DBVT_SHORT:
@@ -491,6 +488,12 @@ private:
 			e->GetRuntimeClass()->m_lpszClassName,
 			*szCause?szCause:"unknown");
 		services._throw(msg);
+	}
+
+	void _throw(Connection& connection, long value){
+		char msg[MAX_STRING];
+		snprintf(msg, MAX_STRING, "%u", value);
+		connection.services->_throw(msg);
 	}
 
 };
