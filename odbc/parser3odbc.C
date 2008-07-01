@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.29 2008/06/27 14:02:24 misha Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.30 2008/07/01 08:51:16 misha Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -96,8 +96,8 @@ public:
 		@param url
 			format: @b DSN=dsn;UID=user;PWD=password? (ODBC connect string)
 				ClientCharset=charset&	// transcode with parser
-				FastOffsetSearch=0&	// 0 -- disable (slower)
 				autocommit=1&		// 0 -- disable auto commit
+				FastOffsetSearch=0
 			WARNING: must be used only to connect, for buffer doesn't live long
 	*/
 
@@ -220,15 +220,17 @@ public:
 		if(placeholders_count>0)
 			services._throw("bind variables not supported (yet)");
 
-		bool transcode_needed=_transcode_required(connection);
+		const char* client_charset=connection.client_charset;
+		const char* request_charset=services.request_charset();
+		bool transcode_needed=(client_charset && strcmp(client_charset, request_charset)!=0);
 
 		// transcode query from $request:charset to ?ClientCharset
 		if(transcode_needed){
 			size_t length=strlen(statement);
 			services.transcode(statement, length,
 				statement, length,
-				services.request_charset(),
-				connection.client_charset);
+				request_charset,
+				client_charset);
 		}
 
 		while(isspace((unsigned char)*statement)) 
@@ -289,6 +291,7 @@ public:
 					column_count=MAX_COLS;
 
 				SWORD column_types[MAX_COLS];
+				bool transcode_column[MAX_COLS];
 
 				SQL_Error sql_error;
 #define CHECK(afailed) if(afailed) services._throw(sql_error)
@@ -298,6 +301,24 @@ public:
 					CODBCFieldInfo fieldinfo;
 					rs.GetODBCFieldInfo(i, fieldinfo);
 					column_types[i]=fieldinfo.m_nSQLType;
+					switch(fieldinfo.m_nSQLType){
+						case SQL_NUMERIC:
+						case SQL_DECIMAL:
+						case SQL_INTEGER:
+						case SQL_SMALLINT:
+						case SQL_FLOAT:
+						case SQL_REAL:
+						case SQL_DOUBLE:
+						case SQL_DATETIME:
+						case SQL_SMALLDATETIME:
+						case SQL_BIGINT:
+						case SQL_TINYINT:
+							transcode_column[i]=false;
+							break;
+						default:
+							transcode_column[i]=transcode_needed;
+
+					}
 					size_t length=fieldinfo.m_strName.GetLength();
 					char *str=0;
 					if(length){
@@ -308,8 +329,8 @@ public:
 						if(transcode_needed){
 							services.transcode(str, length,
 								str, length,
-								connection.client_charset,
-								services.request_charset());
+								client_charset,
+								request_charset);
 						}
 					}
 					CHECK(handlers.add_column(sql_error, str, length));
@@ -340,7 +361,6 @@ public:
 						char* str;
 						switch(column_types[i]){
 							//case xBOOL:
-							//case SQL_INTEGER: // serg@design.ru did that in parser2. test first!
 							//case SQL_DATETIME: << default: handles that more properly (?)
 							case SQL_BINARY: 
 							case SQL_VARBINARY:
@@ -358,11 +378,12 @@ public:
 						}
 
 						// transcode cell value from ?ClientCharset to $request:charset
-						if(transcode_needed && length)
+						if(length && transcode_column[i]){
 							services.transcode(str, length,
 								str, length,
-								connection.client_charset,
-								services.request_charset());
+								client_charset,
+								request_charset);
+						}
 
 						CHECK(handlers.add_row_cell(sql_error, str, length));
 					}
@@ -476,10 +497,6 @@ private:
 		char msg[MAX_STRING];
 		snprintf(msg, MAX_STRING, "%u", value);
 		connection.services->_throw(msg);
-	}
-
-	bool _transcode_required(Connection& connection){
-		return (connection.client_charset && strcmp(connection.client_charset, connection.services->request_charset())!=0);
 	}
 
 };
