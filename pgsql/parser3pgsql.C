@@ -7,7 +7,7 @@
 
 	2007.10.25 using PgSQL 8.1.5
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.30 2008/06/26 15:49:40 misha Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.31 2008/07/01 13:40:33 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -16,16 +16,29 @@ static const char *RCSId="$Id: parser3pgsql.C,v 1.30 2008/06/26 15:49:40 misha E
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 
-// OIDOID from catalog/pg_type.h
+// from catalog/pg_type.h
+#define BOOLOID			16
+#define INT8OID			20
+#define INT2OID			21
+#define INT4OID			23
 #define OIDOID			26
+#define FLOAT4OID		700
+#define FLOAT8OID		701
+#define DATEOID			1082
+#define TIMEOID			1083
+#define TIMESTAMPOID	1114
+#define TIMESTAMPTZOID	1184
+#define TIMETZOID		1266
+#define NUMERICOID		1700
+
 // LO_BUFSIZE from interfaces\libpq\fe-lobj.c = 8192 (0x2000)
 // actually writing chunks of that size failed, reduced it twice
 #define LO_BUFSIZE		  0x1000
-// from postgres_ext.h
-//#define InvalidOid		((Oid) 0)
 
 
 #include "ltdl.h"
+
+#define MAX_COLS 500
 
 #define MAX_STRING 0x400
 #define MAX_NUMBER 20
@@ -78,6 +91,7 @@ struct Connection {
 	PGconn *conn;
 	const char* client_charset;
 	bool autocommit;
+	bool without_default_transactions;
 };
 
 /**
@@ -111,8 +125,8 @@ public:
 			ClientCharset=charset&	// transcode by parser
 			charset=value&			// transcode by server with 'SET CLIENT_ENCODING=value'
 			datestyle=value&		// 'SET DATESTYLE=value' available values are: ISO|SQL|Postgres|European|US|German [default=ISO]
-			autocommit=1&
-			WithoutDefaultTransaction=1	// == autocommit=0
+			autocommit=1&			// each transaction is commited automatically (default)
+			WithoutDefaultTransaction=0	// 1 -- disable auto commit, 'BEGIN TRAN' at connection start and COMMIT/ROLLBACK at the end [can't be used together with autocommit option]
 	*/
 	void connect(
 				char* url, 
@@ -135,6 +149,8 @@ public:
 		connection.services=&services;
 		connection.client_charset=0;	
 		connection.autocommit=true;
+		connection.without_default_transactions=false;
+
 		connection.conn=PQsetdbLogin(
 			(host&&strcasecmp(host, "local")==0)?NULL/* local Unix domain socket */:host, port, 
 			NULL, NULL, db, user, pwd);
@@ -149,19 +165,25 @@ public:
 			if(char *key=lsplit(&options, '&')){
 				if(*key){
 					if(char *value=lsplit(key, '=')){
-						if(strcmp(key, "ClientCharset")==0){ // transcoding with parser
+						if(strcmp(key, "ClientCharset")==0){
 							toupper_str(value, value, strlen(value));
 							connection.client_charset=value;
-						} else if(strcasecmp(key, "charset")==0){ // transcoding with server
+						} else if(strcasecmp(key, "charset")==0){
 							charset=value;
 						} else if(strcasecmp(key, "datestyle")==0){
 							datestyle=value;
 						} else if(strcasecmp(key, "autocommit")==0){
+							if(connection.without_default_transactions)
+								services._throw("options WithoutDefaultTransaction and autocommit can't be used together");
 							if(atoi(value)==0)
 								connection.autocommit=false;
-						} else if(strcmp(key, "WithoutDefaultTransaction")==0){ // backward, use autocommit=0
-							if(atoi(value)==1)
+						} else if(strcmp(key, "WithoutDefaultTransaction")==0){
+							if(!connection.autocommit)
+								services._throw("options WithoutDefaultTransaction and autocommit can't be used together");
+							if(atoi(value)==1){
+								connection.without_default_transactions=true;
 								connection.autocommit=false;
+							}
 						} else
 							services._throw("unknown connect option" /*key*/);
 					} else 
@@ -195,7 +217,7 @@ public:
 
 	void commit(void *aconnection){
 		Connection& connection=*static_cast<Connection*>(aconnection);
-		if(connection.autocommit){
+		if(!connection.without_default_transactions){
 			_execute_cmd(connection, "COMMIT");
 		}
 		_begin_transaction(connection);
@@ -203,7 +225,7 @@ public:
 
 	void rollback(void *aconnection){
 		Connection& connection=*static_cast<Connection*>(aconnection);
-		if(connection.autocommit){
+		if(!connection.without_default_transactions){
 			_execute_cmd(connection, "ROLLBACK");
 		}
 		_begin_transaction(connection);
@@ -230,11 +252,12 @@ public:
 				SQL_Driver_query_event_handlers& handlers
 	){
 		Connection& connection=*static_cast<Connection*>(aconnection);
-		const char* client_charset=connection.client_charset;
 		SQL_Driver_services& services=*connection.services;
 		PGconn *conn=connection.conn;
 
-		bool transcode_needed=_transcode_required(connection);
+		const char* client_charset=connection.client_charset;
+		const char* request_charset=services.request_charset();
+		bool transcode_needed=client_charset && strcmp(client_charset, request_charset)!=0;
 
 		const char** paramValues;
 		if(placeholders_count>0){
@@ -243,13 +266,13 @@ public:
 			_bind_parameters(placeholders_count, placeholders, paramValues, connection, transcode_needed);
 		}
 
-		// transcode query from $request:charset to ?ClientCharset
 		if(transcode_needed){
+			// transcode query from $request:charset to ?ClientCharset
 			size_t length=strlen(astatement);
 			services.transcode(astatement, length,
 				astatement, length,
-				services.request_charset(),
-				connection.client_charset);
+				request_charset,
+				client_charset);
 		}
 
 		const char *statement=_preprocess_statement(connection, astatement, offset, limit);
@@ -290,19 +313,45 @@ public:
 			goto cleanup; \
 		}
 
+		if(column_count>MAX_COLS)
+			column_count=MAX_COLS;
+
+		unsigned int column_types[MAX_COLS];
+		bool transcode_column[MAX_COLS];
+
 		for(int i=0; i<column_count; i++){
 			char *name=PQfname(res, i);
 			size_t length=strlen(name);
+			column_types[i]=PQftype(res, i);
+			switch(column_types[i]){
+				case BOOLOID:
+				case INT8OID:
+				case INT2OID:
+				case INT4OID:
+				case FLOAT4OID:
+				case FLOAT8OID:
+				case DATEOID:
+				case TIMEOID:
+				case TIMESTAMPOID:
+				case TIMESTAMPTZOID:
+				case TIMETZOID:
+				case NUMERICOID:
+					transcode_column[i]=false;
+					break;
+				default:
+					transcode_column[i]=transcode_needed;
+					break;
+			}
 			char* strm=(char*)services.malloc(length+1);
 			memcpy(strm, name, length+1);
 			const char* str=strm;
 
-			// transcode column name from ?ClientCharset to $request:charset
 			if(transcode_needed) 
+				// transcode column name from ?ClientCharset to $request:charset
 				services.transcode(str, length,
 					str, length,
-					connection.client_charset,
-					services.request_charset());
+					client_charset,
+					request_charset);
 
 			CHECK(handlers.add_column(sql_error, str, length));
 		}
@@ -316,54 +365,57 @@ public:
 					const char *cell=PQgetvalue(res, r, i);
 					size_t length;
 					const char* str;
-					if(PQftype(res, i)==OIDOID) {
-						// ObjectID column, read object bytes
 
-						char *error_pos=0;
-						Oid oid=cell?atoi(cell):0;
-						int fd=lo_open(conn, oid, INV_READ);
-						if(fd>=0) {
-							// seek to end
-							if(lo_lseek(conn, fd, 0, SEEK_END)<0)
-								PQclear_throwPQerror;
-							// get length
-							int size_tell=lo_tell(conn, fd);
-							if(size_tell<0)
-								PQclear_throwPQerror;
-							// seek to begin
-							if(lo_lseek(conn, fd, 0, SEEK_SET)<0)
-								PQclear_throwPQerror;
-							length=(size_t)size_tell;
-							if(length) {
-								// read 
+					switch(column_types[i]){
+						case OIDOID:
+							{
+								char *error_pos=0;
+								Oid oid=cell?atoi(cell):0;
+								int fd=lo_open(conn, oid, INV_READ);
+								if(fd>=0){
+									// seek to end
+									if(lo_lseek(conn, fd, 0, SEEK_END)<0)
+										PQclear_throwPQerror;
+									// get length
+									int size_tell=lo_tell(conn, fd);
+									if(size_tell<0)
+										PQclear_throwPQerror;
+									// seek to begin
+									if(lo_lseek(conn, fd, 0, SEEK_SET)<0)
+										PQclear_throwPQerror;
+									length=(size_t)size_tell;
+									if(length){
+										// read 
+										char* strm=(char*)services.malloc(length+1);
+										if(!lo_read_ex(conn, fd, strm, size_tell))
+											PQclear_throw("lo_read can not read all bytes of object");
+										strm[length]=0;
+										str=strm;
+									} else
+										str=0;
+									if(lo_close(conn, fd)<0)
+										PQclear_throwPQerror;
+								} else
+									PQclear_throwPQerror;
+							}
+						default:
+							// normal column, read it normally
+							length=(size_t)PQgetlength(res, r, i);
+							if(length){
 								char* strm=(char*)services.malloc(length+1);
-								if(!lo_read_ex(conn, fd, strm, size_tell))
-									PQclear_throw("lo_read can not read all bytes of object");
-								strm[length]=0;
+								memcpy(strm, cell, length+1);
 								str=strm;
 							} else
 								str=0;
-							if(lo_close(conn, fd)<0)
-								PQclear_throwPQerror;
-						} else
-							PQclear_throwPQerror;
-					} else {
-						// normal column, read it normally
-						length=(size_t)PQgetlength(res, r, i);
-						if(length) {
-							char* strm=(char*)services.malloc(length+1);
-							memcpy(strm, cell, length+1);
-							str=strm;
-						} else
-							str=0;
 					}
 
-					if(transcode_needed && str && length){
+					if(str && length && transcode_column[i]){
+						//services._throw("tr");
 						// transcode cell value from ?ClientCharset to $request:charset
 						services.transcode(str, length,
 							str, length,
-							connection.client_charset,
-							services.request_charset());
+							client_charset,
+							request_charset);
 					}
 
 					CHECK(handlers.add_row_cell(sql_error, str, length));
@@ -373,6 +425,8 @@ cleanup:
 		PQclear(res);
 		if(failed)
 			services._throw(sql_error);
+
+		commit(aconnection);
 	}
 
 private:
@@ -420,7 +474,7 @@ private:
 	}
 
 	void _begin_transaction(Connection& connection){
-		if(connection.autocommit)
+		if(!connection.without_default_transactions)
 			_execute_cmd(connection, "BEGIN");
 	}
 
@@ -508,10 +562,6 @@ private:
 		*n=0;
 
 		return result;
-	}
-
-	bool _transcode_required(Connection& connection){
-		return (connection.client_charset && strcmp(connection.client_charset, connection.services->request_charset())!=0);
 	}
 
 private: // lo_read/write exchancements
