@@ -3,7 +3,7 @@
 
 	(c) Dmitry "Creator" Bobrik, 2004
 */
-//static const char *RCSId="$Id: parser3sqlite.C,v 1.8 2008/06/30 09:29:55 misha Exp $"; 
+//static const char *RCSId="$Id: parser3sqlite.C,v 1.9 2008/07/03 07:17:25 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -14,6 +14,7 @@
 #include "sqlite3.h"
 #include "ltdl.h"
 
+#define MAX_COLS   500
 #define MAX_STRING 0x400
 #define MAX_NUMBER 20
 
@@ -112,9 +113,9 @@ public:
 				services._throw("document_root is empty");
 
 			db_path=(char*)services.malloc_atomic(strlen(document_root)+1+strlen(db)+1);
-			db_path=strcpy(db_path, document_root);
-			db_path=strcat(db_path, "/");
-			db_path=strcat(db_path, db);
+			strcpy(db_path, document_root);
+			strcat(db_path, "/");
+			strcat(db_path, db);
 		}
 
 		//services._throw(db_path);
@@ -222,7 +223,9 @@ public:
 
 		if(placeholders_count>0)
 			services._throw("bind variables not supported yet");
-   
+		
+		const char* request_charset=services.request_charset();
+		const char* client_charset=connection.client_charset;
 		bool transcode_needed=_transcode_required(connection);
 
 		// transcode query from $request:charset to ?ClientCharset
@@ -230,8 +233,8 @@ public:
 			size_t length=strlen(astatement);
 			services.transcode(astatement, length,
 				astatement, length,
-				services.request_charset(),
-				connection.client_charset);
+				request_charset,
+				client_charset);
 		}
 		
 		const char *statement;
@@ -278,6 +281,12 @@ public:
 			if(!column_count){ // empty result: insert|delete|update|...
 				rc=sqlite3_step(SQL);
 			} else {
+				if(column_count>MAX_COLS)
+					column_count=MAX_COLS;
+
+				int column_types[MAX_COLS];
+				bool transcode_column[MAX_COLS];
+
 				for(int i=0; i<column_count; i++){
 					const char *column_name=sqlite3_column_name(SQL, i);
 					size_t length=strlen(column_name);
@@ -289,17 +298,17 @@ public:
 					if(transcode_needed){
 						services.transcode(str, length,
 							str, length,
-							connection.client_charset,
-							services.request_charset());
+							client_charset,
+							request_charset);
 					}
 							
 					CHECK(handlers.add_column(sql_error, (const char*)str, length));
 				}
 				CHECK(handlers.before_rows(sql_error));
 
-				int column_type;
 				const char *str;
 				size_t length=0;
+				bool first_row=true;
 
 				do{
 					rc=sqlite3_step(SQL);
@@ -308,10 +317,22 @@ public:
 						CHECK(handlers.add_row(sql_error));
 
 						for(int i=0; i<column_count; i++){
+							if(first_row){
+								column_types[i]=sqlite3_column_type(SQL, i);
+								switch(column_types[i]){
+									case SQLITE_INTEGER:
+									case SQLITE_FLOAT:
+									case SQLITE_NULL:
+										transcode_column[i]=false;
+										break;
+									default:
+										transcode_column[i]=transcode_needed;
+										break;
+								}
+							}
+
 							// SQLite allow to get value of any type using sqlite3_column_text function
-							column_type=sqlite3_column_type(SQL, i);
-							bool transcode_value=false;
-							switch(column_type){
+							switch(column_types[i]){
 								case SQLITE_NULL:
 									length=0;
 									str=NULL;
@@ -320,11 +341,7 @@ public:
 									str=(const char*)sqlite3_column_blob(SQL, i);
 									length=(size_t)sqlite3_column_bytes(SQL, i);
 									break;
-								case SQLITE_TEXT: // for text transcoding can be required
-									transcode_value=transcode_needed;
-								case SQLITE_INTEGER:
-								case SQLITE_FLOAT:
-								default: // what else? may be for future purposes
+								default: // anything else?
 									str=(const char*)sqlite3_column_text(SQL, i);
 									length=(size_t)sqlite3_column_bytes(SQL, i);
 									break;
@@ -335,12 +352,12 @@ public:
 								memcpy(strm, str, length+1);
 								str=strm;
 
-								// transcode cell value from ?ClientCharset to $request:charset 
-								if(transcode_value){
+								if(transcode_column[i]){
+									// transcode cell value from ?ClientCharset to $request:charset
 									services.transcode(str, length,
 										str, length,
-										connection.client_charset,
-										services.request_charset());
+										client_charset,
+										request_charset);
 								}
 							} else
 								str=0;
@@ -348,6 +365,7 @@ public:
 							CHECK(handlers.add_row_cell(sql_error, str, length));
 
 						}
+						first_row=false;
 					}
 				} while(rc==SQLITE_BUSY || rc==SQLITE_ROW);
 
