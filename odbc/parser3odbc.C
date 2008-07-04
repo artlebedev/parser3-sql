@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.33 2008/07/04 15:36:05 misha Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.34 2008/07/04 16:20:02 misha Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -524,7 +524,7 @@ private:
 					}
 				case SQL::FireBird:
 					{
-						// add 'FIRST (limit) SKIP (offset)' after 'SELECT'
+						// add ' FIRST (limit) SKIP (offset)' after 'SELECT'
 						char* statement_limited=(char *)connection.services->malloc_atomic(
 								strlen(astatement)
 								+MAX_NUMBER*2
@@ -548,7 +548,7 @@ private:
 						break;
 					}
 				default:
-					connection.services->_throw("Unknown SQL Specific");
+					connection.services->_throw("Unknown SQL specifics");
 			}
 		}
 		return result;

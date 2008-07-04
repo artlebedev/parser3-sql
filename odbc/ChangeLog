@@ -1,4 +1,50 @@
+2008-07-04	misha
+	* parser3odbc.C 1.33:
+		- option SQL=MSSQL|FireBird|Pervasive was added. if defined use 
+		server specific features and modify query before exec if limit/
+		offset were specified
+
+2008-07-01	misha
+	* parser3odbc.C 1.32:
+		- back to old transaction engine
+		- call commit after query execution if autocommit option wasn't disabled
+
+	* parser3odbc.C 1.30:
+		- skip transcode cell values for numeric types and some date 
+		types
+
+2008-06-30	misha
+	* parser3odbc.C [release_3_1_4] 1.26.2.1:
+		- fix for openType & options while opening cursor and changes in 
+		skiping offset if any (big speedup on queries with big offset)
+
+2008-06-27	misha
+	* parser3odbc.C 1.29:
+		- FastOffsetSearch is off by default (because of long 1st call)
+
+	* parser3odbc.C 1.28:
+		- connect string changed: our options after '?' now (as in other drivers)
+		- option MultiRowFetch => FastOffsetSearch
+
+	* parser3odbc.C 1.27:
+		- $.limit(0) but fixed
+		- internal bug fixed optimisation: works much faster now with big offset
+		- accept option autocommit=0
+		- accept option MultiRowFetch=0 (by default it's on now)
+
+2008-06-26	misha
+	* INSTALL 1.4:
+		- small fixes in texts
+
 2004-09-13	paf
+	* MFCpatches/dbcore.cpp 1.2:
+	* parser3odbc.vcproj 1.6:
+		applied old MFCpatches to new MFC sources,
+		sadly all bugs were there [returning empty ntext columns is onle of them]
+
+	* parser3odbc.C 1.26:
+		beauty: readonly bit specified [strangly that is not default]
+
 	* MFCpatches/afximpl.h 1.1:
 	* MFCpatches/dbcore.cpp 1.1:
 	* MFCpatches/dbimpl.h 1.1:
@@ -9,16 +55,9 @@
 		started to fix MFC again: these were original files
 
 	* parser3odbc.C 1.25:
-		bugfix: date values from database now have ...hh:mm:ss.mmm format (3 digits for fractions of a second)
+		bugfix: date values from database now have ...hh:mm:ss.mmm format (3 digits for fractions of a 
+		second)
 		were: 9 digits (exactly that odbc driver returned us, but refuses to eat it on input)
-
-	* parser3odbc.C 1.26:
-		beauty: readonly bit specified [strangly that is not default]
-
-	* MFCpatches/dbcore.cpp 1.2:
-	* parser3odbc.vcproj 1.6:
-		applied old MFCpatches to new MFC sources,
-		sadly all bugs were there [returning empty ntext columns is onle of them]
 
 2004-07-28	paf
 	* parser3odbc.C 1.24:
