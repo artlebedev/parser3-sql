@@ -3,7 +3,7 @@
 
 	(c) Dmitry "Creator" Bobrik, 2004
 */
-//static const char *RCSId="$Id: parser3sqlite.C,v 1.9 2008/07/03 07:17:25 misha Exp $"; 
+//static const char *RCSId="$Id: parser3sqlite.C,v 1.10 2008/07/04 11:56:40 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -200,11 +200,8 @@ public:
 		char *result=(char*)connection.services->malloc_atomic(length*2+1);
 		char *to=result;
 		while(length--) {
-			if(*from=='\'') { // ' -> ''
+			if(*from=='\'') // ' -> ''
 				*to++='\'';
-			} else if(*from=='\"') { // " -> ""
-				*to++='\"';
-			}
 			*to++=*from++;
 		}
 		*to=0;
