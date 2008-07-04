@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.32 2008/07/01 10:21:03 misha Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.33 2008/07/04 15:36:05 misha Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -70,13 +70,29 @@ static void toupper_str(char *out, const char *in, size_t size){
 		*out++=(char)toupper(*in++);
 }
 
+struct modified_statement {
+	const char* statement;
+	bool limit;
+	bool offset;
+};
+
+// todo: MySQL, SQLite, PgSQL (add LIMIT at the end of statement)
+struct SQL {
+	enum SQLEnum {
+		Undefined,
+		MSSQL,
+		Pervasive,
+		FireBird
+	};
+};
+
 struct Connection {
 	SQL_Driver_services* services;
 
 	CDatabase* db;
 	const char* client_charset;
+	SQL::SQLEnum sql_specific;
 	bool autocommit;
-	bool fast_offset_search;
 };
 
 /**
@@ -110,7 +126,7 @@ public:
 		*connection_ref=&connection;
 		connection.services=&services;
 		connection.client_charset=0;
-		connection.fast_offset_search=false;
+		connection.sql_specific=SQL::Undefined;
 		connection.autocommit=true;
 
 		size_t url_length=strlen(url);
@@ -128,9 +144,16 @@ public:
 						} else if(strcasecmp(key, "autocommit")==0){
 							if(atoi(value)==0)
 								connection.autocommit=false;
-						} else if(strcmp(key, "FastOffsetSearch")==0){
-							if(atoi(value)==1)
-								connection.fast_offset_search=true;
+						} else if(strcmp(key, "SQL")==0){
+							if(strcasecmp(value, "MSSQL")==0){
+								connection.sql_specific=SQL::MSSQL;
+							} else if(strcasecmp(value, "Pervasive")==0){
+								connection.sql_specific=SQL::Pervasive;
+							} else if(strcasecmp(value, "FireBird")==0){
+								connection.sql_specific=SQL::FireBird;
+							} else {
+								services._throw("unknown value of SQL option was specified" /*key*/);
+							}
 						} else
 							services._throw("unknown connect option" /*key*/);
 					} else 
@@ -202,7 +225,7 @@ public:
 	}
 
 	void query(void *aconnection, 
-			const char *statement, 
+			const char *astatement, 
 			size_t placeholders_count,
 			Placeholder* placeholders, 
 			unsigned long offset,
@@ -216,21 +239,23 @@ public:
 		if(placeholders_count>0)
 			services._throw("bind variables not supported (yet)");
 
+		while(isspace((unsigned char)*astatement)) 
+			astatement++;
+
+		modified_statement mstatement=_preprocess_statement(connection, astatement, offset, limit);
+		const char* statement=mstatement.statement;
+
 		const char* client_charset=connection.client_charset;
 		const char* request_charset=services.request_charset();
 		bool transcode_needed=(client_charset && strcmp(client_charset, request_charset)!=0);
-
-		// transcode query from $request:charset to ?ClientCharset
 		if(transcode_needed){
+			// transcode query from $request:charset to ?ClientCharset
 			size_t length=strlen(statement);
 			services.transcode(statement, length,
 				statement, length,
 				request_charset,
 				client_charset);
 		}
-
-		while(isspace((unsigned char)*statement)) 
-			statement++;
 
 		TRY {
 			// mk:@MSITStore:C:\Program%20Files\Microsoft%20SQL%20Server\80\Tools\Books\adosql.chm::/adoprg02_4g33.htm
@@ -242,27 +267,17 @@ public:
 			// mk:@MSITStore:C:\Program%20Files\Microsoft%20SQL%20Server\80\Tools\Books\odbcsql.chm::/od_6_035_5dnp.htm
 			// The ODBC CALL escape sequence for calling a procedure is:
 			// {[?=]call procedure_name[([parameter][,[parameter]]...)]}
-			if(strncasecmp(statement, "SELECT", 6)==0
+			if(
+				strncasecmp(statement, "SELECT", 6)==0
 				|| strncasecmp(statement, "EXEC", 4)==0
 				|| strncasecmp(statement, "call", 4)==0
 				|| strncasecmp(statement, "{", 1)==0
 			){
 				CRecordset rs(db);
 				DWORD options=CRecordset::executeDirect|CRecordset::readOnly;
-				//CRecordset::skipDeletedRecords
-				//CRecordset::useMultiRowFetch
-				//CRecordset::userAllocMultiRowBuffers
-				//CRecordset::useExtendedFetch
-/*
-				if(connection.fast_offset_search){
-					options+=CRecordset::useMultiRowFetch+CRecordset::userAllocMultiRowBuffers;
-				} else {
-					options+=CRecordset::skipDeletedRecords;
-				}
-*/
 				TRY {
 					rs.Open(
-						(connection.fast_offset_search)?CRecordset::dynamic:CRecordset::forwardOnly,
+						CRecordset::forwardOnly,
 						statement,
 						options
 					);
@@ -335,14 +350,10 @@ public:
 				CHECK(handlers.before_rows(sql_error));
 				
 				// skip offset rows
-				if(offset){
-					if(connection.fast_offset_search){
-						rs.Move(offset);
-					} else {
-						unsigned long row=offset;
-						while(!rs.IsEOF() && row--)
-							rs.MoveNext();
-					}
+				if(offset && !mstatement.offset){
+					unsigned long row=offset;
+					while(!rs.IsEOF() && row--)
+						rs.MoveNext();
 				}
 
 				unsigned long row=0;
@@ -477,6 +488,70 @@ private:
 			astr=(char*)services.malloc_atomic(length+1);
 			memcpy(astr, cstr, length+1);
 		}
+	}
+
+	modified_statement _preprocess_statement(
+			Connection& connection, 
+			const char* astatement,
+			unsigned long offset,
+			unsigned long limit
+	){
+		modified_statement result={astatement, false, false};
+
+		if(limit!=SQL_NO_LIMIT && connection.sql_specific!=SQL::Undefined && strncasecmp(astatement, "select", 6)==0){
+			switch(connection.sql_specific){
+				case SQL::MSSQL:
+				case SQL::Pervasive: // uses TOP as well
+					{
+						// add ' TOP limit+offset' after 'SELECT'
+						char* statement_limited=(char *)connection.services->malloc_atomic(
+								strlen(astatement)
+								+MAX_NUMBER
+								+5/* TOP */
+								+1/*terminator*/
+							);
+
+						result.limit=true; // with TOP we can't skip offset records easily
+						result.statement=statement_limited;
+
+						snprintf(statement_limited, MAX_NUMBER+11, "SELECT TOP %u", (limit)?limit+offset:0/*no reasons to skip something if we need 0 rows*/);
+
+						astatement+=6;/*skip 'select'*/
+						strcat(statement_limited, astatement);
+
+						//connection.services->_throw(result.statement);
+						break;
+					}
+				case SQL::FireBird:
+					{
+						// add 'FIRST (limit) SKIP (offset)' after 'SELECT'
+						char* statement_limited=(char *)connection.services->malloc_atomic(
+								strlen(astatement)
+								+MAX_NUMBER*2
+								+9/* FIRST ()*/
+								+offset?8:0/* SKIP ()*/
+								+1/*terminator*/
+							);
+
+						result.limit=true;
+						result.offset=true;
+						result.statement=statement_limited;
+
+						statement_limited+=snprintf(statement_limited, MAX_NUMBER+15, "SELECT FIRST (%u)", limit);
+						if(offset && limit/*no reasons to skip something if we need 0 rows*/)
+							statement_limited+=snprintf(statement_limited, MAX_NUMBER+8, " SKIP (%u)", offset);
+
+						astatement+=6;/*skip 'select'*/
+						strcat((char*)result.statement, astatement);
+
+						//connection.services->_throw(result.statement);
+						break;
+					}
+				default:
+					connection.services->_throw("Unknown SQL Specific");
+			}
+		}
+		return result;
 	}
 
 	void _throw(SQL_Driver_services& services, CException *e){
