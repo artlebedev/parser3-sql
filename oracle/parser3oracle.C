@@ -8,7 +8,7 @@
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
 
-static const char *RCSId="$Id: parser3oracle.C,v 1.70 2008/07/01 14:13:07 misha Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.71 2008/07/07 13:25:26 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -131,6 +131,13 @@ static void toupper_str(char *out, const char *in, size_t size) {
 		*out++=(char)toupper(*in++);
 }
 
+struct modified_statement {
+	const char* statement;
+	bool limit;
+	bool offset;
+	bool skip_rownum_column;
+};
+
 #ifndef DOXYGEN
 struct Connection {
 	SQL_Driver_services *services;
@@ -148,6 +155,7 @@ struct Connection {
 
 	struct Options {
 		bool bLowerCaseColumnNames;
+		bool bAllowLimitQueryModification;
 		const char* client_charset;
 	} options;
 };
@@ -175,7 +183,7 @@ struct Query_lobs {
 #endif
 
 // forwards
-static void faile(Connection& connection, const char *msg);
+static void fail(Connection& connection, const char *msg);
 static void check(Connection& connection, const char *step, sword status);
 static void check(Connection& connection, bool error);
 static sb4 cbf_no_data(
@@ -195,6 +203,8 @@ static sb4 cbf_get_data(dvoid *ctxp,
 						dvoid **indpp, 
 						ub2 **rcodepp);
 
+static	bool transcode_required(Connection& connection);
+
 static const char *options2env(char *s, Connection::Options* options) {
 	while(s){
 		if(char *key=lsplit(&s, '&')){
@@ -211,6 +221,12 @@ static const char *options2env(char *s, Connection::Options* options) {
 					if(strcmp(key, "LowerCaseColumnNames")==0){
 						if(options)
 							options->bLowerCaseColumnNames=atoi(value)!=0;
+						continue;
+					}
+
+					if(strcmp(key, "AllowLimitQueryModification")==0){
+						if(options)
+							options->bAllowLimitQueryModification=atoi(value)!=0;
 						continue;
 					}
 
@@ -291,6 +307,7 @@ public:
 		Connection& connection=*(Connection *)services.malloc(sizeof(Connection));
 		connection.services=&services;
 		connection.options.bLowerCaseColumnNames=true;
+		connection.options.bAllowLimitQueryModification=true;
 		*connection_ref=&connection;
 
 		char *user=url;
@@ -459,17 +476,6 @@ public:
 
 		SQL_Driver_services& services=*connection.services;
 
-		bool transcode_needed=_transcode_required(connection);
-
-		if(transcode_needed){
-			// transcode query from $request:charset to ?ClientCharset
-			size_t transcoded_xxx_size;
-			services.transcode(astatement, strlen(astatement),
-				astatement, transcoded_xxx_size,
-				services.request_charset(),
-				connection.options.client_charset);
-		}
-
 		bool failed=false;
 		if(setjmp(connection.mark)) {
 			failed=true;
@@ -477,8 +483,32 @@ public:
 		} else {
 			if(placeholders_count>MAX_BINDS)
 				fail(connection, "too many bind variables");
+			
+			while(isspace((unsigned char)*astatement)) 
+				astatement++;
 
-			const char *statement=preprocess_statement(connection, astatement, lobs);
+			const char* client_charset=connection.options.client_charset;
+			const char* request_charset=services.request_charset();
+			bool transcode_needed=transcode_required(connection);
+
+			if(transcode_needed){
+				// transcode query from $request:charset to ?ClientCharset
+				size_t transcoded_xxx_size;
+				services.transcode(astatement, strlen(astatement),
+					astatement, transcoded_xxx_size,
+					request_charset,
+					client_charset);
+			}
+
+			const char *statement=_preprocess_statement_lobs(connection, astatement, lobs);
+
+			modified_statement mstatement=_preprocess_statement_limit(connection, statement, offset, limit);
+			statement=mstatement.statement;
+
+			if(mstatement.limit) // limit was added in statement
+				limit=SQL_NO_LIMIT;
+			if(mstatement.offset) // limit was added in statement
+				offset=0;
 
 			check(connection, "HandleAlloc STMT", OCIHandleAlloc( 
 				(dvoid *)connection.envhp, (dvoid **) &stmthp, (ub4)OCI_HTYPE_STMT, 0, 0));
@@ -512,14 +542,14 @@ public:
 						size_t name_length;
 						services.transcode(ph.name, strlen(ph.name),
 							ph.name, name_length,
-							services.request_charset(),
-							connection.options.client_charset);
+							request_charset,
+							client_charset);
 
 						if(ph.value)
 							services.transcode(ph.value, strlen(ph.value),
 								ph.value, value_length,
-								services.request_charset(),
-								connection.options.client_charset);
+								request_charset,
+								client_charset);
 					} else {
 						value_length=ph.value? strlen(ph.value): 0;
 					}
@@ -571,7 +601,7 @@ public:
 
 			execute_prepared(connection, 
 				statement, stmthp, lobs, 
-				offset, limit, handlers);
+				offset, limit, handlers, mstatement.skip_rownum_column);
 
 			{
 				for(size_t i=0; i<placeholders_count; i++) {
@@ -601,8 +631,8 @@ public:
 							// transcode bind variable output from ?ClientCharset to $request:charset
 							services.transcode(ph.value, value_length,
 								ph.value, value_length/*<this new value is not used afterwards, actually*/,
-								connection.options.client_charset,
-								services.request_charset());
+								client_charset,
+								request_charset);
 						}
 					} else {
 						ph.value=0;
@@ -635,16 +665,19 @@ cleanup: // no check call after this point!
 
 private: // private funcs
 
-	const char *preprocess_statement(Connection& connection, 
-		const char *astatement, Query_lobs &lobs) {
-		size_t statement_size=strlen(astatement);
+	const char* _preprocess_statement_lobs(
+			Connection& connection, 
+			const char* statement,
+			Query_lobs &lobs
+	){
+		size_t statement_size=strlen(statement);
 		SQL_Driver_services& services=*connection.services;
-
+		
 		char *result=(char *)services.malloc_atomic(statement_size
 			+MAX_STRING // in case of short 'strings'
 			+11/* returning */+6/* into */+(MAX_LOB_NAME_LENGTH+2/*:, */)*2/*ret into*/*MAX_IN_LOBS
 			+1);
-		const char *o=astatement;
+		const char *o=statement;
 
 		// /**xxx**/'literal' -> EMPTY_CLOB_FUNC_CALL
 		char *n=result;
@@ -724,9 +757,9 @@ private: // private funcs
 
 	void execute_prepared(
 		Connection& connection, 
-		const char *statement, OCIStmt *stmthp, Query_lobs &lobs, 
-		unsigned long offset, unsigned long limit, 
-		SQL_Driver_query_event_handlers& handlers) {
+		const char* astatement, OCIStmt *stmthp, Query_lobs &lobs, 
+		unsigned long offset, unsigned long limit,
+		SQL_Driver_query_event_handlers& handlers, bool skip_rownum_column) {
 
 		ub2 stmt_type=0; // UNKNOWN
 	/*
@@ -737,13 +770,11 @@ private: // private funcs
 			(ub4 *)0, OCI_ATTR_STMT_TYPE, connection.errhp));
 	*/
 
-		while(isspace((unsigned char)*statement)) 
-			statement++;
-		if(strncasecmp(statement, "select", 6)==0) 
+		if(strncasecmp(astatement, "select", 6)==0) 
 			stmt_type=OCI_STMT_SELECT;
-		else if(strncasecmp(statement, "insert", 6)==0)
+		else if(strncasecmp(astatement, "insert", 6)==0)
 			stmt_type=OCI_STMT_INSERT;
-		else if(strncasecmp(statement, "update", 6)==0)
+		else if(strncasecmp(astatement, "update", 6)==0)
 			stmt_type=OCI_STMT_UPDATE;
 
 		sword status=OCIStmtExecute(connection.svchp, stmthp, connection.errhp, 
@@ -774,7 +805,7 @@ private: // private funcs
 		case OCI_STMT_SELECT:
 			fetch_table(connection,
 				stmthp, offset, limit, 
-				handlers);
+				handlers, skip_rownum_column);
 			break;
 		default:
 		/*
@@ -786,11 +817,9 @@ private: // private funcs
 	}
 
 	void fetch_table(Connection& connection, 
-		OCIStmt *stmthp, unsigned long offset, unsigned long limit, 
-		SQL_Driver_query_event_handlers& handlers) 
+		OCIStmt *stmthp, unsigned long offset, unsigned long limit,
+		SQL_Driver_query_event_handlers& handlers, bool skip_rownum_column) 
 	{
-		bool transcode_needed=_transcode_required(connection);
-
 		SQL_Driver_services& services=*connection.services;
 
 		ub4 prefetch_rows=100;
@@ -824,6 +853,10 @@ private: // private funcs
 			failed=true;
 			goto cleanup;
 		} else {
+			bool transcode_needed=transcode_required(connection);
+			const char* client_charset=connection.options.client_charset;
+			const char* request_charset=services.request_charset();
+
 			// idea of preincrementing is that at error time all handles would free up
 			while(++column_count<=MAX_COLS) {
 				/* get next descriptor, if there is one */
@@ -832,7 +865,10 @@ private: // private funcs
 					--column_count;
 					break;
 				}
-				
+
+				if(skip_rownum_column && column_count==1)
+					continue;
+
 				/* Retrieve the data type attribute */
 				check(connection, "get type", OCIAttrGet(
 					(dvoid*) mypard, (ub4)OCI_DTYPE_PARAM, 
@@ -850,8 +886,8 @@ private: // private funcs
 					// transcode column name from ?ClientCharset to $request:charset
 					services.transcode(col_name, col_name_len,
 						col_name, col_name_len,
-						connection.options.client_charset,
-						services.request_charset());
+						client_charset,
+						request_charset);
 				}
 
 				Col& col=cols[column_count-1];
@@ -918,6 +954,9 @@ private: // private funcs
 				if(row>=offset) {
 					check(connection, handlers.add_row(connection.sql_error));
 					for(int i=0; i<column_count; i++) {
+						if(skip_rownum_column && i==0)
+							continue;
+
 						size_t length=0;
 						char* strm=0;
 						bool transcode_value=transcode_needed;
@@ -966,10 +1005,8 @@ private: // private funcs
 								case SQLT_UIN:
 								case SQLT_DATE:
 								case SQLT_TIME:
-								case SQLT_TIME_TZ:
 								case SQLT_TIMESTAMP:
-								case SQLT_TIMESTAMP_TZ:
-									transcode_value=false; // not needed to call transcode method for numbers and dated
+									transcode_value=false; // transcode calls not needed for numbers and dates
 								default:
 									if(const char *value=cols[i].str) {
 										length=strlen(value);
@@ -986,11 +1023,10 @@ private: // private funcs
 						const char* str=strm;
 						if(transcode_value && str && length){
 							// transcode cell value from ?ClientCharset to $request:charset
-							// todo: skip transcode for numbers/dates
 							services.transcode(str, length,
 								str, length,
-								connection.options.client_charset,
-								services.request_charset());
+								client_charset,
+								request_charset);
 						}
 
 						check(connection, handlers.add_row_cell(connection.sql_error, str, length));
@@ -1015,8 +1051,70 @@ cleanup: // no check call after this point!
 			longjmp(saved_mark, 1);
 	}
 
-	bool _transcode_required(Connection& connection){
-		return (connection.options.client_charset && strcmp(connection.options.client_charset, connection.services->request_charset())!=0);
+	modified_statement _preprocess_statement_limit(
+		Connection& connection, 
+		const char* astatement,
+		unsigned long offset,
+		unsigned long limit
+	){
+		modified_statement result={astatement, false, false, false};
+
+		if(connection.options.bAllowLimitQueryModification && limit!=SQL_NO_LIMIT && strncasecmp(astatement, "select", 6)==0){
+			result.limit=true;
+
+			size_t statement_size=strlen(astatement);
+			char* statement_limited;
+			
+			if(offset && limit){/* offset and with limit!=0 */
+				
+				result.skip_rownum_column=true;
+				result.offset=true;
+
+				// SELECT * FROM (SELECT ROWNUM r__, z__.* FROM (user_query) z__) WHERE r__<=limit+offset AND r__>offset
+				statement_limited=(char *)connection.services->malloc_atomic(
+						statement_size
+						+64/*SELECT * FROM (SELECT ROWNUM r__, z__.* FROM () z__) WHERE r__<=*/
+						+MAX_NUMBER
+						+9/* AND r__>*/
+						+MAX_NUMBER
+						+1/*terminator*/
+					);
+
+				result.statement=statement_limited;
+
+				strcpy(statement_limited, "SELECT * FROM (SELECT ROWNUM r__, z__.* FROM (");
+				strcat(statement_limited, astatement);
+
+				statement_limited+=46+statement_size;
+				statement_limited+=snprintf(statement_limited, 18+MAX_NUMBER, ") z__) WHERE r__<=%u", limit+offset);
+				statement_limited+=snprintf(statement_limited, 9+MAX_NUMBER, " AND r__>%u", offset);
+
+			} else {
+
+				// SELECT * FROM (user_query) WHERE ROWNUM<=limit+offset
+				// this statement must be easy for the server but we can't use it with offset
+
+				statement_limited=(char *)connection.services->malloc_atomic(
+						statement_size
+						+31/*SELECT * FROM () WHERE ROWNUM<=*/
+						+MAX_NUMBER
+						+1/*terminator*/
+					);
+
+				result.statement=statement_limited;
+
+				strcpy(statement_limited, "SELECT * FROM (");
+				strcat(statement_limited, astatement);
+
+				statement_limited+=15+statement_size;
+				statement_limited+=snprintf(statement_limited, 16+MAX_NUMBER, ") WHERE ROWNUM<=%u", limit?limit+offset:0);
+
+			}
+			*statement_limited=0;
+
+			//connection.services->_throw(result.statement);
+		}
+		return result;
 	}
 
 private: // conn client library funcs
@@ -1187,8 +1285,8 @@ void check(Connection& connection, const char *step, sword status) {
 				(text *)reason, (ub4)sizeof(reason), OCI_HTYPE_ERROR)==OCI_SUCCESS) {
 				msg=reason;
 
-				// transcode server error message from ?ClientCharset to $request:charset
-				if(msg && connection.options.client_charset && strcmp(connection.options.client_charset, connection.services->request_charset())!=0){
+				if(msg && transcode_required(connection)){
+					// transcode server error message from ?ClientCharset to $request:charset
 					if(size_t msg_length=strlen(msg)){
 						connection.services->transcode(msg, msg_length,
 							msg, msg_length,
@@ -1217,6 +1315,10 @@ void check(Connection& connection, const char *step, sword status) {
 	snprintf(connection.error, sizeof(connection.error), "%s (%s, %d)", 
 		msg, step, (int)status);
 	longjmp(connection.mark, 1);
+}
+
+bool transcode_required(Connection& connection){
+	return (connection.options.client_charset && strcmp(connection.options.client_charset, connection.services->request_charset())!=0);
 }
 
 void fail(Connection& connection, const char* msg) {
