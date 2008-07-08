@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.34 2008/07/04 16:20:02 misha Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.35 2008/07/08 09:21:08 misha Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -511,10 +511,12 @@ private:
 								+1/*terminator*/
 							);
 
-						result.limit=true; // with TOP we can't skip offset records easily
+						result.limit=true;
+						if(!limit)
+							result.offset=true; // mark as we'll did it in query because of no point to skip anything if we need 0 rows
 						result.statement=statement_limited;
 
-						snprintf(statement_limited, MAX_NUMBER+11, "SELECT TOP %u", (limit)?limit+offset:0/*no reasons to skip something if we need 0 rows*/);
+						snprintf(statement_limited, MAX_NUMBER+11, "SELECT TOP %u", (limit)?limit+offset:0/*no point to skip anything if we need 0 rows*/);
 
 						astatement+=6;/*skip 'select'*/
 						strcat(statement_limited, astatement);
