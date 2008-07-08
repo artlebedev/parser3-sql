@@ -8,7 +8,7 @@
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
 
-static const char *RCSId="$Id: parser3oracle.C,v 1.71 2008/07/07 13:25:26 misha Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.72 2008/07/08 08:07:49 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -155,7 +155,7 @@ struct Connection {
 
 	struct Options {
 		bool bLowerCaseColumnNames;
-		bool bAllowLimitQueryModification;
+		bool bDisableQueryModification;
 		const char* client_charset;
 	} options;
 };
@@ -224,9 +224,9 @@ static const char *options2env(char *s, Connection::Options* options) {
 						continue;
 					}
 
-					if(strcmp(key, "AllowLimitQueryModification")==0){
+					if(strcmp(key, "DisableQueryModification")==0){
 						if(options)
-							options->bAllowLimitQueryModification=atoi(value)!=0;
+							options->bDisableQueryModification=atoi(value)!=0;
 						continue;
 					}
 
@@ -307,7 +307,7 @@ public:
 		Connection& connection=*(Connection *)services.malloc(sizeof(Connection));
 		connection.services=&services;
 		connection.options.bLowerCaseColumnNames=true;
-		connection.options.bAllowLimitQueryModification=true;
+		connection.options.bDisableQueryModification=false;
 		*connection_ref=&connection;
 
 		char *user=url;
@@ -1059,13 +1059,13 @@ cleanup: // no check call after this point!
 	){
 		modified_statement result={astatement, false, false, false};
 
-		if(connection.options.bAllowLimitQueryModification && limit!=SQL_NO_LIMIT && strncasecmp(astatement, "select", 6)==0){
+		if(!connection.options.bDisableQueryModification && limit!=SQL_NO_LIMIT && strncasecmp(astatement, "select", 6)==0){
 			result.limit=true;
 
 			size_t statement_size=strlen(astatement);
 			char* statement_limited;
 			
-			if(offset && limit){/* offset and with limit!=0 */
+			if(offset && limit/* throwing offset away if limit==0 */){
 				
 				result.skip_rownum_column=true;
 				result.offset=true;
@@ -1091,8 +1091,8 @@ cleanup: // no check call after this point!
 
 			} else {
 
-				// SELECT * FROM (user_query) WHERE ROWNUM<=limit+offset
-				// this statement must be easy for the server but we can't use it with offset
+				// SELECT * FROM (user_query) WHERE ROWNUM<=limit
+				// this statement can be easy for the sql server but we can't use it with offset
 
 				statement_limited=(char *)connection.services->malloc_atomic(
 						statement_size
@@ -1107,7 +1107,7 @@ cleanup: // no check call after this point!
 				strcat(statement_limited, astatement);
 
 				statement_limited+=15+statement_size;
-				statement_limited+=snprintf(statement_limited, 16+MAX_NUMBER, ") WHERE ROWNUM<=%u", limit?limit+offset:0);
+				statement_limited+=snprintf(statement_limited, 16+MAX_NUMBER, ") WHERE ROWNUM<=%u", limit);
 
 			}
 			*statement_limited=0;
