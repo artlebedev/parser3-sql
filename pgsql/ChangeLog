@@ -1,3 +1,26 @@
+2008-07-01	misha
+	* parser3pgsql.C 1.31:
+		- autocommit=0 not equal WithoutDefaultTransaction=1. first one make 1 connect == 1 transaction. 
+		second -- disable begin/commit/rollback at all
+		- call commit after query execution if autocommit option wasn't disabled
+		- much less calls for PQftype
+		- no more transcode calls for number/date types
+
+2008-06-27	misha
+	* configure 1.19:
+		*** empty log message ***
+
+2008-06-26	misha
+	* configure.in 1.22:
+	* parser3pgsql.C 1.30:
+		- new API and version number (10.0)
+		- $.limit(0) fixes
+		- little refactoring
+
+2008-06-24	misha
+	* parser3pgsql.C 1.29:
+		some code reformating
+
 2007-10-25	misha
 	* parser3pgsql.C 1.28:
 		- allow ?charset and ?ClientCharset at once

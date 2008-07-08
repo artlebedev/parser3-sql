@@ -1,3 +1,49 @@
+2008-07-04	misha
+	* parser3sqlite.C 1.10:
+		- we mustn't escape " char
+
+2008-07-03	misha
+	* parser3sqlite.C 1.9:
+		- transcode optiomization (no transcode calls for numbers and nulls anylonger)
+		- little refactoring
+
+2008-06-30	misha
+	* parser3sqlite.C 1.8:
+		- core bugfix
+
+2008-06-27	misha
+	* configure 1.4:
+		*** empty log message ***
+
+2008-06-26	misha
+	* configure.in 1.5:
+	* parser3sqlite.C 1.6:
+		- path to DB-file from decument_root now
+		- ':memory:' DB-file means in-memory temporary DB
+		- ':temporary:' DB-file means on-disk temporary DB
+		- transcode queries from $request:charset to UTF-8 (by default) and transcode back results + error 
+		messages (don't transcode blobs and numbers)
+		- ready to work with limit's fix (need to change SQL_NO_LIMIT value in pa_sql_driver.h and recompile)
+		
+		- accept autocommit option in connect string
+		- accept multi_statements option in connect string
+		- accept ClientCharset option in connect string (needed only if someone already has DB in wrong 
+		encoding)
+
+2008-06-24	misha
+	* parser3sqlite.C 1.4:
+		- + ClientCharset
+		- + autocommit
+		- some code reformating
+
+2007-12-27	misha
+	* parser3sqlite.C 1.3:
+		- unused var removed
+
+	* parser3sqlite.sln 1.2:
+	* parser3sqlite.vcproj 1.2:
+		- back to VS2003
+
 2007-11-26	misha
 	* parser3sqlite.C 1.2:
 		-author's bugfix: http://www.parser.ru/forum/?id=63712

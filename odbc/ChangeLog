@@ -1,3 +1,12 @@
+2008-07-08	misha
+	* parser3odbc.C 1.36:
+		- optimization for queries with limit==0 moved to another place (
+		previous one didn't works with 'native' queries w/o sql 
+		specifics)
+
+	* parser3odbc.C 1.35:
+		- little optimization with big offset and limit==0
+
 2008-07-04	misha
 	* parser3odbc.C 1.33:
 		- option SQL=MSSQL|FireBird|Pervasive was added. if defined use 

@@ -1,4 +1,28 @@
+2008-06-30	misha
+	* parser3mysql.C 1.34:
+		- old_client option added. it allow to disable multi result.
+
+2008-06-27	misha
+	* configure 1.29:
+		*** empty log message ***
+
+2008-06-26	misha
+	* configure.in 1.29:
+	* parser3mysql.C 1.33:
+		- use new API and new version (10.0)
+		- $.limit(0) fixed
+		- transcode server error messaged if ClientCharset option was specified
+		- less calls to transcode method if ClientCharset specified but it's equal to request:charset
+
+2008-06-24	misha
+	* parser3mysql.C 1.32:
+		- some spaces to tabs
+
 2008-05-04	misha
+	* configure 1.28:
+	* configure.in 1.28:
+		=no message
+
 	* parser3mysql.C 1.31:
 		- multi statements now can be switched on with option 
 		multi_statements=1

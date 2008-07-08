@@ -1,3 +1,19 @@
+2008-07-08	misha
+	* parser3oracle.C 1.72:
+		- if limit/offset specified modify query (use ROWNUM in two different ways)
+		- with new option DisableQueryModification=1 in connect string this query modification can be 
+		switched off
+
+2008-07-07	misha
+	* configure 1.22:
+	* configure.in 1.24:
+	* parser3oracle.C 1.71:
+		*** empty log message ***
+
+2008-06-30	misha
+	* parser3oracle.C 1.69:
+		- $.limit(0) fix + some transcode calls optimisation
+
 2007-02-13	misha
 	* parser3oracle.C 1.68:
 		- bug with incorrect processing escaped symbols in clobs was 
