@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.35 2008/07/08 09:21:08 misha Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.36 2008/07/08 10:53:32 misha Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -350,7 +350,7 @@ public:
 				CHECK(handlers.before_rows(sql_error));
 				
 				// skip offset rows
-				if(offset && !mstatement.offset){
+				if(offset && limit!=0 && !mstatement.offset){
 					unsigned long row=offset;
 					while(!rs.IsEOF() && row--)
 						rs.MoveNext();
@@ -512,8 +512,6 @@ private:
 							);
 
 						result.limit=true;
-						if(!limit)
-							result.offset=true; // mark as we'll did it in query because of no point to skip anything if we need 0 rows
 						result.statement=statement_limited;
 
 						snprintf(statement_limited, MAX_NUMBER+11, "SELECT TOP %u", (limit)?limit+offset:0/*no point to skip anything if we need 0 rows*/);
