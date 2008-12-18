@@ -7,7 +7,7 @@
 
 	2007.10.25 using PgSQL 8.1.5
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.31 2008/07/01 13:40:33 misha Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.32 2008/12/18 01:45:03 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -426,7 +426,8 @@ cleanup:
 		if(failed)
 			services._throw(sql_error);
 
-		commit(aconnection);
+		if(connection.autocommit)
+			commit(aconnection);
 	}
 
 private:
