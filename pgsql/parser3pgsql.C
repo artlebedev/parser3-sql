@@ -7,7 +7,7 @@
 
 	2007.10.25 using PgSQL 8.1.5
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.32 2008/12/18 01:45:03 misha Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.33 2008/12/21 00:14:25 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -126,7 +126,7 @@ public:
 			charset=value&			// transcode by server with 'SET CLIENT_ENCODING=value'
 			datestyle=value&		// 'SET DATESTYLE=value' available values are: ISO|SQL|Postgres|European|US|German [default=ISO]
 			autocommit=1&			// each transaction is commited automatically (default)
-			WithoutDefaultTransaction=0	// 1 -- disable auto commit, 'BEGIN TRAN' at connection start and COMMIT/ROLLBACK at the end [can't be used together with autocommit option]
+			WithoutDefaultTransaction=0	// 1 -- disable any BEGIN TRAN/COMMIT/ROLLBACK [can NOT be used with autocommit option]
 	*/
 	void connect(
 				char* url, 
@@ -206,7 +206,7 @@ public:
 			_execute_cmd(connection, statement);
 		}
 
-		_begin_transaction(connection);
+		_transaction_begin(connection);
 	}
 
 	void disconnect(void *aconnection){
@@ -217,18 +217,14 @@ public:
 
 	void commit(void *aconnection){
 		Connection& connection=*static_cast<Connection*>(aconnection);
-		if(!connection.without_default_transactions){
-			_execute_cmd(connection, "COMMIT");
-		}
-		_begin_transaction(connection);
+		_transaction_commit(connection);
+		_transaction_begin(connection);
 	}
 
 	void rollback(void *aconnection){
 		Connection& connection=*static_cast<Connection*>(aconnection);
-		if(!connection.without_default_transactions){
-			_execute_cmd(connection, "ROLLBACK");
-		}
-		_begin_transaction(connection);
+		_transaction_rollback(connection);
+		_transaction_begin(connection);
 	}
 
 	bool ping(void *aconnection) {
@@ -287,13 +283,16 @@ public:
 		if(!res) 
 			throwPQerror;
 
+		bool failed=false;
+		SQL_Error sql_error;
+
 		switch(PQresultStatus(res)) {
 			case PGRES_EMPTY_QUERY: 
 				PQclear_throw("no query");
 				break;
 			case PGRES_COMMAND_OK: // empty result: insert|delete|update|...
-				PQclear(res);
-				return;
+				goto cleanup;
+				break;
 			case PGRES_TUPLES_OK: 
 				break;	
 			default:
@@ -301,17 +300,15 @@ public:
 				break;
 		}
 		
-		int column_count=PQnfields(res);
-		if(!column_count)
-			PQclear_throw("result contains no columns");
-
-		bool failed=false;
-		SQL_Error sql_error;
 #define CHECK(afailed) \
 		if(afailed) { \
 			failed=true; \
 			goto cleanup; \
 		}
+
+		int column_count=PQnfields(res);
+		if(!column_count)
+			PQclear_throw("result contains no columns");
 
 		if(column_count>MAX_COLS)
 			column_count=MAX_COLS;
@@ -320,8 +317,6 @@ public:
 		bool transcode_column[MAX_COLS];
 
 		for(int i=0; i<column_count; i++){
-			char *name=PQfname(res, i);
-			size_t length=strlen(name);
 			column_types[i]=PQftype(res, i);
 			switch(column_types[i]){
 				case BOOLOID:
@@ -342,12 +337,13 @@ public:
 					transcode_column[i]=transcode_needed;
 					break;
 			}
+			char *name=PQfname(res, i);
+			size_t length=strlen(name);
 			char* strm=(char*)services.malloc(length+1);
 			memcpy(strm, name, length+1);
 			const char* str=strm;
 
-			if(transcode_needed) 
-				// transcode column name from ?ClientCharset to $request:charset
+			if(transcode_needed) // transcode column name from ?ClientCharset to $request:charset
 				services.transcode(str, length,
 					str, length,
 					client_charset,
@@ -410,7 +406,6 @@ public:
 					}
 
 					if(str && length && transcode_column[i]){
-						//services._throw("tr");
 						// transcode cell value from ?ClientCharset to $request:charset
 						services.transcode(str, length,
 							str, length,
@@ -464,19 +459,29 @@ private:
 	}
 	
 	
-	/**
-		Executes a query and throw away the result.
-	*/
-	void _execute_cmd(const Connection& connection, const char *query){
-		if(PGresult *res=PQexec(connection.conn, query))
-			PQclear(res); // throw out the result [don't need but must call]
-		else
-			throwPQerror;
+	void _transaction_begin(Connection& connection){
+		_execute_transactions_cmd(connection, "BEGIN");
 	}
 
-	void _begin_transaction(Connection& connection){
-		if(!connection.without_default_transactions)
-			_execute_cmd(connection, "BEGIN");
+	void _transaction_commit(Connection& connection){
+		_execute_transactions_cmd(connection, "COMMIT");
+	}
+
+	void _transaction_rollback(Connection& connection){
+		_execute_transactions_cmd(connection, "ROLLBACK");
+	}
+
+	void _execute_transactions_cmd(const Connection& connection, const char *query){
+		if(!connection.without_default_transactions) // with option ?WithoutDefaultTransaction=1 user must execute BEGIN/COMMIT/ROLLBACK by himself
+			_execute_cmd(connection, query);
+	}
+
+	// executes a query and throw away the result.
+	void _execute_cmd(const Connection& connection, const char *query){
+		if(PGresult *res=PQexec(connection.conn, query))
+			PQclear(res); // throw away the result [don't need but must call]
+		else
+			throwPQerror;
 	}
 
 	const char *_preprocess_statement(
