@@ -1787,7 +1787,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=parser3pgsql
- VERSION=10.0
+ VERSION=10.1
 
 
 # Some tools Automake needs.
@@ -8770,6 +8770,10 @@ LIBTOOL="$ac_aux_dir/libtool"
 
 
 subdirs="$subdirs libltdl"
+
+
+
+
 
 
 
