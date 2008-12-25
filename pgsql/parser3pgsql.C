@@ -7,7 +7,7 @@
 
 	2007.10.25 using PgSQL 8.1.5
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.33 2008/12/21 00:14:25 misha Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.34 2008/12/25 02:33:56 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -291,8 +291,10 @@ public:
 				PQclear_throw("no query");
 				break;
 			case PGRES_COMMAND_OK: // empty result: insert|delete|update|...
-				goto cleanup;
-				break;
+				PQclear(res);
+				if(connection.autocommit)
+					commit(aconnection);
+				return;
 			case PGRES_TUPLES_OK: 
 				break;	
 			default:
@@ -437,13 +439,13 @@ private:
 			Placeholder& ph=placeholders[i];
 			if(transcode_needed){
 				size_t name_length;
-				size_t value_length;
 				connection.services->transcode(ph.name, strlen(ph.name),
 					ph.name, name_length,
 					connection.services->request_charset(),
 					connection.client_charset);
 
 				if(ph.value) {
+					size_t value_length;
 					connection.services->transcode(ph.value, strlen(ph.value),
 						ph.value, value_length,
 						connection.services->request_charset(),
@@ -451,7 +453,7 @@ private:
 				}
 			}
 			int name_numner=atoi(ph.name);
-			if(name_numner <= 0 || name_numner > placeholders_count)
+			if(name_numner <= 0 || (size_t)name_numner > placeholders_count)
 				connection.services->_throw("bad bind parameter key");
 
 			paramValues[name_numner-1]=ph.value;
