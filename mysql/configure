@@ -8805,6 +8805,15 @@ subdirs="$subdirs libltdl"
 
 
 
+case "$host" in
+  *-freebsd4*)
+
+cat >>confdefs.h <<\_ACEOF
+#define FREEBSD4
+_ACEOF
+
+esac
+
 
 
 
