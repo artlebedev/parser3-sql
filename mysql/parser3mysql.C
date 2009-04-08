@@ -10,7 +10,7 @@
 	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.34 2008/06/30 14:00:19 misha Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.35 2009/04/08 11:13:00 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -26,6 +26,17 @@ static const char *RCSId="$Id: parser3mysql.C,v 1.34 2008/06/30 14:00:19 misha E
 #if _MSC_VER
 #	define snprintf _snprintf
 #	define strcasecmp _stricmp
+#endif
+
+// for mysql < 4.1 
+#ifndef CLIENT_MULTI_RESULTS
+#define	CLIENT_MULTI_RESULTS (1UL << 17)
+#define OLD_MYSQL_CLIENT 1
+#endif
+#ifndef CLIENT_MULTI_STATEMENTS
+#define	CLIENT_MULTI_STATEMENTS (1UL << 16)
+#undef OLD_MYSQL_CLIENT
+#define OLD_MYSQL_CLIENT 1
 #endif
 
 static char *lsplit(char *string, char delim){
@@ -77,10 +88,12 @@ public:
 
 	MySQL_Driver() : SQL_Driver() {}
 
+#ifndef FREEBSD4
 	~MySQL_Driver() {
 		if(mysql_server_end)
 			mysql_server_end();
 	}
+#endif
 
 	/// get api version
 	int api_version() { return SQL_DRIVER_API_VERSION; }
@@ -100,8 +113,8 @@ public:
 				compress=0&
 				named_pipe=1&
 				autocommit=1&
-				multi_statements=0	// allow more then one statement in one query
-				old_client=1		// simulate 3.xx client. not compatible with multi_statements option
+				multi_statements=0	// allows more then one statement in one query
+				old_client=1		// simulates 3.xx client. not compatible with multi_statements option
 			3.x, 4.0 
 				only option for charset is cp1251_koi8.
 			4.1+ accept not 'cp1251_koi8' but 'cp1251', 'utf8' and much more
@@ -130,7 +143,12 @@ public:
 		char *options=lsplit(db, '?');
 
 		char *charset=0;
+
+#ifdef OLD_MYSQL_CLIENT
+		int client_flag=0;
+#else
 		int client_flag=CLIENT_MULTI_RESULTS;
+#endif
 
 		Connection& connection=*(Connection *)services.malloc(sizeof(Connection));
 		*connection_ref=&connection;
@@ -164,15 +182,23 @@ public:
 							if(atoi(value)==0)
 								connection.autocommit=false;
 						} else if(strcasecmp(key, "multi_statements")==0){
+#ifdef OLD_MYSQL_CLIENT
+							services._throw("driver was built with old mysql includes so multi_statements option can't be used");
+#else
 							if(!(client_flag==CLIENT_MULTI_RESULTS || client_flag==CLIENT_MULTI_STATEMENTS))
 								services._throw("you can't specify together options old_client and multi_statements");
 							if(atoi(value)!=0)
 								client_flag=CLIENT_MULTI_STATEMENTS;
+#endif
 						} else if(strcasecmp(key, "old_client")==0){
+#ifdef OLD_MYSQL_CLIENT
+							services._throw("driver was built with old mysql includes so old_client option can't be used");
+#else
 							if(!(client_flag==CLIENT_MULTI_RESULTS || client_flag==0))
 								services._throw("you can't specify together options old_client and multi_statements");
 							if(atoi(value)!=0)
 								client_flag=0;
+#endif
 						} else
 							services._throw("unknown connect option" /*key*/);
 					} else 
