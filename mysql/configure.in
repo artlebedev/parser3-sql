@@ -67,6 +67,12 @@ AC_CONFIG_SUBDIRS(libltdl)
 
 dnl Checks for libraries.
 
+dnl FreeBSD4 requires workaround with destructor
+case "$host" in
+  *-freebsd4*)
+	  AC_DEFINE(FREEBSD4,,FreeBSD4X target platform)
+esac
+
 dnl Checks for header files.
 
 AC_CHECK_HEADERS(
