@@ -1,16 +1,16 @@
 /** @file
 	Parser MySQL driver.
 
-	Copyright(c) 2001, 2003 ArtLebedev Group (http://www.artlebedev.com)
+	Copyright(c) 2001-2009 ArtLebedev Group (http://www.artlebedev.com)
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
-	2001.07.30 using MySQL 3.23.22b
+	2001-07-30 using MySQL 3.23.22b
 
-	2001.11.06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
+	2001-11-06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.35 2009/04/08 11:13:00 misha Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.36 2009/04/10 12:17:02 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -29,14 +29,16 @@ static const char *RCSId="$Id: parser3mysql.C,v 1.35 2009/04/08 11:13:00 misha E
 #endif
 
 // for mysql < 4.1 
-#ifndef CLIENT_MULTI_RESULTS
-#define	CLIENT_MULTI_RESULTS (1UL << 17)
-#define OLD_MYSQL_CLIENT 1
+#if !defined(CLIENT_MULTI_RESULTS) || !defined(CLIENT_MULTI_STATEMENTS)
+#	define OLD_MYSQL_CLIENT 1
 #endif
+
+#ifndef CLIENT_MULTI_RESULTS
+#	define	CLIENT_MULTI_RESULTS (1UL << 17)
+#endif
+
 #ifndef CLIENT_MULTI_STATEMENTS
-#define	CLIENT_MULTI_STATEMENTS (1UL << 16)
-#undef OLD_MYSQL_CLIENT
-#define OLD_MYSQL_CLIENT 1
+#	define	CLIENT_MULTI_STATEMENTS (1UL << 16)
 #endif
 
 static char *lsplit(char *string, char delim){
