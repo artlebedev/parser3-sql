@@ -1,3 +1,15 @@
+2008-12-21	misha
+	* configure 1.20:
+		*** empty log message ***
+
+	* parser3pgsql.C 1.33:
+		- bugfix: ?autocommit=1|0 should work now
+
+2008-12-18	misha
+	* parser3pgsql.C 1.32:
+		- bugfix: mustn't call commint after each query if ?autocommit=0 
+		option was specified
+
 2008-07-01	misha
 	* parser3pgsql.C 1.31:
 		- autocommit=0 not equal WithoutDefaultTransaction=1. first one make 1 connect == 1 transaction. 
