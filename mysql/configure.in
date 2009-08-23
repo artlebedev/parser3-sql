@@ -19,9 +19,9 @@ dnl Arguments
 AC_ARG_WITH(mysql-inc,[  --with-mysql-inc=DIR        DIR is the MySQL includes directory],
 	MYSQL_INC_CHK($withval)
 
-    if test -z "$MYSQL_INC"; then
+	if test -z "$MYSQL_INC"; then
 		AC_MSG_ERROR($MYSQL_INC does not seem to be valid MySQL includes directory)
-    fi
+	fi
 ,
 	AC_MSG_CHECKING(for MYSQL_INC directory)
 	for d in \
@@ -30,15 +30,25 @@ AC_ARG_WITH(mysql-inc,[  --with-mysql-inc=DIR        DIR is the MySQL includes d
 		MYSQL_INC_CHK($d)
 	done
 
-    if test -z "$MYSQL_INC"; then
-    	AC_MSG_ERROR(use --with-mysql-inc=DIR to specify MySQL includes directory)
-    fi
+	if test -z "$MYSQL_INC"; then
+		AC_MSG_ERROR(use --with-mysql-inc=DIR to specify MySQL includes directory)
+	fi
 
 	AC_MSG_RESULT($MYSQL_INC)
 )
 
 AC_SUBST(MYSQL_INC)
 
+
+
+AC_ARG_WITH(dynamic-stdcpp, [  --with-dynamic-stdcpp   link libstdc++ dynamically
+                          by default, libstdc++ is linked statically],[
+		LDFLAGS="-lstdc++"
+],[
+		LDFLAGS="-Wl,-Bstatic -Wl,-lstdc++ -Wl,-Bdynamic"
+])
+
+AC_SUBST(LDFLAGS)
 
 
 dnl Checks for programs.
@@ -69,8 +79,8 @@ dnl Checks for libraries.
 
 dnl FreeBSD4 requires workaround with destructor
 case "$host" in
-  *-freebsd4*)
-	  AC_DEFINE(FREEBSD4,,FreeBSD4X target platform)
+	*-freebsd4*)
+		AC_DEFINE(FREEBSD4,,FreeBSD4X target platform)
 esac
 
 dnl Checks for header files.
