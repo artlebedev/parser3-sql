@@ -1,3 +1,8 @@
+2009-08-23	misha
+	* configure.in 1.25:
+		- option --with-dynamic-stdcpp was added
+		- default (static) linking options were slightly modified
+
 2008-07-08	misha
 	* parser3oracle.C 1.72:
 		- if limit/offset specified modify query (use ROWNUM in two different ways)

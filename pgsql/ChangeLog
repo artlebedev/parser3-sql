@@ -1,3 +1,8 @@
+2009-08-23	misha
+	* configure.in 1.24:
+		- option --with-dynamic-stdcpp was added
+		- default (static) linking options were slightly modified
+
 2008-12-21	misha
 	* configure 1.20:
 		*** empty log message ***

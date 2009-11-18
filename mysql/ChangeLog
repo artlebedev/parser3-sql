@@ -1,5 +1,15 @@
+2009-08-23	misha
+	* configure.in 1.33:
+		- option --with-dynamic-stdcpp was added
+		- default (static) linking options were slightly modified
+
 2009-04-10	misha
 	* parser3mysql.C [release_10_1] 1.35.2.1:
+		*** empty log message ***
+
+2009-04-09	misha
+	* configure 1.32:
+	* configure.in 1.32:
 		*** empty log message ***
 
 2009-04-09	misha
