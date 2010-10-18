@@ -10,7 +10,7 @@
 	2001-11-06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.36 2009/04/10 12:17:02 misha Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.37 2010/10/18 21:48:22 moko Exp $"; 
 
 #include "config_includes.h"
 
@@ -253,16 +253,63 @@ public:
 		return mysql_ping(connection.handle)==0;
 	}
 
-	const char* quote(void *aconnection, const char *from, unsigned int length) {
+	// charset here is services.request_charset(), not connection.client_charset
+	// thus we can't use the sql server quoting support
+	const char* quote(void *aconnection, const char *str, unsigned int length) {
+		const char* from;
+		const char* from_end=str+length;
+
+		size_t quoted=0;
+
+		for(from=str; from<from_end; from++){
+			switch (*from) {
+			case 0:
+			case '\n':
+			case '\r':
+			case '\032':
+			case '\\':
+			case '\'':
+			case '"':
+				quoted++;
+			}
+		}
+
+		if(!quoted)
+			return str;
+
 		Connection& connection=*static_cast<Connection*>(aconnection);
-		/*
-			3.23.22b
-			You must allocate the to buffer to be at least length*2+1 bytes long. 
-			(In the worse case, each character may need to be encoded as using two bytes, 
-			and you need room for the terminating null byte.)
-		*/
-		char *result=(char*)connection.services->malloc_atomic(length*2+1);
-		mysql_escape_string(result, from, length);
+		char *result=(char*)connection.services->malloc_atomic(length + quoted + 1);
+		char *to = result;
+
+		for(from=str; from<from_end; from++){
+			char escape;
+			switch (*from) {
+			case 0: 
+				escape= '0'; 
+				break;
+			case '\n': 
+				escape= 'n'; 
+				break;
+			case '\r': 
+				escape= 'r'; 
+				break;
+			case '\032': 
+				escape= 'Z'; 
+				break;
+			case '\\': 
+			case '\'': 
+			case '"': 
+				escape= *from; 
+				break;
+			default:
+				*to++=*from;
+				continue;
+			}
+			*to++= '\\';
+			*to++= escape;
+		}
+		
+		*to=0;
 		return result;
 	}
 
