@@ -5,7 +5,7 @@
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.36 2008/07/08 10:53:32 misha Exp $"; 
+static const char *RCSId="$Id: parser3odbc.C,v 1.37 2010/10/27 22:48:50 moko Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -210,16 +210,33 @@ public:
 		return true;
 	}
 
-	const char* quote(void *aconnection, const char *from, unsigned int length){
-		Connection& connection=*static_cast<Connection*>(aconnection);
-		char *result=(char*)connection.services->malloc_atomic(length*2+1);
-		char *to=result;
-		while(length--){
-			if(*from=='\'') { // ' -> ''
-				*to++='\'';
-			}
-			*to++=*from++;
+	// charset here is services.request_charset(), not connection.client_charset
+	// thus we can't use the sql server quoting support
+	const char* quote(void *aconnection, const char *str, unsigned int length) 
+	{
+		const char* from;
+		const char* from_end=str+length;
+
+		size_t quoted=0;
+
+		for(from=str; from<from_end; from++){
+			if(*from=='\'')
+				quoted++;
 		}
+
+		if(!quoted)
+			return str;
+
+		Connection& connection=*static_cast<Connection*>(aconnection);
+		char *result=(char*)connection.services->malloc_atomic(length + quoted + 1);
+		char *to = result;
+
+		for(from=str; from<from_end; from++){
+			if(*from=='\'')
+				*to++= '\''; // ' -> ''
+			*to++=*from;
+		}
+		
 		*to=0;
 		return result;
 	}

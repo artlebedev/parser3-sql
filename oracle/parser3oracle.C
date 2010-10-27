@@ -8,7 +8,7 @@
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
 
-static const char *RCSId="$Id: parser3oracle.C,v 1.72 2008/07/08 08:07:49 misha Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.73 2010/10/27 22:48:51 moko Exp $"; 
 
 #include "config_includes.h"
 
@@ -445,20 +445,33 @@ public:
 		return true;
 	}
 
-	const char* quote(void *aconnection,
-		const char *from, unsigned int length) 
+	// charset here is services.request_charset(), not connection.client_charset
+	// thus we can't use the sql server quoting support
+	const char* quote(void *aconnection, const char *str, unsigned int length) 
 	{
-		Connection& connection=*static_cast<Connection *>(aconnection);
-		char *result=(char*)connection.services->malloc_atomic(length*2+1);
-		char *to=result;
-		while(length--) {
-			switch(*from) {
-			case '\'': // "'" -> "''"
-				*to++='\'';
-				break;
-			}
-			*to++=*from++;
+		const char* from;
+		const char* from_end=str+length;
+
+		size_t quoted=0;
+
+		for(from=str; from<from_end; from++){
+			if(*from=='\'')
+				quoted++;
 		}
+
+		if(!quoted)
+			return str;
+
+		Connection& connection=*static_cast<Connection*>(aconnection);
+		char *result=(char*)connection.services->malloc_atomic(length + quoted + 1);
+		char *to = result;
+
+		for(from=str; from<from_end; from++){
+			if(*from=='\'')
+				*to++= '\''; // ' -> ''
+			*to++=*from;
+		}
+		
 		*to=0;
 		return result;
 	}

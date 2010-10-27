@@ -7,7 +7,7 @@
 
 	2007.10.25 using PgSQL 8.1.5
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.34 2008/12/25 02:33:56 misha Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.35 2010/10/27 22:48:51 moko Exp $"; 
 
 #include "config_includes.h"
 
@@ -232,15 +232,46 @@ public:
 		return PQstatus(connection.conn)==CONNECTION_OK;
 	}
 
-	const char* quote(void *aconnection, const char *from, unsigned int length){
-		Connection& connection=*static_cast<Connection*>(aconnection);
+	// charset here is services.request_charset(), not connection.client_charset
+	// thus we can't use the sql server quoting support
+	const char* quote(void *aconnection, const char *str, unsigned int length) 
+	{
+		const char* from;
+		const char* from_end=str+length;
 
-		char *result=(char*)connection.services->malloc_atomic(length*2+1);
-		int err=0;
-		PQescapeStringConn(connection.conn, result, from, length, &err);
+		size_t quoted=0;
+
+		for(from=str; from<from_end; from++){
+			switch (*from) {
+			case '\'':
+			case '\\':
+				quoted++;
+			}
+		}
+
+		if(!quoted)
+			return str;
+
+		Connection& connection=*static_cast<Connection*>(aconnection);
+		char *result=(char*)connection.services->malloc_atomic(length + quoted + 1);
+		char *to = result;
+
+		for(from=str; from<from_end; from++){
+			switch (*from) {
+			case '\'': // "'" -> "''"
+				*to++='\'';
+				break;
+			case '\\': // "\" -> "\\"
+				*to++='\\';
+				break;
+			}
+			*to++=*from;
+		}
+		
+		*to=0;
 		return result;
 	}
-	
+
 	void query(void *aconnection, 
 				const char *astatement, 
 				size_t placeholders_count, Placeholder* placeholders, 

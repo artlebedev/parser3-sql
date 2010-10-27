@@ -3,7 +3,7 @@
 
 	(c) Dmitry "Creator" Bobrik, 2004
 */
-//static const char *RCSId="$Id: parser3sqlite.C,v 1.10 2008/07/04 11:56:40 misha Exp $"; 
+//static const char *RCSId="$Id: parser3sqlite.C,v 1.11 2010/10/27 22:48:51 moko Exp $"; 
 
 #include "config_includes.h"
 
@@ -190,20 +190,33 @@ public:
 		return true; // not needed
 	}
 
-	const char* quote(void *aconnection, const char *from, unsigned int length){
-		Connection& connection=*static_cast<Connection*>(aconnection);
-		/*
-			You must allocate the to buffer to be at least length*2+1 bytes long. 
-			In the worse case, each character may need to be encoded as using two bytes, 
-			and you need room for the terminating null byte.
-		*/
-		char *result=(char*)connection.services->malloc_atomic(length*2+1);
-		char *to=result;
-		while(length--) {
-			if(*from=='\'') // ' -> ''
-				*to++='\'';
-			*to++=*from++;
+	// charset here is services.request_charset(), not connection.client_charset
+	// thus we can't use the sql server quoting support
+	const char* quote(void *aconnection, const char *str, unsigned int length) 
+	{
+		const char* from;
+		const char* from_end=str+length;
+
+		size_t quoted=0;
+
+		for(from=str; from<from_end; from++){
+			if(*from=='\'')
+				quoted++;
 		}
+
+		if(!quoted)
+			return str;
+
+		Connection& connection=*static_cast<Connection*>(aconnection);
+		char *result=(char*)connection.services->malloc_atomic(length + quoted + 1);
+		char *to = result;
+
+		for(from=str; from<from_end; from++){
+			if(*from=='\'')
+				*to++= '\''; // ' -> ''
+			*to++=*from;
+		}
+		
 		*to=0;
 		return result;
 	}
