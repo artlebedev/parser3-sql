@@ -7,7 +7,7 @@
 
 	2007.10.25 using PgSQL 8.1.5
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.35 2010/10/27 22:48:51 moko Exp $"; 
+static const char *RCSId="$Id: parser3pgsql.C,v 1.36 2011/03/11 07:57:42 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -83,6 +83,13 @@ static char* rsplit(char* string, char delim){
 static void toupper_str(char *out, const char *in, size_t size){
 	while(size--)
 		*out++=(char)toupper(*in++);
+}
+
+inline static const char* strdup(SQL_Driver_services& services, char* str, size_t length) {
+	char *strm=(char*)services.malloc_atomic(length+1);
+	memcpy(strm, str, length);
+	strm[length]=0;
+	return (const char*)strm;
 }
 
 struct Connection {
@@ -293,16 +300,17 @@ public:
 			_bind_parameters(placeholders_count, placeholders, paramValues, connection, transcode_needed);
 		}
 
+		size_t statement_size=0;
 		if(transcode_needed){
 			// transcode query from $request:charset to ?ClientCharset
-			size_t length=strlen(astatement);
-			services.transcode(astatement, length,
-				astatement, length,
+			statement_size=strlen(astatement);
+			services.transcode(astatement, statement_size,
+				astatement, statement_size,
 				request_charset,
 				client_charset);
 		}
 
-		const char *statement=_preprocess_statement(connection, astatement, offset, limit);
+		const char *statement=_preprocess_statement(connection, astatement, statement_size, offset, limit);
 		// error after prepare?
 
 		PGresult *res;
@@ -339,7 +347,7 @@ public:
 			goto cleanup; \
 		}
 
-		int column_count=PQnfields(res);
+		size_t column_count=PQnfields(res);
 		if(!column_count)
 			PQclear_throw("result contains no columns");
 
@@ -347,36 +355,16 @@ public:
 			column_count=MAX_COLS;
 
 		unsigned int column_types[MAX_COLS];
-		bool transcode_column[MAX_COLS];
 
-		for(int i=0; i<column_count; i++){
+		for(size_t i=0; i<column_count; i++){
 			column_types[i]=PQftype(res, i);
-			switch(column_types[i]){
-				case BOOLOID:
-				case INT8OID:
-				case INT2OID:
-				case INT4OID:
-				case FLOAT4OID:
-				case FLOAT8OID:
-				case DATEOID:
-				case TIMEOID:
-				case TIMESTAMPOID:
-				case TIMESTAMPTZOID:
-				case TIMETZOID:
-				case NUMERICOID:
-					transcode_column[i]=false;
-					break;
-				default:
-					transcode_column[i]=transcode_needed;
-					break;
-			}
+
 			char *name=PQfname(res, i);
 			size_t length=strlen(name);
-			char* strm=(char*)services.malloc(length+1);
-			memcpy(strm, name, length+1);
-			const char* str=strm;
+			const char* str=strdup(services, name, length);
 
-			if(transcode_needed) // transcode column name from ?ClientCharset to $request:charset
+			if(transcode_needed)
+				// transcode column name from ?ClientCharset to $request:charset
 				services.transcode(str, length,
 					str, length,
 					client_charset,
@@ -390,15 +378,31 @@ public:
 		if(unsigned long row_count=(unsigned long)PQntuples(res))
 			for(unsigned long r=0; r<row_count; r++) {
 				CHECK(handlers.add_row(sql_error));
-				for(int i=0; i<column_count; i++){
-					const char *cell=PQgetvalue(res, r, i);
-					size_t length;
+				for(size_t i=0; i<column_count; i++){
+					char *cell=PQgetvalue(res, r, i);
+
+					size_t length=0;
 					const char* str;
 
 					switch(column_types[i]){
+						case BOOLOID:
+						case INT8OID:
+						case INT2OID:
+						case INT4OID:
+						case FLOAT4OID:
+						case FLOAT8OID:
+						case DATEOID:
+						case TIMEOID:
+						case TIMESTAMPOID:
+						case TIMESTAMPTZOID:
+						case TIMETZOID:
+						case NUMERICOID:
+							length=(size_t)PQgetlength(res, r, i);
+							str=length ? strdup(services, cell, length) : 0;
+							// transcode is never required for these types
+							break;
 						case OIDOID:
 							{
-								char *error_pos=0;
 								Oid oid=cell?atoi(cell):0;
 								int fd=lo_open(conn, oid, INV_READ);
 								if(fd>=0){
@@ -420,32 +424,34 @@ public:
 											PQclear_throw("lo_read can not read all bytes of object");
 										strm[length]=0;
 										str=strm;
+										if(transcode_needed) {
+											// transcode cell value from ?ClientCharset to $request:charset
+											services.transcode(str, length,
+												str, length,
+												client_charset,
+												request_charset);
+										}
 									} else
 										str=0;
 									if(lo_close(conn, fd)<0)
 										PQclear_throwPQerror;
 								} else
 									PQclear_throwPQerror;
+								break;
 							}
 						default:
 							// normal column, read it normally
 							length=(size_t)PQgetlength(res, r, i);
-							if(length){
-								char* strm=(char*)services.malloc(length+1);
-								memcpy(strm, cell, length+1);
-								str=strm;
-							} else
-								str=0;
+							str=length ? strdup(services, cell, length) : 0;
+							if(transcode_needed) {
+								// transcode cell value from ?ClientCharset to $request:charset
+								services.transcode(str, length,
+									str, length,
+									client_charset,
+									request_charset);
+							}
+							break;
 					}
-
-					if(str && length && transcode_column[i]){
-						// transcode cell value from ?ClientCharset to $request:charset
-						services.transcode(str, length,
-							str, length,
-							client_charset,
-							request_charset);
-					}
-
 					CHECK(handlers.add_row_cell(sql_error, str, length));
 				}
 			}
@@ -483,11 +489,11 @@ private:
 						connection.client_charset);
 				}
 			}
-			int name_numner=atoi(ph.name);
-			if(name_numner <= 0 || (size_t)name_numner > placeholders_count)
+			int name_number=atoi(ph.name);
+			if(name_number <= 0 || (size_t)name_number > placeholders_count)
 				connection.services->_throw("bad bind parameter key");
 
-			paramValues[name_numner-1]=ph.value;
+			paramValues[name_number-1]=ph.value;
 		}
 	}
 	
@@ -520,15 +526,17 @@ private:
 	const char *_preprocess_statement(
 					Connection& connection,
 					const char *astatement,
+					size_t statement_size,
 					unsigned long offset,
 					unsigned long limit
 	){
 		PGconn *conn=connection.conn;
 
-		size_t statement_size=strlen(astatement);
+		if(!statement_size)
+			statement_size=strlen(astatement);
 
 		char *result=(char *)connection.services->malloc(statement_size
-			+MAX_NUMBER*2+15 // limit # offset #
+			+MAX_NUMBER*2+15 // " limit # offset #"
 			+MAX_STRING // in case of short 'strings'
 			+1);
 		// offset & limit -> suffixes
@@ -549,7 +557,7 @@ private:
 		while(*o) {
 			if(
 				o[0]=='/' &&
-				o[1]=='*' && 
+				o[1]=='*' &&
 				o[2]=='*') { // name start
 				const char* saved_o=o;
 				o+=3;
