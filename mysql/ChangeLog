@@ -1,3 +1,11 @@
+2010-11-08	misha
+	* parser3mysql.C 1.38:
+		- transcode result was optimized ( new feature: #41 )
+
+2010-10-18	moko
+	* parser3mysql.C 1.37:
+		native quoting impementation (to avoid bug #1)
+
 2009-08-23	misha
 	* configure.in 1.33:
 		- option --with-dynamic-stdcpp was added
