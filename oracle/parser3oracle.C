@@ -8,7 +8,7 @@
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
 
-static const char *RCSId="$Id: parser3oracle.C,v 1.73 2010/10/27 22:48:51 moko Exp $"; 
+static const char *RCSId="$Id: parser3oracle.C,v 1.74 2011/07/28 07:15:08 moko Exp $"; 
 
 #include "config_includes.h"
 
@@ -275,8 +275,8 @@ public:
 
 			if(!error)
 				OCIInitialize((ub4)OCI_THREADED/*| OCI_OBJECT*/, (dvoid *)0, 
-					(dvoid * (*)(void *, unsigned int))0, 
-					(dvoid * (*)(void*, void*, unsigned int))0,  
+					(dvoid * (*)(void *, size_t))0, 
+					(dvoid * (*)(void*, void*, size_t))0,  
 					(void (*)(void*, void*))0 
 				);
 		}
@@ -895,17 +895,17 @@ private: // private funcs
 					(dvoid**) &col_name, (ub4 *) &col_name_len, (ub4)OCI_ATTR_NAME, 
 					(OCIError *)connection.errhp));
 
+				size_t length=(size_t)col_name_len;
 				if(transcode_needed){
 					// transcode column name from ?ClientCharset to $request:charset
 					services.transcode(col_name, col_name_len,
-						col_name, col_name_len,
+						col_name, length,
 						client_charset,
 						request_charset);
 				}
 
 				Col& col=cols[column_count-1];
 				{
-					size_t length=(size_t)col_name_len;
 					char *ptr=(char *)services.malloc_atomic(length+1);
 					if( connection.options.bLowerCaseColumnNames ) 
 						tolower_str(ptr, col_name, length);
