@@ -1,3 +1,7 @@
+2010-10-27	moko
+	* parser3odbc.C 1.37:
+		new in-parser quoting implementation (fixes issue #1)
+
 2008-07-08	misha
 	* parser3odbc.C 1.36:
 		- optimization for queries with limit==0 moved to another place (

@@ -1,3 +1,7 @@
+2010-10-27	moko
+	* parser3sqlite.C 1.11:
+		new in-parser quoting implementation (fixes issue #1)
+
 2009-08-23	misha
 	* configure.in 1.7:
 		- option --with-dynamic-stdcpp was added
