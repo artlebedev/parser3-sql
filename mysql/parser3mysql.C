@@ -10,7 +10,7 @@
 	2001-11-06 numrows on "HP-UX istok1 B.11.00 A 9000/869 448594332 two-user license"
 		3.23.42 & 4.0.0.alfa never worked, both subst & .sl version returned 0
 */
-static const char *RCSId="$Id: parser3mysql.C,v 1.38 2010/11/08 00:40:07 misha Exp $"; 
+static const char *RCSId="$Id: parser3mysql.C,v 1.39 2011/09/24 03:35:08 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -219,6 +219,10 @@ public:
 						} else if(strcasecmp(key, "named_pipe")==0){
 							if(atoi(value))
 								if(mysql_options(connection.handle, MYSQL_OPT_NAMED_PIPE, 0)!=0)
+									services._throw(mysql_error(connection.handle));
+						} else if(strcasecmp(key, "local_infile")==0){
+							if(atoi(value))
+								if(mysql_options(connection.handle, MYSQL_OPT_LOCAL_INFILE, 0)!=0)
 									services._throw(mysql_error(connection.handle));
 						} else if(strcasecmp(key, "autocommit")==0){
 							if(atoi(value)==0)
