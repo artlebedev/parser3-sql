@@ -1,11 +1,11 @@
 /** @file
 	Parser SQLite driver: Configure file for autoconf-disabled platforms.
 
-	Copyright (c) 2001, 2003 ArtLebedev Group (http://www.artlebedev.com)
+	Copyright (c) 2001-2012 Art. Lebedev Studio (http://www.artlebedev.com)
 
 	Author: Alexander Petrosyan <paf@design.ru> (http://design.ru/paf)
 
-	$Id: config_fixed.h,v 1.1 2007/02/19 10:54:36 misha Exp $
+	$Id: config_fixed.h,v 1.2 2012/03/16 10:05:04 moko Exp $
 
 
 	tested only with MS Visual C++ V6

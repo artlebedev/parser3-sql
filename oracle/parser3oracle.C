@@ -1,20 +1,20 @@
 /** @file
 	Parser Oracle driver.
 
-	Copyright(c) 2001, 2003 ArtLebedev Group (http://www.artlebedev.com)
+	Copyright (c) 2001-2012 Art. Lebedev Studio (http://www.artlebedev.com)
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
 	2001.07.30 using Oracle 8.1.6 [@test tested with Oracle 7.x.x]
 */
 
-static const char *RCSId="$Id: parser3oracle.C,v 1.74 2011/07/28 07:15:08 moko Exp $"; 
-
 #include "config_includes.h"
 
 #include "pa_sql_driver.h"
 
 #include <oci.h>
+
+volatile const char * IDENT_PARSER3ORACLE_C="$Id: parser3oracle.C,v 1.75 2012/03/16 10:05:04 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define MAX_COLS 500
 #define MAX_IN_LOBS 5

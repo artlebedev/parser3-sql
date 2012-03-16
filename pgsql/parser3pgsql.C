@@ -1,13 +1,12 @@
 /** @file
 	Parser PgSQL driver.
 
-	Copyright(c) 2001, 2003 ArtLebedev Group (http://www.artlebedev.com)
+	Copyright (c) 2001-2012 Art. Lebedev Studio (http://www.artlebedev.com)
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
 	2007.10.25 using PgSQL 8.1.5
 */
-static const char *RCSId="$Id: parser3pgsql.C,v 1.36 2011/03/11 07:57:42 misha Exp $"; 
 
 #include "config_includes.h"
 
@@ -15,6 +14,8 @@ static const char *RCSId="$Id: parser3pgsql.C,v 1.36 2011/03/11 07:57:42 misha E
 
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
+
+volatile const char * IDENT_PARSER3PGSQL_C=="$Id: parser3pgsql.C,v 1.37 2012/03/16 10:05:04 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // from catalog/pg_type.h
 #define BOOLOID			16

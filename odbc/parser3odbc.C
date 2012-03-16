@@ -1,11 +1,10 @@
 /** @file
 	Parser ODBC driver.
 
-	Copyright(c) 2001, 2003 ArtLebedev Group (http://www.artlebedev.com)
+	Copyright (c) 2001-2012 Art. Lebedev Studio (http://www.artlebedev.com)
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
-static const char *RCSId="$Id: parser3odbc.C,v 1.37 2010/10/27 22:48:50 moko Exp $"; 
 
 #ifndef _MSC_VER
 #	error compile ISAPI module with MSVC [no urge for now to make it autoconf-ed (PAF)]
@@ -20,6 +19,8 @@ static const char *RCSId="$Id: parser3odbc.C,v 1.37 2010/10/27 22:48:50 moko Exp
 
 #define WINVER 0x0400
 #include <AFXDB.H>
+
+volatile const char * IDENT_PARSER3ODBC_C=="$Id: parser3odbc.C,v 1.38 2012/03/16 10:05:04 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // defines
 
