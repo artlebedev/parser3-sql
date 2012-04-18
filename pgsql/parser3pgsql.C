@@ -15,7 +15,7 @@
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 
-volatile const char * IDENT_PARSER3PGSQL_C=="$Id: parser3pgsql.C,v 1.37 2012/03/16 10:05:04 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.38 2012/04/18 09:39:15 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // from catalog/pg_type.h
 #define BOOLOID			16

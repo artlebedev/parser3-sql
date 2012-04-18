@@ -20,7 +20,7 @@
 #define WINVER 0x0400
 #include <AFXDB.H>
 
-volatile const char * IDENT_PARSER3ODBC_C=="$Id: parser3odbc.C,v 1.38 2012/03/16 10:05:04 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3ODBC_C="$Id: parser3odbc.C,v 1.39 2012/04/18 09:39:15 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // defines
 
