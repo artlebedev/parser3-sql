@@ -3,7 +3,7 @@
 
 	(c) Dmitry "Creator" Bobrik, 2004
 */
-//static const char *RCSId="$Id: parser3sqlite.C,v 1.11 2010/10/27 22:48:51 moko Exp $"; 
+//static const char *RCSId="$Id: parser3sqlite.C,v 1.12 2012/04/19 21:33:08 moko Exp $"; 
 
 #include "config_includes.h"
 
@@ -55,6 +55,7 @@ struct Connection {
 	const char* client_charset;
 	bool multi_statements;
 	bool autocommit;
+	int busy_timeout;
 };
 
 
@@ -95,9 +96,10 @@ public:
 		*connection_ref=&connection;
 		connection.services=&services;
 
-		connection.client_charset=SQLITE_DEFAULT_CHARSET;	
+		connection.client_charset=SQLITE_DEFAULT_CHARSET;
 		connection.multi_statements=false;
 		connection.autocommit=true;
+		connection.busy_timeout=4000;
 
 		char* db_path=0;
 		char* db=url;
@@ -127,14 +129,14 @@ public:
 						if(strcasecmp(key, "multi_statements")==0){
 							if(atoi(value)!=0)
 								connection.multi_statements=true;
+						} else if(strcasecmp(key, "busy_timeout")==0){
+							connection.busy_timeout=atoi(value);
 						} else if(strcasecmp(key, "autocommit")==0){
 							if(atoi(value)==0)
 								connection.autocommit=false;
-							continue;
 						} else if(strcmp(key, "ClientCharset")==0){
 							toupper_str(value, value, strlen(value));
 							connection.client_charset=value;
-							continue;
 						} else
 							services._throw("unknown connect option" /*key*/);
 					} else 
@@ -160,6 +162,8 @@ public:
 			sqlite3_close(connection.handle);
 			_throw(connection, error_msg);
 		}
+		
+		sqlite3_busy_timeout(connection.handle, connection.busy_timeout);
 		
 		_begin_transaction(connection);
 	}
@@ -257,9 +261,9 @@ public:
 			cur+=statement_size;
 			cur+=sprintf(cur, " LIMIT ");
 			if(offset)
-				cur+=snprintf(cur, MAX_NUMBER+1, "%u,", offset);
+				cur+=snprintf(cur, MAX_NUMBER+1, "%lu,", offset);
 			if(limit!=SQL_NO_LIMIT)
-				cur+=snprintf(cur, MAX_NUMBER, "%u", limit);
+				cur+=snprintf(cur, MAX_NUMBER, "%lu", limit);
 			statement=statement_limited;
 		} else
 			statement=astatement;
@@ -438,6 +442,8 @@ private: // sqlite client library funcs
 
 	typedef int (*t_sqlite3_close)(sqlite3 *); t_sqlite3_close sqlite3_close;
 
+	typedef int (*t_sqlite3_busy_timeout)(sqlite3*, int ms); t_sqlite3_busy_timeout sqlite3_busy_timeout;
+
 	typedef int (*t_sqlite3_exec)(sqlite3*, const char *sql, sqlite3_callback, void *, char **errmsg); t_sqlite3_exec sqlite3_exec;
 
 	typedef void (*t_sqlite3_free)(char *z); t_sqlite3_free sqlite3_free;
@@ -486,6 +492,7 @@ private: // sqlite client library funcs linking
 		
 		DLINK(sqlite3_open);
 		DLINK(sqlite3_close);
+		DLINK(sqlite3_busy_timeout);
 		DLINK(sqlite3_exec);
 		DLINK(sqlite3_free);
 		DLINK(sqlite3_errmsg);
