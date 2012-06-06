@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.41 2012/06/06 14:45:14 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.42 2012/06/06 14:47:07 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -394,7 +394,7 @@ public:
 			memcpy(cur, astatement, statement_size); cur+=statement_size;
 			cur+=sprintf(cur, " LIMIT ");
 			if(offset)
-				cur+=snprintf(cur, MAX_NUMBER+1, "%lu,", offset);
+				cur+=snprintf(cur, MAX_NUMBER, "%lu,", offset);
 			if(limit!=SQL_NO_LIMIT)
 				cur+=snprintf(cur, MAX_NUMBER, "%lu", limit);
 			statement=statement_limited;
