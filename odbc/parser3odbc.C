@@ -20,7 +20,7 @@
 #define WINVER 0x0400
 #include <AFXDB.H>
 
-volatile const char * IDENT_PARSER3ODBC_C="$Id: parser3odbc.C,v 1.39 2012/04/18 09:39:15 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3ODBC_C="$Id: parser3odbc.C,v 1.40 2012/06/06 14:50:09 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // defines
 
@@ -532,7 +532,7 @@ private:
 						result.limit=true;
 						result.statement=statement_limited;
 
-						snprintf(statement_limited, MAX_NUMBER+11, "SELECT TOP %u", (limit)?limit+offset:0/*no point to skip anything if we need 0 rows*/);
+						snprintf(statement_limited, MAX_NUMBER+11, "SELECT TOP %lu", (limit)?limit+offset:0/*no point to skip anything if we need 0 rows*/);
 
 						astatement+=6;/*skip 'select'*/
 						strcat(statement_limited, astatement);
@@ -555,9 +555,9 @@ private:
 						result.offset=true;
 						result.statement=statement_limited;
 
-						statement_limited+=snprintf(statement_limited, MAX_NUMBER+15, "SELECT FIRST (%u)", limit);
+						statement_limited+=snprintf(statement_limited, MAX_NUMBER+15, "SELECT FIRST (%lu)", limit);
 						if(offset && limit/*no reasons to skip something if we need 0 rows*/)
-							statement_limited+=snprintf(statement_limited, MAX_NUMBER+8, " SKIP (%u)", offset);
+							statement_limited+=snprintf(statement_limited, MAX_NUMBER+8, " SKIP (%lu)", offset);
 
 						astatement+=6;/*skip 'select'*/
 						strcat((char*)result.statement, astatement);
@@ -585,7 +585,7 @@ private:
 
 	void _throw(Connection& connection, long value){
 		char msg[MAX_STRING];
-		snprintf(msg, MAX_STRING, "%u", value);
+		snprintf(msg, MAX_STRING, "%lu", value);
 		connection.services->_throw(msg);
 	}
 

@@ -14,7 +14,7 @@
 
 #include <oci.h>
 
-volatile const char * IDENT_PARSER3ORACLE_C="$Id: parser3oracle.C,v 1.75 2012/03/16 10:05:04 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3ORACLE_C="$Id: parser3oracle.C,v 1.76 2012/06/06 14:49:01 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define MAX_COLS 500
 #define MAX_IN_LOBS 5
@@ -1099,8 +1099,8 @@ cleanup: // no check call after this point!
 				strcat(statement_limited, astatement);
 
 				statement_limited+=46+statement_size;
-				statement_limited+=snprintf(statement_limited, 18+MAX_NUMBER, ") z__) WHERE r__<=%u", limit+offset);
-				statement_limited+=snprintf(statement_limited, 9+MAX_NUMBER, " AND r__>%u", offset);
+				statement_limited+=snprintf(statement_limited, 18+MAX_NUMBER, ") z__) WHERE r__<=%lu", limit+offset);
+				statement_limited+=snprintf(statement_limited, 9+MAX_NUMBER, " AND r__>%lu", offset);
 
 			} else {
 
@@ -1120,7 +1120,7 @@ cleanup: // no check call after this point!
 				strcat(statement_limited, astatement);
 
 				statement_limited+=15+statement_size;
-				statement_limited+=snprintf(statement_limited, 16+MAX_NUMBER, ") WHERE ROWNUM<=%u", limit);
+				statement_limited+=snprintf(statement_limited, 16+MAX_NUMBER, ") WHERE ROWNUM<=%lu", limit);
 
 			}
 			*statement_limited=0;
