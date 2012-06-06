@@ -15,7 +15,7 @@
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 
-volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.38 2012/04/18 09:39:15 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.39 2012/06/06 14:47:44 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // from catalog/pg_type.h
 #define BOOLOID			16
@@ -201,7 +201,7 @@ public:
 		}
 
 		if(charset){
-			char statement[MAX_STRING]="SET CLIENT_ENCODING=";
+			char statement[MAX_STRING+1]="SET CLIENT_ENCODING=";
 			strncat(statement, charset, MAX_STRING);
 
 			_execute_cmd(connection, statement);
@@ -546,9 +546,9 @@ private:
 			char *cur=result;
 			memcpy(cur, astatement, statement_size); cur+=statement_size;
 			if(limit!=SQL_NO_LIMIT)
-				cur+=snprintf(cur, 7+MAX_NUMBER, " limit %u", limit);
+				cur+=snprintf(cur, 7+MAX_NUMBER, " limit %lu", limit);
 			if(offset)
-				cur+=snprintf(cur, 8+MAX_NUMBER, " offset %u", offset);
+				cur+=snprintf(cur, 8+MAX_NUMBER, " offset %lu", offset);
 			o=result;
 		} else 
 			o=astatement;

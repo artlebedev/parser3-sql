@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.40 2012/03/16 10:05:04 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.41 2012/06/06 14:45:14 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -266,7 +266,7 @@ public:
 		}
 
 		if(charset){
-			char statement[MAX_STRING]="SET CHARACTER SET ";
+			char statement[MAX_STRING+1]="SET CHARACTER SET ";
 			strncat(statement, charset, MAX_STRING);
 			_exec(connection, statement);
 		}
@@ -394,9 +394,9 @@ public:
 			memcpy(cur, astatement, statement_size); cur+=statement_size;
 			cur+=sprintf(cur, " LIMIT ");
 			if(offset)
-				cur+=snprintf(cur, MAX_NUMBER+1, "%u,", offset);
+				cur+=snprintf(cur, MAX_NUMBER+1, "%lu,", offset);
 			if(limit!=SQL_NO_LIMIT)
-				cur+=snprintf(cur, MAX_NUMBER, "%u", limit);
+				cur+=snprintf(cur, MAX_NUMBER, "%lu", limit);
 			statement=statement_limited;
 		} else
 			statement=astatement;
