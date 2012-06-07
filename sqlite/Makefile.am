@@ -7,6 +7,7 @@ lib_LTLIBRARIES = libparser3sqlite.la
 libparser3sqlite_la_SOURCES = parser3sqlite.C
 libparser3sqlite_la_LIBADD = $(LIBLTDL)
 libparser3sqlite_la_LDFLAGS = -module -avoid-version
+libparser3sqlite_la_LINK = $(LIBTOOL) --tag=CC --mode=link $(CXXLD) $(CXXFLAGS) $(libparser3mysql_la_LDFLAGS) $(LDFLAGS) -o $@
 
 EXTRA_DIST=config_fixed.h parser3sqlite.sln parser3sqlite.vcproj
 
@@ -21,7 +22,6 @@ commit:
 #	thus causing redundant remaking:
 #	aclocal+autoconf+automake
 
-	cvs commit -m "no message" -f acinclude.m4
 	cvs commit -m "no message" -f aclocal.m4
 	cvs commit -m "no message" -f Makefile.am
 	cvs commit -m "no message" -f Makefile.in
