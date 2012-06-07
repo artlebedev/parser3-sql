@@ -23,6 +23,8 @@ AC_ARG_WITH(sqlite-inc,[  --with-sqlite-inc=DIR        DIR is the SQLite include
 ,
 	AC_MSG_CHECKING(for SQLITE_INC directory)
 	for d in \
+		/usr/local/include \
+		/usr/include \
 		/usr/local/include/sqlite \
 		/usr/include/sqlite ; do
 		SQLITE_INC_CHK($d)

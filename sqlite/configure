@@ -1801,6 +1801,8 @@ else
   echo "$as_me:$LINENO: checking for SQLITE_INC directory" >&5
 echo $ECHO_N "checking for SQLITE_INC directory... $ECHO_C" >&6
 	for d in \
+		/usr/local/include \
+		/usr/include \
 		/usr/local/include/sqlite \
 		/usr/include/sqlite ; do
 
