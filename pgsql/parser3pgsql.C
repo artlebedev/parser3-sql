@@ -15,7 +15,7 @@
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 
-volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.39 2012/06/06 14:47:44 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.40 2012/06/08 14:42:37 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // from catalog/pg_type.h
 #define BOOLOID			16
@@ -208,7 +208,7 @@ public:
 		}
 
 		if(datestyle){
-			char statement[MAX_STRING]="SET DATESTYLE=";
+			char statement[MAX_STRING+1]="SET DATESTYLE=";
 			strncat(statement, datestyle, MAX_STRING);
 
 			_execute_cmd(connection, statement);
