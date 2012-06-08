@@ -12,6 +12,7 @@ lib_LTLIBRARIES = libparser3pgsql.la
 libparser3pgsql_la_SOURCES = parser3pgsql.C
 libparser3pgsql_la_LIBADD = $(LIBLTDL)
 libparser3pgsql_la_LDFLAGS = -module -avoid-version
+libparser3pgsql_la_LINK = $(LIBTOOL) --tag=CC --mode=link $(CXXLD) $(CXXFLAGS) $(libparser3pgsql_la_LDFLAGS) $(LDFLAGS) -o $@
 
 EXTRA_DIST=config_fixed.h parser3pgsql.sln parser3pgsql.vcproj
 
@@ -26,7 +27,6 @@ commit:
 #	thus causing redundant remaking:
 #	aclocal+autoconf+automake
 
-	cvs commit -m "no message" -f acinclude.m4
 	cvs commit -m "no message" -f aclocal.m4
 	cvs commit -m "no message" -f Makefile.am
 	cvs commit -m "no message" -f Makefile.in
