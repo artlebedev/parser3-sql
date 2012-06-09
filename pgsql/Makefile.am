@@ -1,9 +1,5 @@
 SUBDIRS = libltdl
-
-LIBTOOL_DEPS = @LIBTOOL_DEPS@
-libtool: $(LIBTOOL_DEPS)
-	$(SHELL) ./config.status --recheck
-
+ACLOCAL_AMFLAGS = -I libltdl/m4
 
 INCLUDES = -I../../parser3/src/sql $(INCLTDL) -I$(PGSQL_INC)
 
@@ -16,23 +12,8 @@ libparser3pgsql_la_LINK = $(LIBTOOL) --tag=CC --mode=link $(CXXLD) $(CXXFLAGS) $
 
 EXTRA_DIST=config_fixed.h parser3pgsql.sln parser3pgsql.vcproj
 
-update:
-	cvs update
-	$(MAKE)
-
 commit:
 #	trick to make 'make' happy at check out time
-#	without this aclocal.m4 never updates
-#	and becomes older than it's prerequisities
-#	thus causing redundant remaking:
-#	aclocal+autoconf+automake
+#	and avoid redundant remaking: aclocal+autoconf+automake
 
-	cvs commit -m "no message" -f aclocal.m4
-	cvs commit -m "no message" -f Makefile.am
-	cvs commit -m "no message" -f Makefile.in
-	cvs commit -m "no message" -f configure.in
-	cvs commit -m "no message" -f configure
-
-	cvs commit
-
-happy: update install-exec
+	cvs commit -m "no message" -f aclocal.m4 Makefile.am Makefile.in configure.in configure config_auto.h.in

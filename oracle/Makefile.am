@@ -1,4 +1,5 @@
 SUBDIRS = libltdl
+ACLOCAL_AMFLAGS = -I libltdl/m4
 
 INCLUDES = -I../../parser3/src/sql $(INCLTDL) -I$(ORACLE_OCI_INC) -I$(ORACLE_PUBLIC_INC)
 
@@ -13,9 +14,6 @@ EXTRA_DIST=config_fixed.h parser3oracle.sln parser3oracle.vcproj
 
 commit:
 #	trick to make 'make' happy at check out time
-#	and avoid redundant remaking:
-#	aclocal+autoconf+automake
+#	and avoid redundant remaking: aclocal+autoconf+automake
 
 	cvs commit -m "no message" -f aclocal.m4 Makefile.am Makefile.in configure.in configure config_auto.h.in
-
-happy: update install-exec

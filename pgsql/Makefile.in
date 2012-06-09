@@ -42,7 +42,7 @@ DIST_COMMON = README $(am__configure_deps) $(noinst_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/config_auto.h.in $(top_srcdir)/configure AUTHORS \
 	COPYING ChangeLog INSTALL NEWS config.guess config.sub depcomp \
-	install-sh ltmain.sh missing mkinstalldirs
+	install-sh ltmain.sh missing
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/libltdl/m4/argz.m4 \
@@ -57,7 +57,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno configure.status.lineno
-mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config_auto.h
 CONFIG_CLEAN_FILES =
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
@@ -247,7 +247,7 @@ sys_symbol_underscore = @sys_symbol_underscore@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 SUBDIRS = libltdl
-LIBTOOL_DEPS = @LIBTOOL_DEPS@
+ACLOCAL_AMFLAGS = -I libltdl/m4
 INCLUDES = -I../../parser3/src/sql $(INCLTDL) -I$(PGSQL_INC)
 noinst_HEADERS = config_includes.h
 lib_LTLIBRARIES = libparser3pgsql.la
@@ -748,29 +748,12 @@ uninstall-info: uninstall-info-recursive
 	tags tags-recursive uninstall uninstall-am uninstall-info-am \
 	uninstall-libLTLIBRARIES
 
-libtool: $(LIBTOOL_DEPS)
-	$(SHELL) ./config.status --recheck
-
-update:
-	cvs update
-	$(MAKE)
 
 commit:
 #	trick to make 'make' happy at check out time
-#	without this aclocal.m4 never updates
-#	and becomes older than it's prerequisities
-#	thus causing redundant remaking:
-#	aclocal+autoconf+automake
+#	and avoid redundant remaking: aclocal+autoconf+automake
 
-	cvs commit -m "no message" -f aclocal.m4
-	cvs commit -m "no message" -f Makefile.am
-	cvs commit -m "no message" -f Makefile.in
-	cvs commit -m "no message" -f configure.in
-	cvs commit -m "no message" -f configure
-
-	cvs commit
-
-happy: update install-exec
+	cvs commit -m "no message" -f aclocal.m4 Makefile.am Makefile.in configure.in configure config_auto.h.in
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
