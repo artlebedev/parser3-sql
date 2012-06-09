@@ -1360,7 +1360,6 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
           ac_config_headers="$ac_config_headers config_auto.h"
 
 
-
 am__api_version="1.9"
 ac_aux_dir=
 for ac_dir in $srcdir $srcdir/.. $srcdir/../..; do
@@ -1802,8 +1801,6 @@ am__tar='${AMTAR} chof - "$$tardir"'; am__untar='${AMTAR} xf -'
 
 
 
-
-
 # Check whether --with-sqlite-inc or --without-sqlite-inc was given.
 if test "${with_sqlite_inc+set}" = set; then
   withval="$with_sqlite_inc"
@@ -1859,7 +1856,6 @@ else
 		LDFLAGS="-Wl,-Bstatic -Wl,-lstdc++ -Wl,-Bdynamic"
 
 fi;
-
 
 
 
@@ -3508,7 +3504,6 @@ else
   am__fastdepCC_TRUE='#'
   am__fastdepCC_FALSE=
 fi
-
 
 
 
@@ -17374,7 +17369,6 @@ eval "LTDLOPEN=\"$libname_spec\""
 
 
 
-
 # Check whether --enable-static or --disable-static was given.
 if test "${enable_static+set}" = set; then
   enableval="$enable_static"
@@ -17398,7 +17392,6 @@ if test "${enable_static+set}" = set; then
 else
   enable_static=no
 fi;
-
 
 
 
@@ -17566,7 +17559,6 @@ fi
 done
 
 
-
 echo "$as_me:$LINENO: checking for size_t" >&5
 echo $ECHO_N "checking for size_t... $ECHO_C" >&6
 if test "${ac_cv_type_size_t+set}" = set; then
@@ -17632,7 +17624,6 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 fi
-
 
 
 
