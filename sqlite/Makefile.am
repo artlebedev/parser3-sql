@@ -7,6 +7,7 @@ noinst_HEADERS = config_includes.h
 lib_LTLIBRARIES = libparser3sqlite.la
 libparser3sqlite_la_SOURCES = parser3sqlite.C
 libparser3sqlite_la_LDFLAGS = -module -avoid-version
+libparser3sqlite_la_LIBADD = $(LIBLTDL)
 
 EXTRA_DIST=config_fixed.h parser3sqlite.sln parser3sqlite.vcproj
 

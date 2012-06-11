@@ -69,7 +69,8 @@ am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
 am__installdirs = "$(DESTDIR)$(libdir)"
 libLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(lib_LTLIBRARIES)
-libparser3sqlite_la_LIBADD =
+am__DEPENDENCIES_1 =
+libparser3sqlite_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_libparser3sqlite_la_OBJECTS = parser3sqlite.lo
 libparser3sqlite_la_OBJECTS = $(am_libparser3sqlite_la_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
@@ -252,6 +253,7 @@ noinst_HEADERS = config_includes.h
 lib_LTLIBRARIES = libparser3sqlite.la
 libparser3sqlite_la_SOURCES = parser3sqlite.C
 libparser3sqlite_la_LDFLAGS = -module -avoid-version
+libparser3sqlite_la_LIBADD = $(LIBLTDL)
 EXTRA_DIST = config_fixed.h parser3sqlite.sln parser3sqlite.vcproj
 all: config_auto.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
