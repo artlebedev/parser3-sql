@@ -69,8 +69,7 @@ am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
 am__installdirs = "$(DESTDIR)$(libdir)"
 libLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(lib_LTLIBRARIES)
-am__DEPENDENCIES_1 =
-libparser3oracle_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
+libparser3oracle_la_LIBADD =
 am_libparser3oracle_la_OBJECTS = parser3oracle.lo
 libparser3oracle_la_OBJECTS = $(am_libparser3oracle_la_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
@@ -253,9 +252,7 @@ INCLUDES = -I../../parser3/src/sql $(INCLTDL) -I$(ORACLE_OCI_INC) -I$(ORACLE_PUB
 noinst_HEADERS = config_includes.h
 lib_LTLIBRARIES = libparser3oracle.la
 libparser3oracle_la_SOURCES = parser3oracle.C
-libparser3oracle_la_LIBADD = $(LIBLTDL)
 libparser3oracle_la_LDFLAGS = -module -avoid-version
-libparser3oracle_la_LINK = $(LIBTOOL) --tag=CC --mode=link $(CXXLD) $(CXXFLAGS) $(libparser3mysql_la_LDFLAGS) $(LDFLAGS) -o $@
 EXTRA_DIST = config_fixed.h parser3oracle.sln parser3oracle.vcproj
 all: config_auto.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
@@ -340,7 +337,7 @@ clean-libLTLIBRARIES:
 	  rm -f "$${dir}/so_locations"; \
 	done
 libparser3oracle.la: $(libparser3oracle_la_OBJECTS) $(libparser3oracle_la_DEPENDENCIES) 
-	$(libparser3oracle_la_LINK) -rpath $(libdir) $(libparser3oracle_la_LDFLAGS) $(libparser3oracle_la_OBJECTS) $(libparser3oracle_la_LIBADD) $(LIBS)
+	$(CXXLINK) -rpath $(libdir) $(libparser3oracle_la_LDFLAGS) $(libparser3oracle_la_OBJECTS) $(libparser3oracle_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)

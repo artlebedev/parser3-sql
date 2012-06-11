@@ -69,8 +69,7 @@ am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
 am__installdirs = "$(DESTDIR)$(libdir)"
 libLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(lib_LTLIBRARIES)
-am__DEPENDENCIES_1 =
-libparser3pgsql_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
+libparser3pgsql_la_LIBADD =
 am_libparser3pgsql_la_OBJECTS = parser3pgsql.lo
 libparser3pgsql_la_OBJECTS = $(am_libparser3pgsql_la_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
@@ -252,9 +251,7 @@ INCLUDES = -I../../parser3/src/sql $(INCLTDL) -I$(PGSQL_INC)
 noinst_HEADERS = config_includes.h
 lib_LTLIBRARIES = libparser3pgsql.la
 libparser3pgsql_la_SOURCES = parser3pgsql.C
-libparser3pgsql_la_LIBADD = $(LIBLTDL)
 libparser3pgsql_la_LDFLAGS = -module -avoid-version
-libparser3pgsql_la_LINK = $(LIBTOOL) --tag=CC --mode=link $(CXXLD) $(CXXFLAGS) $(libparser3pgsql_la_LDFLAGS) $(LDFLAGS) -o $@
 EXTRA_DIST = config_fixed.h parser3pgsql.sln parser3pgsql.vcproj
 all: config_auto.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
@@ -339,7 +336,7 @@ clean-libLTLIBRARIES:
 	  rm -f "$${dir}/so_locations"; \
 	done
 libparser3pgsql.la: $(libparser3pgsql_la_OBJECTS) $(libparser3pgsql_la_DEPENDENCIES) 
-	$(libparser3pgsql_la_LINK) -rpath $(libdir) $(libparser3pgsql_la_LDFLAGS) $(libparser3pgsql_la_OBJECTS) $(libparser3pgsql_la_LIBADD) $(LIBS)
+	$(CXXLINK) -rpath $(libdir) $(libparser3pgsql_la_LDFLAGS) $(libparser3pgsql_la_OBJECTS) $(libparser3pgsql_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
