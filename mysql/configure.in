@@ -38,15 +38,6 @@ AC_ARG_WITH(mysql-inc,[  --with-mysql-inc=DIR        DIR is the MySQL includes d
 
 AC_SUBST(MYSQL_INC)
 
-AC_ARG_WITH(dynamic-stdcpp, [  --with-dynamic-stdcpp   link libstdc++ dynamically
-                          by default, libstdc++ is linked statically],[
-		LDFLAGS="-lstdc++"
-],[
-		LDFLAGS="-Wl,-Bstatic -Wl,-lstdc++ -Wl,-Bdynamic"
-])
-
-AC_SUBST(LDFLAGS)
-
 dnl Checks for programs
 AC_PROG_INSTALL
 AC_PROG_CXX
