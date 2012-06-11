@@ -30,15 +30,6 @@ if test \! -f "$ORACLE_PUBLIC_INC/nzt.h"; then
 	AC_MSG_ERROR($ORACLE_PUBLIC_INC does not seem to be valid Oracle public includes directory)
 fi
 
-AC_ARG_WITH(dynamic-stdcpp, [  --with-dynamic-stdcpp   link libstdc++ dynamically
-                          by default, libstdc++ is linked statically],[
-		LDFLAGS="-lstdc++"
-],[
-		LDFLAGS="-Wl,-Bstatic -Wl,-lstdc++ -Wl,-Bdynamic"
-])
-
-AC_SUBST(LDFLAGS)
-
 dnl Checks for programs
 AC_PROG_INSTALL
 AC_PROG_CXX
