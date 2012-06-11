@@ -45,11 +45,8 @@ AC_PROG_CC
 
 dnl Enable building of the convenience library
 LT_CONFIG_LTDL_DIR(libltdl)
-LT_INIT(dlopen win32-dll)
+LT_INIT(disable-static dlopen win32-dll)
 LTDL_INIT
-
-dnl Configure libtool
-AC_DISABLE_STATIC
 
 dnl Checks for libraries
 
