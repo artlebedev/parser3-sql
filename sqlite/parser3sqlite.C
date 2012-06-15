@@ -3,7 +3,7 @@
 
 	(c) Dmitry "Creator" Bobrik, 2004
 */
-//static const char *RCSId="$Id: parser3sqlite.C,v 1.12 2012/04/19 21:33:08 moko Exp $"; 
+//static const char *RCSId="$Id: parser3sqlite.C,v 1.13 2012/06/15 09:09:33 moko Exp $"; 
 
 #include "config_includes.h"
 
@@ -472,13 +472,17 @@ private: // sqlite client library funcs
 private: // sqlite client library funcs linking
 
 	const char *dlink(const char *dlopen_file_spec) {
-		if(lt_dlinit())
-			return lt_dlerror();
-        lt_dlhandle handle=lt_dlopen(dlopen_file_spec);
-        if (!handle) {
-            if(const char* result=lt_dlerror())
-            	return result;
+		if(lt_dlinit()){
+			if(const char* result=lt_dlerror())
+				return result;
+			return "can not prepare to dynamic loading";
+		}
 
+		lt_dlhandle handle=lt_dlopen(dlopen_file_spec);
+
+		if(!handle){
+			if(const char* result=lt_dlerror())
+				return result;
 			return "can not open the dynamic link module";
 		}
 

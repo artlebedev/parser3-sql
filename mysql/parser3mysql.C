@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.42 2012/06/06 14:47:07 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.43 2012/06/15 09:09:33 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -555,8 +555,11 @@ private: // mysql client library funcs
 private: // mysql client library funcs linking
 
 	const char *dlink(const char *dlopen_file_spec) {
-		if(lt_dlinit())
-			return lt_dlerror();
+		if(lt_dlinit()){
+			if(const char* result=lt_dlerror())
+				return result;
+			return "can not prepare to dynamic loading";
+		}
 
 		lt_dlhandle handle=lt_dlopen(dlopen_file_spec);
 

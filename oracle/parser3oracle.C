@@ -14,7 +14,7 @@
 
 #include <oci.h>
 
-volatile const char * IDENT_PARSER3ORACLE_C="$Id: parser3oracle.C,v 1.76 2012/06/06 14:49:01 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3ORACLE_C="$Id: parser3oracle.C,v 1.77 2012/06/15 09:09:33 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define MAX_COLS 500
 #define MAX_IN_LOBS 5
@@ -1247,11 +1247,19 @@ private: // conn client library funcs
 private: // conn client library funcs linking
 
 	const char *dlink(const char *dlopen_file_spec) {
-		if(lt_dlinit())
-			return lt_dlerror();
-        lt_dlhandle handle=lt_dlopen(dlopen_file_spec);
-        if(!handle)
-			return lt_dlerror(); //"can not open the dynamic link module";
+		if(lt_dlinit()){
+			if(const char* result=lt_dlerror())
+				return result;
+			return "can not prepare to dynamic loading";
+		}
+
+		lt_dlhandle handle=lt_dlopen(dlopen_file_spec);
+
+		if(!handle){
+			if(const char* result=lt_dlerror())
+				return result;
+			return "can not open the dynamic link module";
+		}
 
 		#define DSLINK(name, action) \
 			name=(t_##name)lt_dlsym(handle, #name); \

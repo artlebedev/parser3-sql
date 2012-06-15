@@ -15,7 +15,7 @@
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 
-volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.40 2012/06/08 14:42:37 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.41 2012/06/15 09:09:33 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // from catalog/pg_type.h
 #define BOOLOID			16
@@ -689,11 +689,19 @@ private: // conn client library funcs
 private: // conn client library funcs linking
 
 	const char *dlink(const char *dlopen_file_spec) {
-		if(lt_dlinit())
-			return lt_dlerror();
+		if(lt_dlinit()){
+			if(const char* result=lt_dlerror())
+				return result;
+			return "can not prepare to dynamic loading";
+		}
+
 		lt_dlhandle handle=lt_dlopen(dlopen_file_spec);
-		if(!handle)
+
+		if(!handle){
+			if(const char* result=lt_dlerror())
+				return result;
 			return "can not open the dynamic link module";
+		}
 
 		#define DSLINK(name, action) \
 			name=(t_##name)lt_dlsym(handle, #name); \
