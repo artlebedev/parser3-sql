@@ -1,3 +1,122 @@
+2012-06-26	moko
+	* libltdl/argz.c 1.2:
+	* libltdl/config_fixed.h 1.4:
+	* libltdl/libltdl.vcproj 1.3:
+	* libltdl/libltdl/lt__glibc.h 1.2:
+	* libltdl/ltdl.c 1.5:
+		Visual Studio compatibility, FreeBSD compatibility.
+
+2012-06-15	moko
+	* parser3oracle.C 1.77:
+		bugfix: lt_dlinit() can fail, but lt_dlerror return 0, and we 
+		count 0 for success.
+
+2012-06-11	moko
+	* Makefile.am 1.25:
+	* configure.in 1.32:
+		shared/static libstdc++ option removed
+
+2012-06-09	moko
+	* config.guess 1.3:
+	* config.sub 1.3:
+		updated from libtool 2.4.2
+
+	* depcomp 1.2:
+		depcomp updated from libtool 2.4.2
+
+	* Makefile.am 1.23:
+	* Makefile.in 1.26:
+	* configure 1.27:
+	* configure.in 1.30:
+		ACLOCAL_AMFLAGS = -I libltdl/m4 added and some beauty
+
+	* libltdl/acconfig.h 1.2:
+		*** empty log message ***
+
+	* Makefile.in 1.24:
+	* acinclude.m4 1.15:
+	* aclocal.m4 1.15:
+	* config_auto.h.in 1.4:
+	* configure 1.25:
+	* install-sh 1.2:
+	* ltconfig 1.2:
+	* ltmain.sh 1.3:
+	* missing 1.3:
+	* mkinstalldirs 1.3:
+		libtool updated to version 2.4.2, auto* scripts updated
+
+	* libltdl/COPYING.LIB 1.2:
+	* libltdl/Makefile.am 1.9:
+	* libltdl/Makefile.in 1.10:
+	* libltdl/README 1.2:
+	* libltdl/acinclude.m4 1.4:
+	* libltdl/aclocal.m4 1.4:
+	* libltdl/argz.c 1.1:
+	* libltdl/argz_.h 1.1:
+	* libltdl/config-h.in 1.1:
+	* libltdl/config.h 1.2:
+	* libltdl/config/compile 1.1:
+	* libltdl/config/config.guess 1.1:
+	* libltdl/config/config.sub 1.1:
+	* libltdl/config/depcomp 1.1:
+	* libltdl/config/install-sh 1.1:
+	* libltdl/config/ltmain.sh 1.1:
+	* libltdl/config/missing 1.1:
+	* libltdl/config_auto.h.in 1.6:
+	* libltdl/config_fixed.h 1.3:
+	* libltdl/configure 1.4:
+	* libltdl/configure.ac 1.1:
+	* libltdl/configure.in 1.4:
+	* libltdl/libltdl.vcproj 1.2:
+	* libltdl/libltdl/lt__alloc.h 1.1:
+	* libltdl/libltdl/lt__dirent.h 1.1:
+	* libltdl/libltdl/lt__glibc.h 1.1:
+	* libltdl/libltdl/lt__private.h 1.1:
+	* libltdl/libltdl/lt__strl.h 1.1:
+	* libltdl/libltdl/lt_dlloader.h 1.1:
+	* libltdl/libltdl/lt_error.h 1.1:
+	* libltdl/libltdl/lt_system.h 1.1:
+	* libltdl/libltdl/slist.h 1.1:
+	* libltdl/loaders/dld_link.c 1.1:
+	* libltdl/loaders/dlopen.c 1.1:
+	* libltdl/loaders/dyld.c 1.1:
+	* libltdl/loaders/load_add_on.c 1.1:
+	* libltdl/loaders/loadlibrary.c 1.1:
+	* libltdl/loaders/preopen.c 1.1:
+	* libltdl/loaders/shl_load.c 1.1:
+	* libltdl/lt__alloc.c 1.1:
+	* libltdl/lt__dirent.c 1.1:
+	* libltdl/lt__strl.c 1.1:
+	* libltdl/lt_dlloader.c 1.1:
+	* libltdl/lt_error.c 1.1:
+	* libltdl/ltdl.c 1.4:
+	* libltdl/ltdl.h 1.3:
+	* libltdl/m4/argz.m4 1.1:
+	* libltdl/m4/libtool.m4 1.1:
+	* libltdl/m4/ltdl.m4 1.1:
+	* libltdl/m4/ltoptions.m4 1.1:
+	* libltdl/m4/ltsugar.m4 1.1:
+	* libltdl/m4/ltversion.m4 1.1:
+	* libltdl/m4/lt~obsolete.m4 1.1:
+	* libltdl/slist.c 1.1:
+		libtool updated to 2.4.2 version
+
+	* Makefile.am 1.21:
+	* configure.in 1.28:
+		update to new libtool 2.4.2
+
+2012-06-06	moko
+	* parser3oracle.C 1.76:
+		compiler warnings fixed:
+		-format '%u' expects type 'unsigned int', but argument has type 'long unsigned int'
+
+2012-03-16	moko
+	* config_fixed.h 1.6:
+	* config_includes.h 1.5:
+	* parser3oracle.C 1.75:
+		ident now works under Linux + ident displays filenames (closes issue #818)
+		Copyright updated
+
 2011-07-28	moko
 	* parser3oracle.C 1.74:
 		fixes issue #451 - x64 compile errors

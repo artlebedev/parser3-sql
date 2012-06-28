@@ -1,3 +1,17 @@
+2012-06-06	moko
+	* parser3odbc.C 1.40:
+		compiler warnings fixed:
+		-format '%u' expects type 'unsigned int', but argument has type 'long unsigned int'
+
+2012-04-18	moko
+	* parser3odbc.C 1.39:
+		after global replace fixes. == -> =
+
+2012-03-16	moko
+	* parser3odbc.C 1.38:
+		ident now works under Linux + ident displays filenames (closes issue #818)
+		Copyright updated
+
 2010-10-27	moko
 	* parser3odbc.C 1.37:
 		new in-parser quoting implementation (fixes issue #1)
