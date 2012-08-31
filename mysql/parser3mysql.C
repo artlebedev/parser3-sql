@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.43 2012/06/15 09:09:33 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.44 2012/08/31 08:33:29 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -426,37 +426,42 @@ public:
 			goto cleanup; \
 		}
 
-#define DO_FETCH_FIELDS(transcode_column_name) {                                \
-			MYSQL_FIELD *fields = mysql_fetch_fields(res);                      \
-			for(size_t i=0; i<column_count; i++) {                              \
-				size_t length=fields[i].name_length;                            \
-				const char* str=strdup(services, fields[i].name, length);       \
-				transcode_column_name                                           \
-				CHECK(handlers.add_column(sql_error, str, length));             \
-			}                                                                   \
+#define DO_FETCH_FIELDS(transcode_column_name) {                                                                   \
+			for(size_t i=0; i<column_count; i++) {                                                     \
+				if(MYSQL_FIELD *field = mysql_fetch_field(res)){                                   \
+					size_t length=field->name_length;                                          \
+					const char* str=strdup(services, field->name, length);                     \
+					transcode_column_name                                                      \
+					CHECK(handlers.add_column(sql_error, str, length));                        \
+				} else {                                                                           \
+					/* seen broken client, that reported "44" column count for "select 2+2" */ \
+					column_count=i;                                                            \
+					break;                                                                     \
+				}                                                                                  \
+			}                                                                                          \
 		}
 
-#define DO_FETCH_ROWS(transcode_cell_value) {                                   \
-			while(MYSQL_ROW mysql_row=mysql_fetch_row(res)) {                   \
-				CHECK(handlers.add_row(sql_error));                             \
-				unsigned long *lengths=mysql_fetch_lengths(res);                \
-				for(size_t i=0; i<column_count; i++) {                          \
-					const char* str=0;                                          \
-					size_t length=lengths[i];                                   \
-					if(length) {                                                \
-						str=strdup(services, mysql_row[i], length);             \
-						transcode_cell_value                                    \
-					}                                                           \
-					CHECK(handlers.add_row_cell(sql_error, str, length));       \
-				}                                                               \
-			}                                                                   \
+#define DO_FETCH_ROWS(transcode_cell_value) {                                                                      \
+			while(MYSQL_ROW mysql_row=mysql_fetch_row(res)) {                                          \
+				CHECK(handlers.add_row(sql_error));                                                \
+				unsigned long *lengths=mysql_fetch_lengths(res);                                   \
+				for(size_t i=0; i<column_count; i++) {                                             \
+					const char* str=0;                                                         \
+					size_t length=lengths[i];                                                  \
+					if(length) {                                                               \
+						str=strdup(services, mysql_row[i], length);                        \
+						transcode_cell_value                                               \
+					}                                                                          \
+					CHECK(handlers.add_row_cell(sql_error, str, length));                      \
+				}                                                                                  \
+			}                                                                                          \
 		}
 
 		bool* transcode_column=0;
 		if(transcode_needed) {
 			transcode_column = new bool[column_count];
 			DO_FETCH_FIELDS(
-				transcode_column[i] = is_column_transcode_required(fields[i].type);
+				transcode_column[i] = is_column_transcode_required(field->type);
 				// transcode column's name from ?ClientCharset to $request:charset
 				services.transcode(str, length,
 					str, length,
@@ -544,7 +549,7 @@ private: // mysql client library funcs
 	
 	typedef MYSQL_ROW	(STDCALL *t_mysql_fetch_row)(MYSQL_RES *result); t_mysql_fetch_row mysql_fetch_row;
 	
-	typedef MYSQL_FIELD*	(STDCALL *t_mysql_fetch_fields)(MYSQL_RES *result); t_mysql_fetch_fields mysql_fetch_fields;
+	typedef MYSQL_FIELD*	(STDCALL *t_mysql_fetch_field)(MYSQL_RES *result); t_mysql_fetch_field mysql_fetch_field;
 	
 	typedef unsigned int	(STDCALL *t_mysql_num_fields)(MYSQL_RES *); t_mysql_num_fields mysql_num_fields;
 	typedef unsigned int	(STDCALL *t_mysql_field_count)(MYSQL *); t_mysql_field_count mysql_field_count;
@@ -593,7 +598,7 @@ private: // mysql client library funcs linking
 		DLINK(mysql_free_result);
 		DLINK(mysql_fetch_lengths);
 		DLINK(mysql_fetch_row);
-		DLINK(mysql_fetch_fields);
+		DLINK(mysql_fetch_field);
 		SLINK(mysql_num_fields);
 		SLINK(mysql_field_count);
 		return 0;
