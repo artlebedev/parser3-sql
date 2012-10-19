@@ -15,7 +15,7 @@
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 
-volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.42 2012/10/19 04:13:28 misha Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.43 2012/10/19 04:15:47 misha Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // from catalog/pg_type.h
 #define BOOLOID			16
@@ -135,7 +135,8 @@ public:
 			charset=value&			// transcode by server with 'SET CLIENT_ENCODING=value'
 			datestyle=value&		// 'SET DATESTYLE=value' available values are: ISO|SQL|Postgres|European|US|German [default=ISO]
 			autocommit=1&			// each transaction is commited automatically (default)
-			WithoutDefaultTransaction=0	// 1 -- disable any BEGIN TRAN/COMMIT/ROLLBACK [can NOT be used with autocommit option]
+			standard_conforming_strings=1& // 0 -- escape \ char that could be needed for old servers
+			WithoutDefaultTransaction=0	   // 1 -- disable any BEGIN TRAN/COMMIT/ROLLBACK [can NOT be used with autocommit option]
 	*/
 	void connect(
 				char* url, 
