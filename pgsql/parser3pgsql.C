@@ -15,7 +15,7 @@
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 
-volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.41 2012/06/15 09:09:33 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.42 2012/10/19 04:13:28 misha Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // from catalog/pg_type.h
 #define BOOLOID			16
@@ -100,6 +100,7 @@ struct Connection {
 	const char* client_charset;
 	bool autocommit;
 	bool without_default_transactions;
+	bool standard_conforming_strings;
 };
 
 /**
@@ -158,6 +159,7 @@ public:
 		connection.client_charset=0;	
 		connection.autocommit=true;
 		connection.without_default_transactions=false;
+		connection.standard_conforming_strings=true;
 
 		connection.conn=PQsetdbLogin(
 			(host&&strcasecmp(host, "local")==0)?NULL/* local Unix domain socket */:host, port, 
@@ -192,6 +194,9 @@ public:
 								connection.without_default_transactions=true;
 								connection.autocommit=false;
 							}
+						} else if(strcasecmp(key, "standard_conforming_strings")==0){
+							if(atoi(value)==0)
+								connection.standard_conforming_strings=false;
 						} else
 							services._throw("unknown connect option" /*key*/);
 					} else 
@@ -244,36 +249,52 @@ public:
 	// thus we can't use the sql server quoting support
 	const char* quote(void *aconnection, const char *str, unsigned int length) 
 	{
+		Connection& connection=*static_cast<Connection*>(aconnection);
+
 		const char* from;
 		const char* from_end=str+length;
 
 		size_t quoted=0;
 
-		for(from=str; from<from_end; from++){
-			switch (*from) {
-			case '\'':
-			case '\\':
-				quoted++;
+		if(connection.standard_conforming_strings){
+			for(from=str; from<from_end; from++){
+				if(*from=='\'')
+					quoted++;
+			}
+		} else {
+			for(from=str; from<from_end; from++){
+				switch (*from) {
+				case '\'':
+				case '\\':
+					quoted++;
+				}
 			}
 		}
 
 		if(!quoted)
 			return str;
 
-		Connection& connection=*static_cast<Connection*>(aconnection);
 		char *result=(char*)connection.services->malloc_atomic(length + quoted + 1);
 		char *to = result;
 
-		for(from=str; from<from_end; from++){
-			switch (*from) {
-			case '\'': // "'" -> "''"
-				*to++='\'';
-				break;
-			case '\\': // "\" -> "\\"
-				*to++='\\';
-				break;
+		if(connection.standard_conforming_strings){
+			for(from=str; from<from_end; from++){
+				if(*from=='\'')
+					*to++= '\''; // "'" -> "''"
+				*to++=*from;
 			}
-			*to++=*from;
+		} else {
+			for(from=str; from<from_end; from++){
+				switch (*from) {
+				case '\'': // "'" -> "''"
+					*to++= '\'';
+					break;
+				case '\\': // "\" -> "\\"
+					*to++='\\';
+					break;
+				}
+				*to++=*from;
+			}
 		}
 		
 		*to=0;
