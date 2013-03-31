@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.44 2012/08/31 08:33:29 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.45 2013/03/31 10:31:21 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -78,8 +78,10 @@ inline static bool is_column_transcode_required(enum_field_types type) {
 	switch(type) {
 		case MYSQL_TYPE_NULL:
 
-		case MYSQL_TYPE_DECIMAL:
+#ifdef FIELD_TYPE_NEWDECIMAL
 		case MYSQL_TYPE_NEWDECIMAL:
+#endif
+		case MYSQL_TYPE_DECIMAL:
 		case MYSQL_TYPE_FLOAT:
 		case MYSQL_TYPE_DOUBLE:
 
@@ -88,7 +90,9 @@ inline static bool is_column_transcode_required(enum_field_types type) {
 		case MYSQL_TYPE_LONG:
 		case MYSQL_TYPE_LONGLONG:
 		case MYSQL_TYPE_INT24:
+#ifdef FIELD_TYPE_BIT
 		case MYSQL_TYPE_BIT:
+#endif
 
 		case MYSQL_TYPE_DATE:
 		case MYSQL_TYPE_NEWDATE:
