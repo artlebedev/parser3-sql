@@ -14,7 +14,7 @@
 
 #include <oci.h>
 
-volatile const char * IDENT_PARSER3ORACLE_C="$Id: parser3oracle.C,v 1.77 2012/06/15 09:09:33 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3ORACLE_C="$Id: parser3oracle.C,v 1.78 2013/05/27 20:10:14 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define MAX_COLS 500
 #define MAX_IN_LOBS 5
@@ -268,10 +268,10 @@ public:
 	const char *initialize(char *dlopen_file_spec) {
 		char *options=lsplit(dlopen_file_spec, '?');
 
-		const char *error=dlopen_file_spec?
-			dlink(dlopen_file_spec):"client library column is empty";
+		const char *error=options2env(options, 0);
+	    
 		if(!error) {
-			error=options2env(options, 0);
+			error=dlopen_file_spec ? dlink(dlopen_file_spec) : "client library column is empty";
 
 			if(!error)
 				OCIInitialize((ub4)OCI_THREADED/*| OCI_OBJECT*/, (dvoid *)0, 
