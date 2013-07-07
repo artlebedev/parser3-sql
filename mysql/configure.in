@@ -1,6 +1,6 @@
 dnl Autoconf initialisation
 AC_PREREQ(2.59)
-AC_INIT(parser3mysql.C, 10.5)
+AC_INIT(parser3mysql.C, 10.6)
 AC_CONFIG_SRCDIR(parser3mysql.C)
 AM_CONFIG_HEADER(config_auto.h)
 
@@ -49,12 +49,6 @@ LT_INIT(disable-static dlopen win32-dll)
 LTDL_INIT
 
 dnl Checks for libraries
-
-dnl FreeBSD4 requires workaround with destructor
-case "$host" in
-	*-freebsd4*)
-		AC_DEFINE(FREEBSD4,,FreeBSD4X target platform)
-esac
 
 dnl Checks for header files
 AC_CHECK_HEADERS(

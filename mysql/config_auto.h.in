@@ -1,8 +1,5 @@
 /* config_auto.h.in.  Generated from configure.in by autoheader.  */
 
-/* FreeBSD4X target platform */
-#undef FREEBSD4
-
 /* Define to 1 if you have the `argz_add' function. */
 #undef HAVE_ARGZ_ADD
 
