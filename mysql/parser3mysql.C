@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.45 2013/03/31 10:31:21 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.46 2013/07/07 16:58:25 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -134,13 +134,6 @@ class MySQL_Driver : public SQL_Driver {
 public:
 
 	MySQL_Driver() : SQL_Driver() {}
-
-#ifndef FREEBSD4
-	~MySQL_Driver() {
-		if(mysql_server_end)
-			mysql_server_end();
-	}
-#endif
 
 	/// get api version
 	int api_version() { return SQL_DRIVER_API_VERSION; }
