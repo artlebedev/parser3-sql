@@ -1,40 +1,30 @@
-0.Assuming your perform your builds in $D directory 
-  and suggested subdirectories.
+1.What is the process to compile Parser3 PgSQL driver?
 
-1.What is the process to compile Parser3 PgSQL driver? 
+  PgSQL client software and include files should be installed.
+  Parser3 sources should be in ../../parser3 directory.
+  Execute the following commands:
 
-  You sould have PgSQL client software and include files installed.
-
-  As most UNIX libraries Parser3 PgSQL driver follows the "standard":
-
-  cd $D/parser3project
-  mkdir sql
-  cd sql
-  gunzip -c parser3pgsql-x.x.tar.gz | tar xvf -
-  cd parser3pgsql-x.x
   ./configure --prefix=$HOME/parser3install --silent
   make
 
-
-  In case configure could not find directory with your 
+  In case configure could not find directory with your
   PgSQL client software include files, specify it with
-    --with-pgsql-inc[=DIR]      DIR is the PgSQL includes directory
+    --with-pgsql-inc=DIR        DIR is the PgSQL includes directory
   option.
-  
+
 2.What is the process to install Parser3 PgSQL driver?
 
   make install
 
   Installation layout:
     $prefix/lib/
-      libparser3pgsql.x     -- driver's dynamic library
+      libparser3pgsql.so     -- driver's dynamic library
 
   NOTE:
-  make sure that Parser3 main configuration file, 
-  	$prefix/etc/auto.p
-  has in $SQL[...] configuration section a line like this:
+  make sure that Parser3 main configuration file, $prefix/bin/auto.p
+  has in $SQL[...] configuration section a tab-delimited line like this:
 
-pgsql	$sqldriversdir/libparser3pgsql.so	/usr/local/pgsql/lib/libpq.so
+pgsql	$sqldriversdir/libparser3pgsql.so	libpq.so
 
   which specifies 
     protocol name
@@ -42,7 +32,4 @@ pgsql	$sqldriversdir/libparser3pgsql.so	/usr/local/pgsql/lib/libpq.so
     path to PgSQL client 'libpq' dynamic library
       [you sould have it from from your PgSQL client installation]
 
- 
-Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
-
-$Id: INSTALL,v 1.5 2007/02/19 10:56:53 misha Exp $
+$Id: INSTALL,v 1.6 2013/07/07 16:25:48 moko Exp $

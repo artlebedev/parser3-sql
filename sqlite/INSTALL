@@ -1,40 +1,30 @@
-0.Assuming your perform your builds in $D directory 
-  and suggested subdirectories.
+1.What is the process to compile Parser3 SQLite driver?
 
-1.What is the process to compile Parser3 SQLite driver? 
+  SQLite client software and include files should be installed.
+  Parser3 sources should be in ../../parser3 directory.
+  Execute the following commands:
 
-  You sould have SQLite client software and include files installed.
-
-  As most UNIX libraries Parser3 SQLite driver follows the "standard":
-
-  cd $D/parser3project
-  mkdir sql
-  cd sql
-  gunzip -c parser3sqlite-x.x.tar.gz | tar xvf -
-  cd parser3sqlite-x.x
   ./configure --prefix=$HOME/parser3install --silent
   make
-
 
   In case configure could not find directory with your 
   SQLite client software include files, specify it with
     --with-sqlite-inc=DIR        DIR is the SQLite includes directory
   option.
-  
+
 2.What is the process to install Parser3 SQLite driver?
 
   make install
 
   Installation layout:
     $prefix/lib/
-      libparser3sqlite.x     -- driver's dynamic library
+      libparser3sqlite.so     -- driver's dynamic library
 
   NOTE:
-  make sure that Parser3 main configuration file, 
-  	$prefix/etc/auto.p
-  has in $SQL[...] configuration section a line like this:
+  make sure that Parser3 main configuration file, $prefix/bin/auto.p
+  has in $SQL[...] configuration section a tab-delimited line like this:
 
-sqlite	$sqldriversdir/libparser3sqlite.so	/usr/local/lib/sqlite/libsqlite3.so
+sqlite	$sqldriversdir/libparser3sqlite.so	libsqlite3.so
 
   which specifies 
     protocol name
@@ -42,7 +32,4 @@ sqlite	$sqldriversdir/libparser3sqlite.so	/usr/local/lib/sqlite/libsqlite3.so
     path to SQLite client 'sqlite' dynamic library
       [you sould have it from from your SQLite client installation]
 
- 
-Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
-
-$Id: INSTALL,v 1.3 2007/02/22 11:03:30 misha Exp $
+$Id: INSTALL,v 1.4 2013/07/07 16:27:48 moko Exp $

@@ -1,39 +1,29 @@
-0.Assuming your perform your builds in $D directory 
-  and suggested subdirectories.
+1.What is the process to compile Parser3 Oracle driver?
 
-1.What is the process to compile Parser3 Oracle driver? 
+  Oracle client software and include files should be installed.
+  Parser3 sources should be in ../../parser3 directory.
+  Execute the following commands:
 
-  You sould have Oracle client software and include files installed.
-
-  As most UNIX libraries Parser3 Oracle driver follows the "standard":
-
-  cd $D/parser3project
-  mkdir sql
-  cd sql
-  gunzip -c parser3oracle-x.x.tar.gz | tar xvf -
-  cd parser3oracle-x.x
   ./configure --prefix=$HOME/parser3install --silent
   make
 
-
-  In case configure could not find directories with your 
+  In case configure could not find directories with your
   Oracle client software include files, specify them with
-    --with-oracleoci-inc[=DIR]      DIR is the Oracle OCI includes directory
-    --with-oraclepublic-inc[=DIR]      DIR is the Oracle public includes directory
+    --with-oracleoci-inc=DIR      DIR is the Oracle OCI includes directory
+    --with-oraclepublic-inc=DIR      DIR is the Oracle public includes directory
   options.
-  
+
 2.What is the process to install Parser3 Oracle driver?
 
   make install
 
   Installation layout:
     $prefix/lib/
-      libparser3oracle.x     -- driver's dynamic library
+      libparser3oracle.so     -- driver's dynamic library
 
   NOTE:
-  make sure that Parser3 main configuration file, 
-  	$prefix/etc/auto.p
-  has in $SQL[...] configuration section a line like this:
+  make sure that Parser3 main configuration file, $prefix/bin/auto.p
+  has in $SQL[...] configuration section a tab-delimited line like this:
 
 oracle	$sqldriversdir/libparser3oracle.so	/u01/app/oracle/product/8.1.5/lib/libclntsh.so?ORACLE_HOME=/u01/app/oracle/product/8.1.5&ORA_NLS33=/u01/app/oracle/product/8.1.5/ocommon/nls/admin/data
 
@@ -42,11 +32,8 @@ oracle	$sqldriversdir/libparser3oracle.so	/u01/app/oracle/product/8.1.5/lib/libc
     path to Parser 'libparser3oracle' dynamic library
     path to Oracle client 'libclntsh' dynamic library
       [you sould have it from from your Oracle client installation]
-      which sould be followed by ? and parameters in form 'key=value' separated by '&'
+      which can be followed by ? and parameters in form 'key=value' separated by '&'
         ORACLE_HOME=path to your Oracle home directory
         ORA_NLS33=path to your Oracle nls directory
 
- 
-Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
-
-$Id: INSTALL,v 1.5 2007/02/19 10:56:42 misha Exp $
+$Id: INSTALL,v 1.6 2013/07/07 16:30:37 moko Exp $
