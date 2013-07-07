@@ -1,40 +1,30 @@
-0.Assuming your perform your builds in $D directory 
-  and suggested subdirectories.
+1.What is the process to compile Parser3 MySQL driver?
 
-1.What is the process to compile Parser3 MySQL driver? 
+  MySQL client software and include files should be installed.
+  Parser3 sources should be in ../../parser3 directory.
+  Execute the following commands:
 
-  You sould have MySQL client software and include files installed.
-
-  As most UNIX libraries Parser3 MySQL driver follows the "standard":
-
-  cd $D/parser3project
-  mkdir sql
-  cd sql
-  gunzip -c parser3mysql-x.x.tar.gz | tar xvf -
-  cd parser3mysql-x.x
   ./configure --prefix=$HOME/parser3install --silent
   make
 
-
-  In case configure could not find directory with your 
+  In case configure could not find directory with your
   MySQL client software include files, specify it with
     --with-mysql-inc=DIR        DIR is the MySQL includes directory
   option.
-  
+
 2.What is the process to install Parser3 MySQL driver?
 
   make install
 
   Installation layout:
     $prefix/lib/
-      libparser3mysql.x     -- driver's dynamic library
+      libparser3mysql.so     -- driver's dynamic library
 
   NOTE:
-  make sure that Parser3 main configuration file, 
-  	$prefix/etc/auto.p
-  has in $SQL[...] configuration section a line like this:
+  make sure that Parser3 main configuration file, $prefix/bin/auto.p
+  has in $SQL[...] configuration section a tab-delimited line like this:
 
-mysql	$sqldriversdir/libparser3mysql.so	/usr/local/lib/mysql/libmysqlclient.so
+mysql	$sqldriversdir/libparser3mysql.so	libmysqlclient.so
 
   which specifies 
     protocol name
@@ -42,7 +32,4 @@ mysql	$sqldriversdir/libparser3mysql.so	/usr/local/lib/mysql/libmysqlclient.so
     path to MySQL client 'libmysqlclient' dynamic library
       [you sould have it from from your MySQL client installation]
 
- 
-Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
-
-$Id: INSTALL,v 1.8 2007/02/19 10:57:04 misha Exp $
+$Id: INSTALL,v 1.9 2013/07/07 16:18:39 moko Exp $
