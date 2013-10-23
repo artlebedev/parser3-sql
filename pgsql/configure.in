@@ -24,8 +24,10 @@ AC_ARG_WITH(pgsql-inc,[  --with-pgsql-inc=DIR        DIR is the PgSql includes d
 ,
 	AC_MSG_CHECKING(for PGSQL_INC directory)
 	for d in \
-		/usr/local/include/postgresql \
+		/usr/include \
 		/usr/include/postgresql \
+		/usr/local/include \
+		/usr/local/include/postgresql \
 		/usr/local/pgsql/include ; do
 		PGSQL_INC_CHK($d)
 	done
