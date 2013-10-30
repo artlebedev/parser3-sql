@@ -1,635 +1,479 @@
-2012-06-26	moko
-	* libltdl/argz.c 1.2:
-	* libltdl/config_fixed.h 1.4:
-	* libltdl/libltdl.vcproj 1.3:
-	* libltdl/libltdl/lt__glibc.h 1.2:
-	* libltdl/ltdl.c 1.5:
-		Visual Studio compatibility, FreeBSD compatibility.
+2013-07-07  moko
 
-2012-06-15	moko
-	* parser3oracle.C 1.77:
-		bugfix: lt_dlinit() can fail, but lt_dlerror return 0, and we 
-		count 0 for success.
+	* INSTALL: INSTALL actualized
 
-2012-06-11	moko
-	* Makefile.am 1.25:
-	* configure.in 1.32:
-		shared/static libstdc++ option removed
+2013-05-28  moko
 
-2012-06-09	moko
-	* config.guess 1.3:
-	* config.sub 1.3:
-		updated from libtool 2.4.2
+	* parser3oracle.C: Oracle 11.2 client reads enviroment on library
+	  load, thus env should be set before (related to issue #929)
 
-	* depcomp 1.2:
-		depcomp updated from libtool 2.4.2
+2012-06-27  moko
 
-	* Makefile.am 1.23:
-	* Makefile.in 1.26:
-	* configure 1.27:
-	* configure.in 1.30:
-		ACLOCAL_AMFLAGS = -I libltdl/m4 added and some beauty
+	* libltdl/: argz.c, config_fixed.h, libltdl.vcproj, ltdl.c,
+	  libltdl/lt__glibc.h: Visual Studio compatibility, FreeBSD
+	  compatibility.
 
-	* libltdl/acconfig.h 1.2:
-		*** empty log message ***
+2012-06-15  moko
 
-	* Makefile.in 1.24:
-	* acinclude.m4 1.15:
-	* aclocal.m4 1.15:
-	* config_auto.h.in 1.4:
-	* configure 1.25:
-	* install-sh 1.2:
-	* ltconfig 1.2:
-	* ltmain.sh 1.3:
-	* missing 1.3:
-	* mkinstalldirs 1.3:
-		libtool updated to version 2.4.2, auto* scripts updated
+	* parser3oracle.C: bugfix: lt_dlinit() can fail, but lt_dlerror
+	  return 0, and we count 0 for success.
 
-	* libltdl/COPYING.LIB 1.2:
-	* libltdl/Makefile.am 1.9:
-	* libltdl/Makefile.in 1.10:
-	* libltdl/README 1.2:
-	* libltdl/acinclude.m4 1.4:
-	* libltdl/aclocal.m4 1.4:
-	* libltdl/argz.c 1.1:
-	* libltdl/argz_.h 1.1:
-	* libltdl/config-h.in 1.1:
-	* libltdl/config.h 1.2:
-	* libltdl/config/compile 1.1:
-	* libltdl/config/config.guess 1.1:
-	* libltdl/config/config.sub 1.1:
-	* libltdl/config/depcomp 1.1:
-	* libltdl/config/install-sh 1.1:
-	* libltdl/config/ltmain.sh 1.1:
-	* libltdl/config/missing 1.1:
-	* libltdl/config_auto.h.in 1.6:
-	* libltdl/config_fixed.h 1.3:
-	* libltdl/configure 1.4:
-	* libltdl/configure.ac 1.1:
-	* libltdl/configure.in 1.4:
-	* libltdl/libltdl.vcproj 1.2:
-	* libltdl/libltdl/lt__alloc.h 1.1:
-	* libltdl/libltdl/lt__dirent.h 1.1:
-	* libltdl/libltdl/lt__glibc.h 1.1:
-	* libltdl/libltdl/lt__private.h 1.1:
-	* libltdl/libltdl/lt__strl.h 1.1:
-	* libltdl/libltdl/lt_dlloader.h 1.1:
-	* libltdl/libltdl/lt_error.h 1.1:
-	* libltdl/libltdl/lt_system.h 1.1:
-	* libltdl/libltdl/slist.h 1.1:
-	* libltdl/loaders/dld_link.c 1.1:
-	* libltdl/loaders/dlopen.c 1.1:
-	* libltdl/loaders/dyld.c 1.1:
-	* libltdl/loaders/load_add_on.c 1.1:
-	* libltdl/loaders/loadlibrary.c 1.1:
-	* libltdl/loaders/preopen.c 1.1:
-	* libltdl/loaders/shl_load.c 1.1:
-	* libltdl/lt__alloc.c 1.1:
-	* libltdl/lt__dirent.c 1.1:
-	* libltdl/lt__strl.c 1.1:
-	* libltdl/lt_dlloader.c 1.1:
-	* libltdl/lt_error.c 1.1:
-	* libltdl/ltdl.c 1.4:
-	* libltdl/ltdl.h 1.3:
-	* libltdl/m4/argz.m4 1.1:
-	* libltdl/m4/libtool.m4 1.1:
-	* libltdl/m4/ltdl.m4 1.1:
-	* libltdl/m4/ltoptions.m4 1.1:
-	* libltdl/m4/ltsugar.m4 1.1:
-	* libltdl/m4/ltversion.m4 1.1:
-	* libltdl/m4/lt~obsolete.m4 1.1:
-	* libltdl/slist.c 1.1:
-		libtool updated to 2.4.2 version
+2012-06-12  moko
 
-	* Makefile.am 1.21:
-	* configure.in 1.28:
-		update to new libtool 2.4.2
+	* Makefile.am, configure.in: shared/static libstdc++ option removed
 
-2012-06-06	moko
-	* parser3oracle.C 1.76:
-		compiler warnings fixed:
-		-format '%u' expects type 'unsigned int', but argument has type 'long unsigned int'
+2012-06-10  moko
 
-2012-03-16	moko
-	* config_fixed.h 1.6:
-	* config_includes.h 1.5:
-	* parser3oracle.C 1.75:
-		ident now works under Linux + ident displays filenames (closes issue #818)
-		Copyright updated
+	* config.guess, config.sub: updated from libtool 2.4.2
 
-2011-07-28	moko
-	* parser3oracle.C 1.74:
-		fixes issue #451 - x64 compile errors
+	* depcomp: depcomp updated from libtool 2.4.2
 
-2010-10-27	moko
-	* parser3oracle.C 1.73:
-		new in-parser quoting implementation (fixes issue #1)
+	* Makefile.am, configure, configure.in: ACLOCAL_AMFLAGS = -I
+	  libltdl/m4 added and some beauty
 
-2009-08-23	misha
-	* configure.in 1.25:
-		- option --with-dynamic-stdcpp was added
-		- default (static) linking options were slightly modified
+2012-06-09  moko
 
-2008-07-08	misha
-	* parser3oracle.C 1.72:
-		- if limit/offset specified modify query (use ROWNUM in two different ways)
-		- with new option DisableQueryModification=1 in connect string this query modification can be 
-		switched off
+	* acinclude.m4, aclocal.m4, config_auto.h.in, configure,
+	  install-sh, ltconfig, ltmain.sh, missing, mkinstalldirs: libtool
+	  updated to version 2.4.2, auto* scripts updated
 
-2008-07-07	misha
-	* configure 1.22:
-	* configure.in 1.24:
-	* parser3oracle.C 1.71:
-		*** empty log message ***
+	* libltdl/: COPYING.LIB, Makefile.am, README, acinclude.m4,
+	  aclocal.m4, argz.c, argz_.h, config-h.in, config.h,
+	  config_auto.h.in, config_fixed.h, configure, configure.ac,
+	  configure.in, libltdl.vcproj, lt__alloc.c, lt__dirent.c,
+	  lt__strl.c, lt_dlloader.c, lt_error.c, ltdl.c, ltdl.h, slist.c,
+	  config/compile, config/config.guess, config/config.sub,
+	  config/depcomp, config/install-sh, config/ltmain.sh,
+	  config/missing, libltdl/lt__alloc.h, libltdl/lt__dirent.h,
+	  libltdl/lt__glibc.h, libltdl/lt__private.h, libltdl/lt__strl.h,
+	  libltdl/lt_dlloader.h, libltdl/lt_error.h, libltdl/lt_system.h,
+	  libltdl/slist.h, loaders/dld_link.c, loaders/dlopen.c,
+	  loaders/dyld.c, loaders/load_add_on.c, loaders/loadlibrary.c,
+	  loaders/preopen.c, loaders/shl_load.c, m4/argz.m4, m4/libtool.m4,
+	  m4/ltdl.m4, m4/ltoptions.m4, m4/ltsugar.m4, m4/ltversion.m4,
+	  m4/lt~obsolete.m4: libtool updated to 2.4.2 version
 
-2008-06-30	misha
-	* parser3oracle.C 1.69:
-		- $.limit(0) fix + some transcode calls optimisation
+	* Makefile.am, configure.in: update to new libtool 2.4.2
 
-2007-02-13	misha
-	* parser3oracle.C 1.68:
-		- bug with incorrect processing escaped symbols in clobs was 
-		fixed
+2012-06-06  moko
 
-2004-12-23	paf
-	* parser3oracle.C 1.67:
-		sql connect string, rsplit @
+	* parser3oracle.C: compiler warnings fixed: -format '%u' expects
+	  type 'unsigned int', but argument has type 'long unsigned int'
 
-2004-10-11	paf
-	* parser3oracle.C 1.66:
-		bugfix: empty bind param now passed OK [were not changing bind 
-		buffer value]
+2012-03-16  moko
 
-2004-10-07	paf
-	* parser3oracle.C 1.65:
-		bugfix: output value of bind var now cloned out from bind 
-		buffers
+	* config_fixed.h, config_includes.h, parser3oracle.C: ident now
+	  works under Linux + ident displays filenames (closes issue #818)
+	  Copyright updated
 
-2004-08-03	paf
-	* parser3oracle.C 1.63:
-		bugfix: empty input variables can be replaced by output
-		[forgot to allocate proper buffer, oracle _server_ died with
-		kgepop: no error frame to pop to for error 21500
-		message]
+2011-07-28  moko
 
-2004-07-28	paf
-	* parser3oracle.C 1.62:
-		bugfix: isspace((unsigned char)c) everywhere. failed on russian 
-		letters
+	* parser3oracle.C: fixes issue #451 - x64 compile errors
 
-2004-06-22	paf
-	* parser3oracle.C 1.61:
-	* parser3oracle.vcproj 1.3:
-		new:
-			^void:sql{call paf(:a)}[
-				$.bind[
-					$.a[2]
-				]
-			]
-		output variables work.
-		todo: check in out variables
+2010-10-28  moko
 
-2004-06-18	paf
-	* parser3oracle.C 1.60:
-		started:
-			^void:sql{call paf(:a)}[
-				$.bind[
-					$.a[2]
-				]
-			]
-		input variables work.
-		todo:output
+	* parser3oracle.C: new in-parser quoting implementation (fixes
+	  issue #1)
 
-	* parser3oracle.C 1.59:
-		change: "returning" placeholders now bound by name
-		[preparing to general placeholders]
+2009-08-23  misha
 
-2004-05-28	paf
-	* Makefile.in 1.15:
-	* configure 1.15:
-	* configure.in 1.17:
-		bugfix: configure.in language to compile tests set to C (were c++
-		)
+	* configure.in: - option --with-dynamic-stdcpp was added - default
+	  (static) linking options were slightly modified
+
+2008-07-08  misha
+
+	* parser3oracle.C: - if limit/offset specified modify query (use
+	  ROWNUM in two different ways) - with new option
+	  DisableQueryModification=1 in connect string this query
+	  modification can be switched off
+
+2008-06-30  misha
+
+	* parser3oracle.C: - $.limit(0) fix + some transcode calls
+	  optimisation
+
+2007-02-13  misha
+
+	* parser3oracle.C: - bug with incorrect processing escaped symbols
+	  in clobs was fixed
+
+2004-12-23  paf
+
+	* parser3oracle.C: sql connect string, rsplit @
+
+2004-10-11  paf
+
+	* parser3oracle.C: bugfix: empty bind param now passed OK [were not
+	  changing bind buffer value]
+
+2004-10-07  paf
+
+	* parser3oracle.C: bugfix: output value of bind var now cloned out
+	  from bind buffers
+
+2004-08-03  paf
+
+	* parser3oracle.C: bugfix: empty input variables can be replaced by
+	  output [forgot to allocate proper buffer, oracle _server_ died
+	  with kgepop: no error frame to pop to for error 21500 message]
+
+2004-07-28  paf
+
+	* parser3oracle.C: bugfix: isspace((unsigned char)c) everywhere.
+	  failed on russian letters
+
+2004-06-22  paf
+
+	* parser3oracle.C, parser3oracle.vcproj: new:	^void:sql{call
+	  paf(:a)}[		   $.bind[			   $.a[2]
+		 ]	 ] output variables work.  todo: check in out
+	  variables
+
+2004-06-18  paf
+
+	* parser3oracle.C: started:	^void:sql{call paf(:a)}[
+	  $.bind[			      $.a[2]	      ]       ]
+	  input variables work.  todo:output
+
+	* parser3oracle.C: change: "returning" placeholders now bound by
+	  name [preparing to general placeholders]
+
+2004-05-28  paf
+
+	* configure, configure.in: bugfix: configure.in language to compile
+	  tests set to C (were c++)
 
 2004-05-25  paf
-	* parser3oracle.C 1.58:
-		bugfix: connection struct allocated from gc mem, so that
-		pointers to parts of connect url would be known to libgc [they
-		were mistakenly freed]
+
+	* parser3oracle.C: bugfix: connection struct allocated from gc mem,
+	  so that pointers to parts of connect url would be known to libgc
+	  [they were mistakenly freed]
 
 2004-05-19  paf
-	* parser3oracle.C 1.56:
-		bugfix: connection struct were allocated in services memory, 
-		which were connected with request
 
-	* parser3oracle.C 1.57:
-		bugfix: of several clobs per insert/update were properly
-		processed only last, others became empty
+	* parser3oracle.C: bugfix: of several clobs per insert/update were
+	  properly processed only last, others became empty
+
+	* parser3oracle.C: bugfix: connection struct were allocated in
+	  services memory, which were connected with request
 
 2004-03-30  paf
-	* parser3oracle.C 1.55:
-		merged bugfixes from 3.1.2
+
+	* parser3oracle.C: merged bugfixes from 3.1.2
 
 2004-03-26  paf
-	* parser3oracle.C 1.54:
-		cstrClientCharset localized
 
-	* parser3oracle.C [release_3_1_2] 1.53.2.1:
-		beauty: merged from HEAD
+	* parser3oracle.C: beauty: merged from HEAD
+
+	* parser3oracle.C: cstrClientCharset localized
 
 2004-03-04  paf
-	* parser3oracle.C 1.52:
-		beauty: static to hide some minor helper funcs from linker
 
-	* parser3oracle.C 1.53:
-		beauty: needless temp vars removed
+	* parser3oracle.C: beauty: needless temp vars removed
+
+	* parser3oracle.C: beauty: static to hide some minor helper funcs
+	  from linker
 
 2004-03-02  paf
-	* parser3oracle.C 1.51:
-		feature: ?..&LowerCaseColumnNames=0&ClientCharset=something
-		column names got transcoded to $request:charset too [were only
-		column data]
+
+	* parser3oracle.C: feature:
+	  ?..&LowerCaseColumnNames=0&ClientCharset=something column names
+	  got transcoded to $request:charset too [were only column data]
 
 2004-01-30  paf
-	* parser3oracle.C 1.50:
-		style:
+
+	* parser3oracle.C: style:
 
 2004-01-26  paf
-	* parser3oracle.C 1.49:
-		beauty: renamed cs to connection & class too
+
+	* parser3oracle.C: beauty: renamed cs to connection & class too
 
 2003-12-24  paf
-	* parser3oracle.vcproj 1.2:
-		beauty: all warnings on, found one minor bug
 
-	* parser3oracle.C 1.45:
-		bugfix: clob now read fully [were truncated]. oracle api is
-		somewhat tricky
+	* parser3oracle.C: comment: about not needing to free handles
 
-	* parser3oracle.C 1.46:
-		better: column fetch buffer cached as allocated [per connection]
+	* parser3oracle.C: bugfix: fetch_buffers allocated with ::malloc so
+	  that they would not be collected by gc [freed at disconnect]
 
-	* parser3oracle.C 1.47:
-		bugfix: fetch_buffers allocated with ::malloc so that they
-		would not be collected by gc [freed at disconnect]
+	* parser3oracle.C: better: column fetch buffer cached as allocated
+	  [per connection]
 
-	* parser3oracle.C 1.48:
-		comment: about not needing to free handles
+	* parser3oracle.C: bugfix: clob now read fully [were truncated].
+	  oracle api is somewhat tricky
+
+	* parser3oracle.vcproj: beauty: all warnings on, found one minor
+	  bug
 
 2003-12-23  paf
-	* parser3oracle.C 1.44:
-		bugfix: LocalCharset now case insensitive
+
+	* parser3oracle.C: bugfix: LocalCharset now case insensitive
 
 2003-12-22  paf
-	* parser3oracle.C 1.42:
-		feature: introducing ?ClientCharset=parser_charset
-		charset in which parser thinks client works
 
-	* parser3oracle.C 1.43:
-		bugfix: if ?ClientCharset not defined typo error caused no
-		letters in result
+	* parser3oracle.C: bugfix: if ?ClientCharset not defined typo error
+	  caused no-letters in result
+
+	* parser3oracle.C: feature: introducing
+	  ?ClientCharset=parser_charset charset in which parser thinks
+	  client works
 
 2003-12-15  paf
-	* parser3oracle.C 1.41:
-		two bob in one operation never worked?
+
+	* parser3oracle.C: two bob in one operation never worked?
 
 2003-10-30  paf
-	* parser3oracle.C 1.40:
-		potential-bug fix: ODIDefine def field were not cleared
-		http://i2/tasks/edit/?id=4584951251464180531
+
+	* parser3oracle.C: potential-bug fix: ODIDefine def field were not
+	  cleared http://i2/tasks/edit/?id=4584951251464180531
 
 2003-10-28  paf
-	* parser3oracle.C 1.38:
-		bugfix: lowercase zero terminated
 
-	* parser3oracle.C 1.39:
-		added option: &LowerCaseColumnNames=0 [deafult=1]
+	* parser3oracle.C: added option: &LowerCaseColumnNames=0
+	  [deafult=1]
+
+	* parser3oracle.C: bugfix: lowercase zero terminated
 
 2003-10-24  paf
-	* Makefile.am 1.10:
-		sln
 
-	* libltdl/Makefile.am 1.8:
-	* libltdl/Makefile.in 1.9:
-	* libltdl/config_auto.h.in 1.5:
-	* parser3oracle.sln 1.1:
-		*** empty log message ***
+	* Makefile.am: sln
 
 2003-10-07  paf
-	* parser3oracle.C 1.37:
-		simplified tolower,
-		naming changed a little
+
+	* parser3oracle.C: simplified tolower, naming changed a little
 
 2003-10-02  paf
-	* parser3oracle.C 1.36:
-		merged bugfix: name were not zeroterminated
 
-	* parser3oracle.C [release_3_1_0] 1.32.4.1:
-		bugfix: name were not zero-terminated
+	* parser3oracle.C: merged bugfix: name were not zeroterminated
+
+	* parser3oracle.C: bugfix: name were not zero-terminated
 
 2003-09-29  paf
-	* parser3oracle.C 1.34:
-		'/**xxx' situation were not handled
 
-	* parser3oracle.C 1.35:
-		fix: very old bug: wrong quote escaping
+	* parser3oracle.C: fix: very old bug: wrong quote escaping
+
+	* parser3oracle.C: '/**xxx' situation were not handled
 
 2003-08-19  paf
-	* parser3oracle.C 1.33:
-		malloc_atomic changed to malloc
+
+	* parser3oracle.C: malloc_atomic changed to malloc
 
 2003-08-18  paf
-	* libltdl/libltdl.dsp 1.4:
-	* parser3oracle.dsp 1.5:
-	* parser3oracle.dsw 1.5:
-		moved to MSVC 7
 
-	* Makefile.in 1.12:
-	* configure 1.12:
-	* configure.in 1.14:
-	* libltdl/Makefile.am 1.7:
-	* libltdl/Makefile.in 1.8:
-		merged 3.1.0 latest changes
+	* parser3oracle.dsp, parser3oracle.dsw, libltdl/libltdl.dsp: moved
+	  to MSVC 7
+
+	* ChangeLog, configure, configure.in, libltdl/Makefile.am: merged
+	  3.1.0 latest changes
 
 2003-08-11  paf
-	* libltdl/Makefile.am [release_3_1_0] 1.6.4.1:
-	* libltdl/Makefile.in [release_3_1_0] 1.7.4.1:
-		config.h dist
 
-	* libltdl/Makefile.am [release_3_0_8] 1.5.2.1:
-	* libltdl/Makefile.in [release_3_0_8] 1.6.2.1:
-		config.h
+	* libltdl/Makefile.am: config.h dist
+
+	* libltdl/Makefile.am: config.h
 
 2003-07-24  paf
-	* Makefile.in 1.11:
-	* libltdl/Makefile.am 1.6:
-	* libltdl/Makefile.in 1.7:
-	* libltdl/config_auto.h.in 1.4:
-	* parser3oracle.C 1.32:
-		moved tempate_gc to HEAD
 
-	* parser3oracle.dsp [release_3_0_8] 1.4.8.1:
-		commented out apache restarting
+	* parser3oracle.C, libltdl/Makefile.am, libltdl/config_auto.h.in:
+	  moved tempate_gc to HEAD
+
+	* parser3oracle.dsp, ChangeLog: commented out apache restarting
 
 2003-07-23  paf
-	* parser3oracle.C [template_gc] 1.29.6.2:
-		updated to interface v8
+
+	* parser3oracle.C: updated to interface v8
 
 2003-06-17  paf
-	* parser3oracle.C 1.31:
-		queries with more then one /**xxx**/  had more problems. fixed.
 
-	* parser3oracle.C 1.30:
-		typo error from very start fixed
-		were problems with queries with more then one /**xxx**/
+	* parser3oracle.C: queries with more then one /**xxx**/  had more
+	  problems. fixed.
+
+	* parser3oracle.C: typo error from very start fixed were problems
+	  with queries with more then one /**xxx**/
 
 2003-06-04  paf
-	* Makefile.in 1.10:
-	* libltdl/Makefile.am 1.5:
-	* libltdl/Makefile.in 1.6:
-	* libltdl/config_auto.h.in 1.3:
-		libltdl/config.h added to make dist
+
+	* libltdl/: Makefile.am, config_auto.h.in: libltdl/config.h added
+	  to make dist
 
 2003-03-26  paf
-	* parser3oracle.C [template_gc] 1.29.6.1:
-		mistakenly patched HEAD branch. copying changes to template_gc one
+
+	* parser3oracle.C: mistakenly patched HEAD branch. copying changes
+	  to template_gc one
 
 2003-01-21  paf
-	* config_fixed.h 1.5:
-	* config_includes.h 1.4:
-	* parser3oracle.C 1.29:
-		2002->2003
+
+	* config_fixed.h, config_includes.h, parser3oracle.C: 2002->2003
 
 2003-01-14  paf
-	* libltdl/config_fixed.h 1.2:
-	* libltdl/libltdl.dsp 1.3:
-	* libltdl/ltdl.c 1.3:
-	* parser3oracle.dsp 1.4:
-	* parser3oracle.dsw 1.4:
-		ltdl copied to all sql drivers, VS projects libltdl_mysql
-		renamed to libltdl
+
+	* parser3oracle.dsp, parser3oracle.dsw, libltdl/config_fixed.h,
+	  libltdl/libltdl.dsp, libltdl/ltdl.c: ltdl copied to all sql
+	  drivers, VS projects libltdl_mysql renamed to libltdl
 
 2003-01-13  paf
-	* config.guess 1.2:
-	* config.sub 1.2:
-	* config_auto.h.in 1.3:
-	* depcomp 1.1:
-	* libltdl/COPYING.LIB 1.1:
-	* libltdl/Makefile.am 1.4:
-	* libltdl/Makefile.in 1.5:
-	* libltdl/acinclude.m4 1.3:
-	* libltdl/aclocal.m4 1.3:
-	* libltdl/config_auto.h.in 1.2:
-	* libltdl/configure 1.3:
-	* libltdl/configure.in 1.3:
-	* libltdl/libltdl.dsp 1.2:
-	* libltdl/ltdl.c 1.2:
-	* libltdl/ltdl.h 1.2:
-	* ltmain.sh 1.2:
-		moved to latest libtool (1.4.3)
 
-	* missing 1.2:
-	* mkinstalldirs 1.2:
-		*** empty log message ***
+	* config.guess, config.sub, config_auto.h.in, depcomp, ltmain.sh,
+	  libltdl/COPYING.LIB, libltdl/Makefile.am, libltdl/acinclude.m4,
+	  libltdl/aclocal.m4, libltdl/config_auto.h.in, libltdl/configure,
+	  libltdl/configure.in, libltdl/libltdl.dsp, libltdl/ltdl.c,
+	  libltdl/ltdl.h: moved to latest libtool (1.4.3)
 
 2002-12-15  paf
-	* configure.in [release_3_0_0006] 1.11.2.1:
-		r6
+
+	* configure.in: r6
+
+	* ChangeLog: changelog updated
 
 2002-12-09  paf
-	* parser3oracle.C 1.27:
-		changed exception handling mech in sql handlers #2
 
-	* parser3oracle.C 1.24:
-		ifdef HAVE_SETENV const char bug fixed
+	* parser3oracle.C: changed exception handling mech in sql handlers
+	  #2
 
-	* parser3oracle.C 1.25:
-	* parser3oracle.C 1.26:
-	* parser3oracle.dsp 1.3:
-	* parser3oracle.dsw 1.3:
-		changed exception handling mech in sql handlers
+	* parser3oracle.C: changed exception handling mech in sql handlers
+
+	* parser3oracle.C, parser3oracle.dsp, parser3oracle.dsw: changed
+	  exception handling mech in sql handlers
+
+	* parser3oracle.C: ifdef HAVE_SETENV const char bug fixed
 
 2002-11-28  paf
-	* configure.in 1.11:
-		removed double libltdl/Makefile generation
+
+	* configure.in: removed double libltdl/Makefile generation
 
 2002-10-31  paf
-	* parser3oracle.C 1.21:
-		OCI_SUCCESS_WITH_INFO described
 
-	* parser3oracle.C 1.23:
-		OCI_SUCCESS_WITH_INFO considered SUCCESS
+	* parser3oracle.C: OCI_SUCCESS_WITH_INFO considered SUCCESS
 
-	* parser3oracle.C 1.22:
-		OCI_SUCCESS_WITH_INFO considered OK
+	* parser3oracle.C: OCI_SUCCESS_WITH_INFO considered OK
+
+	* parser3oracle.C: OCI_SUCCESS_WITH_INFO described
 
 2002-10-22  paf
-	* parser3oracle.C 1.20:
-		style changes
+
+	* parser3oracle.C: style changes
 
 2002-10-07  paf
-	* INSTALL 1.3:
-		INSTALL files changed to include sql/ subdir creation
+
+	* INSTALL: INSTALL files changed to include sql/ subdir creation
 
 2002-08-02  paf
-	* configure 1.8:
-	* configure.in 1.10:
-		configure version HEAD
 
-	* configure 1.7:
-		*** empty log message ***
-
-2002-06-04  paf
-	* Makefile.am 1.6:
-	* Makefile.am [release_1_0_0001] 1.5.2.1:
-	* Makefile.in 1.6:
-	* Makefile.in [release_1_0_0001] 1.5.2.1:
-		*** empty log message ***
+	* configure, configure.in: configure version HEAD
 
 2002-06-03  paf
-	* parser3oracle.dsp 1.2:
-		fixed .dsp-s along with reorganized cvs modules dirs structure
 
-	* parser3oracle.dsp [release_1_0_0001] 1.1.1.1.2.1:
-		reorganized cvs modules
+	* parser3oracle.dsp: fixed .dsp-s along with reorganized cvs
+	  modules dirs structure
+
+	* parser3oracle.dsp: reorganized cvs modules
 
 2002-02-08  paf
-	* Makefile.am 1.5:
-	* Makefile.in 1.5:
-	* libltdl/Makefile.am 1.3:
-	* libltdl/Makefile.in 1.4:
-	* libltdl/libltdl.dsp 1.1:
-	* libltdl/libltdl_oracle.dsp 1.2:
-	* parser3oracle.dsw 1.2:
-		libltdl.dsp now
 
-	* config_fixed.h 1.4:
-	* config_includes.h 1.3:
-	* parser3oracle.C 1.18:
-		2002
+	* AUTHORS, COPYING, ChangeLog, INSTALL, README: install&others
+	  updated
 
-	* configure 1.5:
-	* configure.in 1.7:
-	* libltdl/Makefile.am 1.2:
-	* libltdl/Makefile.in 1.3:
-	* libltdl/acconfig.h 1.1:
-	* libltdl/acinclude.m4 1.2:
-	* libltdl/aclocal.m4 1.2:
-	* libltdl/configure 1.2:
-	* libltdl/configure.in 1.2:
-		removed static lib generation,
-		removed double libtool generation
+	* configure, configure.in: package name & version
 
-	* configure 1.6:
-	* configure.in 1.8:
-		package name & version
+	* Makefile.am, parser3oracle.dsw, libltdl/Makefile.am,
+	  libltdl/libltdl.dsp, libltdl/libltdl_oracle.dsp: libltdl.dsp now
 
-	* AUTHORS 1.2:
-	* COPYING 1.2:
-	* INSTALL 1.2:
-	* README 1.2:
-		install&others updated
+	* parser3oracle.C: name spelling
 
-	* parser3oracle.C 1.19:
-		name spelling
+	* configure, configure.in, libltdl/Makefile.am, libltdl/acconfig.h,
+	  libltdl/acinclude.m4, libltdl/aclocal.m4, libltdl/configure,
+	  libltdl/configure.in: removed static lib generation, removed
+	  double libtool generation
 
-2001-11-24  paf
-	* aclocal.m4 1.1:
-		*** empty log message ***
+	* config_fixed.h, config_includes.h, parser3oracle.C: 2002
 
 2001-11-19  paf
-	* parser3oracle.C 1.17:
-		isspace
 
-	* parser3oracle.C 1.16:
-		removed leading whitespace before comparing to 'select...
+	* parser3oracle.C: isspace
+
+	* parser3oracle.C: removed leading whitespace before comparing to
+	  'select...
 
 2001-11-16  paf
-	* parser3oracle.C 1.15:
-		introducing estimating String::cstr_bufsize, 0
+
+	* parser3oracle.C: introducing estimating String::cstr_bufsize, 0
 
 2001-11-14  paf
-	* parser3oracle.C 1.10:
-		+= env param types now. for win32 PATH+=
 
-	* parser3oracle.C 1.11:
-		found quote bug - wrong result
+	* parser3oracle.C: removed \ unescaping
 
-	* parser3oracle.C 1.12:
-		removed return [enabled actuall disconnect]
+	* config_auto.h.in, configure: configure
 
-	* parser3oracle.C 1.13:
-		removed \ escaping, not needed actually
+	* parser3oracle.C: removed \ escaping, not needed actually
 
-	* config_auto.h.in 1.2:
-	* configure 1.4:
-		configure
+	* parser3oracle.C: removed return [enabled actuall disconnect]
 
-	* parser3oracle.C 1.14:
-		removed \ unescaping
+	* parser3oracle.C: found quote bug - wrong result
+
+	* parser3oracle.C: += env param types now. for win32 PATH+=
 
 2001-11-13  paf
-	* parser3oracle.C 1.6:
-		@todo ?objects=1 which would turn on OCI_OBJECT init flag
 
-	* parser3oracle.C 1.8:
-		forgot ! for not null :)
+	* parser3oracle.C: prefetching 100rows+100Ksize
 
-	* parser3oracle.C 1.9:
-		prefetching 100rows+100Ksize
+	* parser3oracle.C: forgot ! for not null :)
 
-	* parser3oracle.C 1.7:
-		null lob never cleared ptr&size = were copy of prev column
+	* parser3oracle.C: null lob never cleared ptr&size = were copy of
+	  prev column
+
+	* parser3oracle.C: @todo ?objects=1 which would turn on OCI_OBJECT
+	  init flag
 
 2001-11-11  paf
-	* parser3oracle.C 1.5:
-		@test
+
+	* parser3oracle.C: @test
 
 2001-11-10  paf
-	* Makefile.in 1.4:
-	* libltdl/Makefile.in 1.2:
-		makes
 
-	* parser3oracle.C 1.3:
-		column count bug [+1]
+	* config_fixed.h, configure.in, parser3oracle.C: setenv for env
+	  strings
 
-	* config_fixed.h 1.3:
-	* configure.in 1.6:
-	* parser3oracle.C 1.4:
-		setenv for env strings
+	* parser3oracle.C: column count bug [+1]
 
 2001-11-08  paf
-	* Makefile.am 1.4:
-		lib prefix
+
+	* Makefile.am: lib prefix
 
 2001-10-30  paf
-	* configure.in 1.5:
-		rtti needed on solaris for exceptions to work OK, removing -fno
-		rtti from everywhere
 
-	* configure 1.3:
-		makes
+	* configure: makes
+
+	* configure.in: rtti needed on solaris for exceptions to work OK,
+	  removing -fno-rtti from everywhere
 
 2001-10-29  paf
-	* config_fixed.h 1.2:
-	* config_includes.h 1.2:
-	* configure.in 1.4:
-		setjump
+
+	* config_fixed.h, config_includes.h, configure.in: setjump
 
 2001-10-28  paf
-	* configure.in 1.3:
-	* parser3oracle.C 1.2:
-		conf
+
+	* configure.in, parser3oracle.C: conf
 
 2001-09-25  parser
-	* Makefile.am 1.3:
-	* Makefile.in 1.3:
-	* configure 1.2:
-	* configure.in 1.2:
-		makes
+
+	* configure: makes
+
+	* Makefile.am, configure.in: makes
 
 2001-09-24  parser
-	* Makefile.am 1.2:
-	* Makefile.in 1.2:
-		makes
+
+	* Makefile.am: makes
+
+2001-09-21  parser
+
+	* AUTHORS, COPYING, ChangeLog, INSTALL, Makefile.am, NEWS, README,
+	  acinclude.m4, config.guess, config.sub, config_auto.h.in,
+	  config_fixed.h, config_includes.h, configure, configure.in,
+	  install-sh, ltconfig, ltmain.sh, missing, mkinstalldirs,
+	  parser3oracle.C, parser3oracle.def, parser3oracle.dsp,
+	  parser3oracle.dsw, libltdl/Makefile.am, libltdl/README,
+	  libltdl/acinclude.m4, libltdl/aclocal.m4, libltdl/config.h,
+	  libltdl/config_auto.h.in, libltdl/config_fixed.h,
+	  libltdl/configure, libltdl/configure.in,
+	  libltdl/libltdl_oracle.dsp, libltdl/ltdl.c, libltdl/ltdl.h:
+	  Initial revision
 
