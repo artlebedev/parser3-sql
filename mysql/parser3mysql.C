@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.46 2013/07/07 16:58:25 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.47 2015/07/28 17:10:57 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -147,7 +147,7 @@ public:
 	/**	connect
 		@param url
 			format: @b user:pass@host[:port]|[/unix/socket]/database?
-				charset=value&	// transcode by server with command 'SET CHARACTER SET value'
+				charset=value&	// transcode by server with command 'SET NAMES value'
 				ClientCharset=charset&	// transcode by parser
 				timeout=3&
 				compress=0&
@@ -263,7 +263,7 @@ public:
 		}
 
 		if(charset){
-			char statement[MAX_STRING+1]="SET CHARACTER SET ";
+			char statement[MAX_STRING+1]="SET NAMES ";
 			strncat(statement, charset, MAX_STRING);
 			_exec(connection, statement);
 		}
