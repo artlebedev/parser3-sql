@@ -49,7 +49,7 @@ am__aclocal_m4_deps = $(top_srcdir)/libltdl/m4/argz.m4 \
 	$(top_srcdir)/libltdl/m4/ltsugar.m4 \
 	$(top_srcdir)/libltdl/m4/ltversion.m4 \
 	$(top_srcdir)/libltdl/m4/lt~obsolete.m4 \
-	$(top_srcdir)/configure.in
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
@@ -294,7 +294,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = libltdl
 ACLOCAL_AMFLAGS = -I libltdl/m4
-INCLUDES = -I../../parser3/src/sql $(INCLTDL) -I$(SQLITE_INC)
+AM_CPPFLAGS = -I../../parser3/src/sql $(INCLTDL) -I$(SQLITE_INC)
 noinst_HEADERS = config_includes.h
 lib_LTLIBRARIES = libparser3sqlite.la
 libparser3sqlite_la_SOURCES = parser3sqlite.C
@@ -873,7 +873,7 @@ commit:
 #	trick to make 'make' happy at check out time
 #	and avoid redundant remaking: aclocal+autoconf+automake
 
-	cvs commit -m "no message" -f aclocal.m4 Makefile.am Makefile.in configure.in configure config_auto.h.in
+	cvs commit -m "no message" -f aclocal.m4 Makefile.am Makefile.in configure.ac configure config_auto.h.in
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

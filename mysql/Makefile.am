@@ -1,7 +1,7 @@
 SUBDIRS = libltdl
 ACLOCAL_AMFLAGS = -I libltdl/m4
 
-INCLUDES = -I../../parser3/src/sql $(INCLTDL) -I$(MYSQL_INC)
+AM_CPPFLAGS = -I../../parser3/src/sql $(INCLTDL) -I$(MYSQL_INC)
 
 noinst_HEADERS = config_includes.h
 lib_LTLIBRARIES = libparser3mysql.la
@@ -15,4 +15,4 @@ commit:
 #	trick to make 'make' happy at check out time
 #	and avoid redundant remaking: aclocal+autoconf+automake
 
-	cvs commit -m "no message" -f aclocal.m4 Makefile.am Makefile.in configure.in configure config_auto.h.in
+	cvs commit -m "no message" -f aclocal.m4 Makefile.am Makefile.in configure.am configure config_auto.h.in
