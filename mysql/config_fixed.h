@@ -1,11 +1,11 @@
 /** @file
 	Parser MySQL driver: Configure file for autoconf-disabled platforms.
 
-	Copyright (c) 2001-2012 Art. Lebedev Studio (http://www.artlebedev.com)
+	Copyright (c) 2001-2015 Art. Lebedev Studio (http://www.artlebedev.com)
 
 	Author: Alexander Petrosyan <paf@design.ru> (http://design.ru/paf)
 
-	$Id: config_fixed.h,v 1.7 2012/03/16 10:05:03 moko Exp $
+	$Id: config_fixed.h,v 1.8 2015/10/26 16:00:50 moko Exp $
 
 
 	tested only with MS Visual C++ V6

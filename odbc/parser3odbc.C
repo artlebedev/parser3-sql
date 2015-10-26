@@ -1,7 +1,7 @@
 /** @file
 	Parser ODBC driver.
 
-	Copyright (c) 2001-2012 Art. Lebedev Studio (http://www.artlebedev.com)
+	Copyright (c) 2001-2015 Art. Lebedev Studio (http://www.artlebedev.com)
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 */
@@ -20,7 +20,7 @@
 #define WINVER 0x0400
 #include <AFXDB.H>
 
-volatile const char * IDENT_PARSER3ODBC_C="$Id: parser3odbc.C,v 1.40 2012/06/06 14:50:09 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3ODBC_C="$Id: parser3odbc.C,v 1.41 2015/10/26 16:00:50 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // defines
 

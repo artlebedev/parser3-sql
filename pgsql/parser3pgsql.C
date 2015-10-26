@@ -1,7 +1,7 @@
 /** @file
 	Parser PgSQL driver.
 
-	Copyright (c) 2001-2012 Art. Lebedev Studio (http://www.artlebedev.com)
+	Copyright (c) 2001-2015 Art. Lebedev Studio (http://www.artlebedev.com)
 
 	Author: Alexandr Petrosian <paf@design.ru> (http://paf.design.ru)
 
@@ -15,7 +15,7 @@
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 
-volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.43 2012/10/19 04:15:47 misha Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.44 2015/10/26 16:00:51 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // from catalog/pg_type.h
 #define BOOLOID			16
