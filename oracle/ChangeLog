@@ -1,7 +1,7 @@
 2015-10-26  moko
 
-	* Makefile.am, Makefile.in, config_auto.h.in: warning war:
-	  configure.in -> configure.ac, INCLUDES -> AM_CPPFLAGS
+	* Makefile.am, config_auto.h.in: warning war: configure.in ->
+	  configure.ac, INCLUDES -> AM_CPPFLAGS
 
 	* config_fixed.h, config_includes.h, parser3oracle.C: Copyright
 	  year updated
@@ -36,18 +36,17 @@
 
 	* depcomp: depcomp updated from libtool 2.4.2
 
-	* Makefile.am, Makefile.in, configure, configure.in:
-	  ACLOCAL_AMFLAGS = -I libltdl/m4 added and some beauty
+	* Makefile.am, configure, configure.in: ACLOCAL_AMFLAGS = -I
+	  libltdl/m4 added and some beauty
 
 2012-06-09  moko
 
-	* Makefile.in, acinclude.m4, aclocal.m4, config_auto.h.in,
-	  configure, install-sh, ltconfig, ltmain.sh, missing,
-	  mkinstalldirs: libtool updated to version 2.4.2, auto* scripts
-	  updated
+	* acinclude.m4, aclocal.m4, config_auto.h.in, configure,
+	  install-sh, ltconfig, ltmain.sh, missing, mkinstalldirs: libtool
+	  updated to version 2.4.2, auto* scripts updated
 
-	* libltdl/: COPYING.LIB, Makefile.am, Makefile.in, README,
-	  acinclude.m4, aclocal.m4, argz.c, argz_.h, config-h.in, config.h,
+	* libltdl/: COPYING.LIB, Makefile.am, README, acinclude.m4,
+	  aclocal.m4, argz.c, argz_.h, config-h.in, config.h,
 	  config_auto.h.in, config_fixed.h, configure, configure.ac,
 	  configure.in, libltdl.vcproj, lt__alloc.c, lt__dirent.c,
 	  lt__strl.c, lt_dlloader.c, lt_error.c, ltdl.c, ltdl.h, slist.c,
@@ -149,8 +148,8 @@
 
 2004-05-28  paf
 
-	* Makefile.in, configure, configure.in: bugfix: configure.in
-	  language to compile tests set to C (were c++)
+	* configure, configure.in: bugfix: configure.in language to compile
+	  tests set to C (were c++)
 
 2004-05-25  paf
 
@@ -271,21 +270,19 @@
 	* parser3oracle.dsp, parser3oracle.dsw, libltdl/libltdl.dsp: moved
 	  to MSVC 7
 
-	* ChangeLog, Makefile.in, configure, configure.in,
-	  libltdl/Makefile.am, libltdl/Makefile.in: merged 3.1.0 latest
-	  changes
+	* ChangeLog, configure, configure.in, libltdl/Makefile.am: merged
+	  3.1.0 latest changes
 
 2003-08-11  paf
 
-	* libltdl/: Makefile.am, Makefile.in: config.h dist
+	* libltdl/Makefile.am: config.h dist
 
-	* libltdl/: Makefile.am, Makefile.in: config.h
+	* libltdl/Makefile.am: config.h
 
 2003-07-24  paf
 
-	* Makefile.in, parser3oracle.C, libltdl/Makefile.am,
-	  libltdl/Makefile.in, libltdl/config_auto.h.in: moved tempate_gc
-	  to HEAD
+	* parser3oracle.C, libltdl/Makefile.am, libltdl/config_auto.h.in:
+	  moved tempate_gc to HEAD
 
 	* parser3oracle.dsp, ChangeLog: commented out apache restarting
 
@@ -303,8 +300,8 @@
 
 2003-06-04  paf
 
-	* Makefile.in, libltdl/Makefile.am, libltdl/Makefile.in,
-	  libltdl/config_auto.h.in: libltdl/config.h added to make dist
+	* libltdl/: Makefile.am, config_auto.h.in: libltdl/config.h added
+	  to make dist
 
 2003-03-26  paf
 
@@ -324,9 +321,8 @@
 2003-01-13  paf
 
 	* config.guess, config.sub, config_auto.h.in, depcomp, ltmain.sh,
-	  libltdl/COPYING.LIB, libltdl/Makefile.am, libltdl/Makefile.in,
-	  libltdl/acinclude.m4, libltdl/aclocal.m4,
-	  libltdl/config_auto.h.in, libltdl/configure,
+	  libltdl/COPYING.LIB, libltdl/Makefile.am, libltdl/acinclude.m4,
+	  libltdl/aclocal.m4, libltdl/config_auto.h.in, libltdl/configure,
 	  libltdl/configure.in, libltdl/libltdl.dsp, libltdl/ltdl.c,
 	  libltdl/ltdl.h: moved to latest libtool (1.4.3)
 
@@ -386,16 +382,15 @@
 
 	* configure, configure.in: package name & version
 
-	* Makefile.am, Makefile.in, parser3oracle.dsw, libltdl/Makefile.am,
-	  libltdl/Makefile.in, libltdl/libltdl.dsp,
-	  libltdl/libltdl_oracle.dsp: libltdl.dsp now
+	* Makefile.am, parser3oracle.dsw, libltdl/Makefile.am,
+	  libltdl/libltdl.dsp, libltdl/libltdl_oracle.dsp: libltdl.dsp now
 
 	* parser3oracle.C: name spelling
 
-	* configure, configure.in, libltdl/Makefile.am,
-	  libltdl/Makefile.in, libltdl/acconfig.h, libltdl/acinclude.m4,
-	  libltdl/aclocal.m4, libltdl/configure, libltdl/configure.in:
-	  removed static lib generation, removed double libtool generation
+	* configure, configure.in, libltdl/Makefile.am, libltdl/acconfig.h,
+	  libltdl/acinclude.m4, libltdl/aclocal.m4, libltdl/configure,
+	  libltdl/configure.in: removed static lib generation, removed
+	  double libtool generation
 
 	* config_fixed.h, config_includes.h, parser3oracle.C: 2002
 
@@ -445,8 +440,6 @@
 	* config_fixed.h, configure.in, parser3oracle.C: setenv for env
 	  strings
 
-	* Makefile.in, libltdl/Makefile.in: makes
-
 	* parser3oracle.C: column count bug [+1]
 
 2001-11-08  paf
@@ -470,25 +463,25 @@
 
 2001-09-25  parser
 
-	* Makefile.in, configure: makes
+	* configure: makes
 
 	* Makefile.am, configure.in: makes
 
 2001-09-24  parser
 
-	* Makefile.am, Makefile.in: makes
+	* Makefile.am: makes
 
 2001-09-21  parser
 
-	* AUTHORS, COPYING, ChangeLog, INSTALL, Makefile.am, Makefile.in,
-	  NEWS, README, acinclude.m4, config.guess, config.sub,
-	  config_auto.h.in, config_fixed.h, config_includes.h, configure,
-	  configure.in, install-sh, ltconfig, ltmain.sh, missing,
-	  mkinstalldirs, parser3oracle.C, parser3oracle.def,
-	  parser3oracle.dsp, parser3oracle.dsw, libltdl/Makefile.am,
-	  libltdl/Makefile.in, libltdl/README, libltdl/acinclude.m4,
-	  libltdl/aclocal.m4, libltdl/config.h, libltdl/config_auto.h.in,
-	  libltdl/config_fixed.h, libltdl/configure, libltdl/configure.in,
+	* AUTHORS, COPYING, ChangeLog, INSTALL, Makefile.am, NEWS, README,
+	  acinclude.m4, config.guess, config.sub, config_auto.h.in,
+	  config_fixed.h, config_includes.h, configure, configure.in,
+	  install-sh, ltconfig, ltmain.sh, missing, mkinstalldirs,
+	  parser3oracle.C, parser3oracle.def, parser3oracle.dsp,
+	  parser3oracle.dsw, libltdl/Makefile.am, libltdl/README,
+	  libltdl/acinclude.m4, libltdl/aclocal.m4, libltdl/config.h,
+	  libltdl/config_auto.h.in, libltdl/config_fixed.h,
+	  libltdl/configure, libltdl/configure.in,
 	  libltdl/libltdl_oracle.dsp, libltdl/ltdl.c, libltdl/ltdl.h:
 	  Initial revision
 

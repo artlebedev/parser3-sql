@@ -1,250 +1,240 @@
-2012-06-06	moko
-	* parser3odbc.C 1.40:
-		compiler warnings fixed:
-		-format '%u' expects type 'unsigned int', but argument has type 'long unsigned int'
+2015-10-26  moko
 
-2012-04-18	moko
-	* parser3odbc.C 1.39:
-		after global replace fixes. == -> =
+	* parser3odbc.C: Copyright year updated
 
-2012-03-16	moko
-	* parser3odbc.C 1.38:
-		ident now works under Linux + ident displays filenames (closes issue #818)
-		Copyright updated
+2013-07-07  moko
 
-2010-10-27	moko
-	* parser3odbc.C 1.37:
-		new in-parser quoting implementation (fixes issue #1)
+	* INSTALL: INSTALL actualized
 
-2008-07-08	misha
-	* parser3odbc.C 1.36:
-		- optimization for queries with limit==0 moved to another place (
-		previous one didn't works with 'native' queries w/o sql 
-		specifics)
+2012-06-06  moko
 
-	* parser3odbc.C 1.35:
-		- little optimization with big offset and limit==0
+	* parser3odbc.C: compiler warnings fixed: -format '%u' expects type
+	  'unsigned int', but argument has type 'long unsigned int'
 
-2008-07-04	misha
-	* parser3odbc.C 1.33:
-		- option SQL=MSSQL|FireBird|Pervasive was added. if defined use 
-		server specific features and modify query before exec if limit/
-		offset were specified
+2012-04-18  moko
 
-2008-07-01	misha
-	* parser3odbc.C 1.32:
-		- back to old transaction engine
-		- call commit after query execution if autocommit option wasn't disabled
+	* parser3odbc.C: after global replace fixes. == -> =
 
-	* parser3odbc.C 1.30:
-		- skip transcode cell values for numeric types and some date 
-		types
+2012-03-16  moko
 
-2008-06-30	misha
-	* parser3odbc.C [release_3_1_4] 1.26.2.1:
-		- fix for openType & options while opening cursor and changes in 
-		skiping offset if any (big speedup on queries with big offset)
+	* parser3odbc.C: ident now works under Linux + ident displays
+	  filenames (closes issue #818) Copyright updated
 
-2008-06-27	misha
-	* parser3odbc.C 1.29:
-		- FastOffsetSearch is off by default (because of long 1st call)
+2010-10-28  moko
 
-	* parser3odbc.C 1.28:
-		- connect string changed: our options after '?' now (as in other drivers)
-		- option MultiRowFetch => FastOffsetSearch
+	* parser3odbc.C: new in-parser quoting implementation (fixes issue
+	  #1)
 
-	* parser3odbc.C 1.27:
-		- $.limit(0) but fixed
-		- internal bug fixed optimisation: works much faster now with big offset
-		- accept option autocommit=0
-		- accept option MultiRowFetch=0 (by default it's on now)
+2008-07-08  misha
 
-2008-06-26	misha
-	* INSTALL 1.4:
-		- small fixes in texts
+	* parser3odbc.C: - optimization for queries with limit==0 moved to
+	  another place (previous one didn't works with 'native' queries
+	  w/o sql specifics)
 
-2004-09-13	paf
-	* MFCpatches/dbcore.cpp 1.2:
-	* parser3odbc.vcproj 1.6:
-		applied old MFCpatches to new MFC sources,
-		sadly all bugs were there [returning empty ntext columns is onle of them]
+	* parser3odbc.C: - little optimization with big offset and limit==0
 
-	* parser3odbc.C 1.26:
-		beauty: readonly bit specified [strangly that is not default]
+2008-07-04  misha
 
-	* MFCpatches/afximpl.h 1.1:
-	* MFCpatches/dbcore.cpp 1.1:
-	* MFCpatches/dbimpl.h 1.1:
-	* MFCpatches/fixalloc.h 1.1:
-	* MFCpatches/oleimpl2.h 1.1:
-	* MFCpatches/stdafx.h 1.1:
-	* MFCpatches/winhand_.h 1.1:
-		started to fix MFC again: these were original files
+	* parser3odbc.C: - option SQL=MSSQL|FireBird|Pervasive was added.
+	  if defined use server specific features and modify query before
+	  exec if limit/offset were specified
 
-	* parser3odbc.C 1.25:
-		bugfix: date values from database now have ...hh:mm:ss.mmm format (3 digits for fractions of a 
-		second)
-		were: 9 digits (exactly that odbc driver returned us, but refuses to eat it on input)
+2008-07-01  misha
 
-2004-07-28	paf
-	* parser3odbc.C 1.24:
-		bugfix: isspace((unsigned char)c) everywhere. failed on russian 
-		letters
+	* parser3odbc.C: - back to old transaction engine - call commit
+	  after query execution if autocommit option wasn't disabled
 
-2004-06-23	paf
-	* parser3odbc.C 1.23:
-	* parser3odbc.vcproj 1.5:
-		new api supported, not implemented yet:
-			^void:sql{call paf(:a)}[
-				$.bind[hash]
-			]
+	* parser3odbc.C: - skip transcode cell values for numeric types and
+	  some date types
 
-2004-05-25	paf
-	* parser3odbc.C 1.22:
-		beauty: param renamed to reflect it's nature
+2008-06-30  misha
 
-2004-03-30	paf
-	* parser3odbc.C 1.21:
-		merged bugfixes from 3.1.2
+	* parser3odbc.C: - fix for openType & options while opening cursor
+	  and changes in skiping offset if any (big speedup on queries with
+	  big offset)
 
-2004-03-26	paf
-	* parser3odbc.C [release_3_1_2] 1.20.2.1:
-		bugfix: tolower/toupper named with _str suffix to work around 
-		cases when they are macros [freebsd]
+2008-06-27  misha
 
-2004-03-05	paf
-	* parser3odbc.C 1.20:
-	* parser3odbc.vcproj 1.4:
-		new: odbc option [like that recently added to oracle driver]
-		            ClientCharset=parser-charset << charset in which parser thinks client works
+	* parser3odbc.C: - FastOffsetSearch is off by default (because of
+	  long 1st call)
 
-2004-01-30	paf
-	* parser3odbc.C 1.19:
-		bugfix: connection struct mem to be controlled by libgc [oracle 
-		already fixed before]
+	* parser3odbc.C: - connect string changed: our options after '?'
+	  now (as in other drivers) - option MultiRowFetch =>
+	  FastOffsetSearch
 
-2004-01-26	paf
-	* parser3odbc.C 1.18:
-		change: moved to new interface [without extra 'services' passing 
-		back/forth]
+	* parser3odbc.C: - $.limit(0) but fixed - internal bug fixed
+	  optimisation: works much faster now with big offset - accept
+	  option autocommit=0 - accept option MultiRowFetch=0 (by default
+	  it's on now)
 
-2003-11-19	paf
-	* parser3odbc.C 1.17:
-	* parser3odbc.vcproj 1.3:
-		rename and comment on nvarchar(4) mfc bug
+2008-06-26  misha
 
-2003-11-10	paf
-	* parser3odbc.C 1.16:
-	* parser3odbc.vcproj 1.2:
-	* parser3odbc.vcproj.vspscc 1.2:
-		removed patches
-		todo: test it
+	* INSTALL: - small fixes in texts
 
-2003-11-03	paf
-	* parser3odbc.vcproj.vspscc [release_3_1_1] 1.1.2.1:
-		*** empty log message ***
+2004-09-13  paf
 
-	* parser3odbc.vcproj.vspscc 1.1:
-		file parser3odbc.vcproj.vspscc was initially added on branch 
-		release_3_1_1.
+	* parser3odbc.vcproj, MFCpatches/dbcore.cpp: applied old MFCpatches
+	  to new MFC sources, sadly all bugs were there [returning empty
+	  ntext columns is onle of them]
 
-2003-10-31	paf
-	* parser3odbc.C [release_3_1_1] 1.15.2.1:
-	* parser3odbc.vcproj [release_3_1_1] 1.1.2.1:
-		removed dbpatches,
-		todo: ask users if it's ok
+	* parser3odbc.C: beauty: readonly bit specified [strangly that is
+	  not default]
 
-2003-10-24	paf
-	* parser3odbc.sln 1.1:
-		*** empty log message ***
+	* MFCpatches/: afximpl.h, dbcore.cpp, dbimpl.h, fixalloc.h,
+	  oleimpl2.h, stdafx.h, winhand_.h: started to fix MFC again: these
+	  were original files
+
+	* parser3odbc.C: bugfix: date values from database now have
+	  ...hh:mm:ss.mmm format (3 digits for fractions of a second) were:
+	  9 digits (exactly that odbc driver returned us, but refuses to
+	  eat it on input)
+
+2004-07-28  paf
+
+	* parser3odbc.C: bugfix: isspace((unsigned char)c) everywhere.
+	  failed on russian letters
+
+2004-06-23  paf
+
+	* parser3odbc.C, parser3odbc.vcproj: new api supported, not
+	  implemented yet:    ^void:sql{call paf(:a)}[
+	  $.bind[hash]	  ]
+
+2004-05-25  paf
+
+	* parser3odbc.C: beauty: param renamed to reflect it's nature
+
+2004-03-30  paf
+
+	* parser3odbc.C: merged bugfixes from 3.1.2
+
+2004-03-26  paf
+
+	* parser3odbc.C: bugfix: tolower/toupper named with _str suffix to
+	  work around cases when they are macros [freebsd]
+
+2004-03-05  paf
+
+	* parser3odbc.C, parser3odbc.vcproj: new: odbc option [like that
+	  recently added to oracle driver]
+	  ClientCharset=parser-charset << charset in which parser thinks
+	  client works
+
+2004-01-30  paf
+
+	* parser3odbc.C: bugfix: connection struct mem to be controlled by
+	  libgc [oracle already fixed before]
+
+2004-01-26  paf
+
+	* parser3odbc.C: change: moved to new interface [without extra
+	  'services' passing back/forth]
+
+2003-11-19  paf
+
+	* parser3odbc.C, parser3odbc.vcproj: rename and comment on
+	  nvarchar(4) mfc bug
+
+2003-11-10  paf
+
+	* parser3odbc.C, parser3odbc.vcproj, parser3odbc.vcproj.vspscc:
+	  removed patches todo: test it
+
+2003-10-31  paf
+
+	* parser3odbc.C, parser3odbc.vcproj: removed dbpatches, todo: ask
+	  users if it's ok
 
 2003-09-29  paf
-	* parser3odbc.C 1.15:
-		fix: very old bug: wrong quote escaping
+
+	* parser3odbc.C: fix: very old bug: wrong quote escaping
 
 2003-08-18  paf
-	* parser3odbc.dsp 1.7:
-	* parser3odbc.dsw 1.3:
-		moved to MSVC 7
+
+	* parser3odbc.dsp, parser3odbc.dsw: moved to MSVC 7
+
+	* ChangeLog: merged 3.1.0 latest changes
 
 2003-07-24  paf
-	* parser3odbc.C 1.14:
-		moved tempate_gc to HEAD
+
+	* parser3odbc.C: moved tempate_gc to HEAD
 
 2003-07-22  paf
-	* parser3odbc.C [template_gc] 1.13.6.2:
-		updated to interface v8
+
+	* parser3odbc.C: updated to interface v8
 
 2003-03-26  paf
-	* parser3odbc.C [template_gc] 1.13.6.1:
-		mistakenly patched HEAD branch. copying changes to template_gc one
+
+	* parser3odbc.C: mistakenly patched HEAD branch. copying changes to
+	  template_gc one
 
 2003-01-21  paf
-	* parser3odbc.C 1.13:
-		2002->2003
+
+	* parser3odbc.C: 2002->2003
+
+2002-12-15  paf
+
+	* ChangeLog: changelog updated
 
 2002-12-09  paf
-	* parser3odbc.C 1.12:
-		changed exception handling mech in sql handlers #2
+
+	* parser3odbc.C: changed exception handling mech in sql handlers #2
 
 2002-10-29  paf
-	* parser3odbc.C 1.11:
-		binary field extracted as string with zero-chars inside
-		changed string.save [see]
+
+	* parser3odbc.C: binary field extracted as string with zero-chars
+	  inside changed string.save [see]
 
 2002-10-22  paf
-	* parser3odbc.C 1.10:
-		column types extracted once per table [were per row]
-		data extract objects created once per table [were per cell]
+
+	* parser3odbc.C: column types extracted once per table [were per
+	  row] data extract objects created once per table [were per cell]
 
 2002-06-03  paf
-	* parser3odbc.dsp 1.5:
-		fixed .dsp-s along with reorganized cvs modules dirs structure
 
-	* parser3odbc.dsp [release_1_0_0001] 1.2.2.1:
-		reorganized cvs modules
+	* parser3odbc.dsp: fixed .dsp-s along with reorganized cvs modules
+	  dirs structure
+
+	* parser3odbc.dsp: reorganized cvs modules
 
 2002-05-15  paf
-	* MFCpatches/DBCORE.CPP 1.4:
-	* parser3odbc.C 1.8:
-	* parser3odbc.dsp 1.4:
-		EXEC, call, {
-		sql statement starts now considered as stored procedure call and cause table result extraction
 
-	* parser3odbc.C 1.9:
-		not-returning-tables sp execs checked
+	* parser3odbc.C: not-returning-tables sp execs checked
+
+	* parser3odbc.C, parser3odbc.dsp: EXEC, call, { sql statement
+	  starts now considered as stored procedure call and cause table
+	  result extraction
 
 2002-04-25  paf
-	* MFCpatches/DBCORE.CPP 1.3:
-	* parser3odbc.C 1.7:
-	* parser3odbc.dsp 1.3:
-		create table test (id int, a smalldatetime, b ntext, c nvarchar
-		100))
+
+	* parser3odbc.C, parser3odbc.dsp: create table test (id int, a
+	  smalldatetime, b ntext, c nvarchar(100))
 
 2002-03-05  paf
-	* MFCpatches/DBCORE.CPP 1.2:
-	* parser3odbc.C 1.6:
-	* parser3odbc.dsp 1.2:
-		another mfc bug: non-string datatypes report wrong string size
+
+	* parser3odbc.C, parser3odbc.dsp: another mfc bug: non-string
+	  datatypes report wrong string size
 
 2002-02-08  paf
-	* parser3odbc.C 1.4:
-		2002
 
-	* AUTHORS 1.1:
-	* INSTALL 1.1:
-	* README 1.1:
-		install&others added
+	* AUTHORS, INSTALL, README: install&others added
 
-	* COPYING 1.1:
-	* parser3odbc.C 1.5:
-		added GNU copyright
+	* ChangeLog: added ChangeLog
+
+	* COPYING, parser3odbc.C: added GNU copyright
+
+	* parser3odbc.C: 2002
 
 2001-11-16  paf
-	* parser3odbc.C 1.3:
-		introducing estimating String::cstr_bufsize, 0
+
+	* parser3odbc.C: introducing estimating String::cstr_bufsize, 0
 
 2001-10-29  paf
-	* parser3odbc.C 1.2:
-		setjump
+
+	* parser3odbc.C: setjump
+
+2001-09-21  parser
+
+	* parser3odbc.C, parser3odbc.def, parser3odbc.dsp, parser3odbc.dsw:
+	  Initial revision
 
