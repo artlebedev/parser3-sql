@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.48 2015/10/26 16:00:50 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.49 2016/10/11 13:38:10 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -107,8 +107,9 @@ inline static bool is_column_transcode_required(enum_field_types type) {
 		case MYSQL_TYPE_LONG_BLOB:
 			return false;
 			break;
+		default:
+			return true;
 	}
-	return true;
 }
 
 inline static const char* strdup(SQL_Driver_services& services, char* str, size_t length) {
