@@ -3,7 +3,7 @@
 
 	(c) Dmitry "Creator" Bobrik, 2004
 */
-//static const char *RCSId="$Id: parser3sqlite.C,v 1.13 2012/06/15 09:09:33 moko Exp $"; 
+//static const char *RCSId="$Id: parser3sqlite.C,v 1.14 2017/01/13 16:54:37 moko Exp $"; 
 
 #include "config_includes.h"
 
@@ -14,7 +14,6 @@
 #include "sqlite3.h"
 #include "ltdl.h"
 
-#define MAX_COLS   500
 #define MAX_STRING 0x400
 #define MAX_NUMBER 20
 
@@ -295,12 +294,6 @@ public:
 			if(!column_count){ // empty result: insert|delete|update|...
 				rc=sqlite3_step(SQL);
 			} else {
-				if(column_count>MAX_COLS)
-					column_count=MAX_COLS;
-
-				int column_types[MAX_COLS];
-				bool transcode_column[MAX_COLS];
-
 				for(int i=0; i<column_count; i++){
 					const char *column_name=sqlite3_column_name(SQL, i);
 					size_t length=strlen(column_name);
@@ -322,7 +315,6 @@ public:
 
 				const char *str;
 				size_t length=0;
-				bool first_row=true;
 
 				do{
 					rc=sqlite3_step(SQL);
@@ -331,22 +323,10 @@ public:
 						CHECK(handlers.add_row(sql_error));
 
 						for(int i=0; i<column_count; i++){
-							if(first_row){
-								column_types[i]=sqlite3_column_type(SQL, i);
-								switch(column_types[i]){
-									case SQLITE_INTEGER:
-									case SQLITE_FLOAT:
-									case SQLITE_NULL:
-										transcode_column[i]=false;
-										break;
-									default:
-										transcode_column[i]=transcode_needed;
-										break;
-								}
-							}
-
 							// SQLite allow to get value of any type using sqlite3_column_text function
-							switch(column_types[i]){
+							bool transcode_value=false;
+							int column_type=sqlite3_column_type(SQL, i);
+							switch(column_type){
 								case SQLITE_NULL:
 									length=0;
 									str=NULL;
@@ -355,7 +335,11 @@ public:
 									str=(const char*)sqlite3_column_blob(SQL, i);
 									length=(size_t)sqlite3_column_bytes(SQL, i);
 									break;
+								case SQLITE_TEXT: // for text transcoding can be required
 								default: // anything else?
+									transcode_value=transcode_needed;
+								case SQLITE_INTEGER:
+								case SQLITE_FLOAT:
 									str=(const char*)sqlite3_column_text(SQL, i);
 									length=(size_t)sqlite3_column_bytes(SQL, i);
 									break;
@@ -363,10 +347,11 @@ public:
 
 							if(length){
 								char* strm=(char*)services.malloc_atomic(length+1);
-								memcpy(strm, str, length+1);
+								memcpy(strm, str, length);
+								strm[length]=0;
 								str=strm;
 
-								if(transcode_column[i]){
+								if(transcode_value){
 									// transcode cell value from ?ClientCharset to $request:charset
 									services.transcode(str, length,
 										str, length,
@@ -379,7 +364,6 @@ public:
 							CHECK(handlers.add_row_cell(sql_error, str, length));
 
 						}
-						first_row=false;
 					}
 				} while(rc==SQLITE_BUSY || rc==SQLITE_ROW);
 
