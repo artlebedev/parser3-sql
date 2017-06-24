@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.49 2016/10/11 13:38:10 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.50 2017/06/24 20:29:24 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -252,14 +252,7 @@ public:
 			}
 		}
 
-		if(!mysql_real_connect(
-					connection.handle, 
-					host, user, pwd, db,
-					port?port:MYSQL_PORT,
-					unix_socket,
-					client_flag
-				)
-		){
+		if(!mysql_real_connec(connection.handle, host, user, pwd, db, port, unix_socket, client_flag)){
 			services._throw(mysql_error(connection.handle));
 		}
 
