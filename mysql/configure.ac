@@ -1,6 +1,6 @@
 dnl Autoconf initialisation
 AC_PREREQ(2.59)
-AC_INIT(parser3mysql, 10.7)
+AC_INIT(parser3mysql, 10.8)
 AC_CONFIG_SRCDIR(parser3mysql.C)
 AM_CONFIG_HEADER(config_auto.h)
 
