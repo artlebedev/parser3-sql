@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.51 2017/06/24 21:09:43 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.52 2017/08/01 16:50:13 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -27,19 +27,6 @@ volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.51 2017/06/2
 #if _MSC_VER
 #	define snprintf _snprintf
 #	define strcasecmp _stricmp
-#endif
-
-// for mysql < 4.1 
-#if !defined(CLIENT_MULTI_RESULTS) || !defined(CLIENT_MULTI_STATEMENTS)
-#	define OLD_MYSQL_CLIENT 1
-#endif
-
-#ifndef CLIENT_MULTI_RESULTS
-#	define	CLIENT_MULTI_RESULTS (1UL << 17)
-#endif
-
-#ifndef CLIENT_MULTI_STATEMENTS
-#	define	CLIENT_MULTI_STATEMENTS (1UL << 16)
 #endif
 
 static char *lsplit(char *string, char delim){
@@ -155,17 +142,10 @@ public:
 				named_pipe=1&
 				autocommit=1&
 				multi_statements=0	// allows more then one statement in one query
-				old_client=1		// simulates 3.xx client. not compatible with multi_statements option
-			3.x, 4.0 
-				only option for charset is cp1251_koi8.
-			4.1+ accept not 'cp1251_koi8' but 'cp1251', 'utf8' and much more
+				4.1+ accept not 'cp1251_koi8' but 'cp1251', 'utf8' and much more
 				it is usable for transcoding using sql server
 	*/
-	void connect(
-				char *url, 
-				SQL_Driver_services& services, 
-				void **connection_ref ///< output: Connection*
-	){
+	void connect(char *url, SQL_Driver_services& services, void **connection_ref /*< output: Connection* */){
 		char *user=url;
 		char *s=rsplit(user, '@');
 		char *host=0;
@@ -179,24 +159,19 @@ public:
 		char *db=lsplit(s, '/');
 		char *pwd=lsplit(user, ':');
 		char *error_pos=0;
-		char *port_cstr=lsplit(host, ':');
-		int port=port_cstr?strtol(port_cstr, &error_pos, 0):0;
 		char *options=lsplit(db, '?');
-
 		char *charset=0;
-
-#ifdef OLD_MYSQL_CLIENT
-		int client_flag=0;
-#else
 		int client_flag=CLIENT_MULTI_RESULTS;
-#endif
 
 		Connection& connection=*(Connection *)services.malloc(sizeof(Connection));
 		*connection_ref=&connection;
 		connection.services=&services;
 		connection.handle=mysql_init(NULL);
-		connection.client_charset=0;	
+		connection.client_charset=0;
 		connection.autocommit=true;
+
+		char *port_cstr=lsplit(host, ':');
+		int port=port_cstr?strtol(port_cstr, &error_pos, 0):0;
 
 		while(options){
 			if(char *key=lsplit(&options, '&')){
@@ -227,23 +202,8 @@ public:
 							if(atoi(value)==0)
 								connection.autocommit=false;
 						} else if(strcasecmp(key, "multi_statements")==0){
-#ifdef OLD_MYSQL_CLIENT
-							services._throw("driver was built with old mysql includes so multi_statements option can't be used");
-#else
-							if(!(client_flag==CLIENT_MULTI_RESULTS || client_flag==CLIENT_MULTI_STATEMENTS))
-								services._throw("you can't specify together options old_client and multi_statements");
 							if(atoi(value)!=0)
 								client_flag=CLIENT_MULTI_STATEMENTS;
-#endif
-						} else if(strcasecmp(key, "old_client")==0){
-#ifdef OLD_MYSQL_CLIENT
-							services._throw("driver was built with old mysql includes so old_client option can't be used");
-#else
-							if(!(client_flag==CLIENT_MULTI_RESULTS || client_flag==0))
-								services._throw("you can't specify together options old_client and multi_statements");
-							if(atoi(value)!=0)
-								client_flag=0;
-#endif
 						} else
 							services._throw("unknown connect option" /*key*/);
 					} else 
@@ -252,7 +212,7 @@ public:
 			}
 		}
 
-		if(!mysql_real_connect(connection.handle, host, user, pwd, db, port, unix_socket, client_flag)){
+		if(!mysql_real_connect(connection.handle, host, user, pwd, db, port, unix_socket, CLIENT_MULTI_RESULTS)){
 			services._throw(mysql_error(connection.handle));
 		}
 
@@ -506,47 +466,39 @@ private:
 
 private: // mysql client library funcs
 
-	typedef MYSQL*	(STDCALL *t_mysql_init)(MYSQL *); 	t_mysql_init mysql_init;
-	
-	typedef void	(STDCALL *t_mysql_server_end)(); 	t_mysql_server_end mysql_server_end;
+	typedef MYSQL* (STDCALL *t_mysql_init)(MYSQL *); t_mysql_init mysql_init;
 
-	typedef int		(STDCALL *t_mysql_options)(MYSQL *mysql, enum mysql_option option, const char *arg); t_mysql_options mysql_options;
-	
+	typedef void (STDCALL *t_mysql_server_end)(); t_mysql_server_end mysql_server_end;
+
+	typedef int (STDCALL *t_mysql_options)(MYSQL *mysql, enum mysql_option option, const char *arg); t_mysql_options mysql_options;
+
 	typedef MYSQL_RES* (STDCALL *t_mysql_store_result)(MYSQL *); t_mysql_store_result mysql_store_result;
-	
-	typedef int		(STDCALL *t_mysql_query)(MYSQL *, const char *q); t_mysql_query mysql_query;
-	
-	typedef char*	(STDCALL *t_mysql_error)(MYSQL *); t_mysql_error mysql_error;
+
+	typedef int (STDCALL *t_mysql_query)(MYSQL *, const char *q); t_mysql_query mysql_query;
+
+	typedef char* (STDCALL *t_mysql_error)(MYSQL *); t_mysql_error mysql_error;
 	static char* STDCALL subst_mysql_error(MYSQL *mysql) { return (mysql)->net.last_error; }
 
-	typedef MYSQL*	(STDCALL *t_mysql_real_connect)(MYSQL *, const char *host,
-						const char *user,
-						const char *passwd,
-						const char *db,
-						unsigned int port,
-						const char *unix_socket,
-						unsigned int clientflag); t_mysql_real_connect mysql_real_connect;
+	typedef MYSQL* (STDCALL *t_mysql_real_connect)(MYSQL *, const char *host, const char *user, const char *passwd, const char *db, unsigned int port, const char *unix_socket, unsigned int clientflag); t_mysql_real_connect mysql_real_connect;
 
-	typedef void	(STDCALL *t_mysql_close)(MYSQL *); t_mysql_close mysql_close;
-	
-	typedef int		(STDCALL *t_mysql_ping)(MYSQL *); t_mysql_ping mysql_ping;
-	
-	typedef unsigned long	(STDCALL *t_mysql_escape_string)(char *to,const char *from,
-						unsigned long from_length); t_mysql_escape_string mysql_escape_string;
-	
-	typedef void	(STDCALL *t_mysql_free_result)(MYSQL_RES *result); t_mysql_free_result mysql_free_result;
-	
+	typedef void (STDCALL *t_mysql_close)(MYSQL *); t_mysql_close mysql_close;
+
+	typedef int (STDCALL *t_mysql_ping)(MYSQL *); t_mysql_ping mysql_ping;
+
+	typedef unsigned long (STDCALL *t_mysql_escape_string)(char *to,const char *from, unsigned long from_length); t_mysql_escape_string mysql_escape_string;
+
+	typedef void (STDCALL *t_mysql_free_result)(MYSQL_RES *result); t_mysql_free_result mysql_free_result;
+
 	typedef unsigned long* (STDCALL *t_mysql_fetch_lengths)(MYSQL_RES *result); t_mysql_fetch_lengths mysql_fetch_lengths;
-	
-	typedef MYSQL_ROW	(STDCALL *t_mysql_fetch_row)(MYSQL_RES *result); t_mysql_fetch_row mysql_fetch_row;
-	
-	typedef MYSQL_FIELD*	(STDCALL *t_mysql_fetch_field)(MYSQL_RES *result); t_mysql_fetch_field mysql_fetch_field;
-	
-	typedef unsigned int	(STDCALL *t_mysql_num_fields)(MYSQL_RES *); t_mysql_num_fields mysql_num_fields;
-	typedef unsigned int	(STDCALL *t_mysql_field_count)(MYSQL *); t_mysql_field_count mysql_field_count;
 
-	static unsigned int	STDCALL subst_mysql_num_fields(MYSQL_RES *res) { return res->field_count; }
-	static unsigned int	STDCALL subst_mysql_field_count(MYSQL *mysql) { return mysql->field_count; }
+	typedef MYSQL_ROW (STDCALL *t_mysql_fetch_row)(MYSQL_RES *result); t_mysql_fetch_row mysql_fetch_row;
+	typedef MYSQL_FIELD* (STDCALL *t_mysql_fetch_field)(MYSQL_RES *result); t_mysql_fetch_field mysql_fetch_field;
+
+	typedef unsigned int (STDCALL *t_mysql_num_fields)(MYSQL_RES *); t_mysql_num_fields mysql_num_fields;
+	typedef unsigned int (STDCALL *t_mysql_field_count)(MYSQL *); t_mysql_field_count mysql_field_count;
+
+	static unsigned int STDCALL subst_mysql_num_fields(MYSQL_RES *res) { return res->field_count; }
+	static unsigned int STDCALL subst_mysql_field_count(MYSQL *mysql) { return mysql->field_count; }
 
 private: // mysql client library funcs linking
 
