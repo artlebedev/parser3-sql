@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.52 2017/08/01 16:50:13 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.53 2017/08/01 17:09:02 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -99,11 +99,11 @@ inline static bool is_column_transcode_required(enum_field_types type) {
 	}
 }
 
-inline static const char* strdup(SQL_Driver_services& services, char* str, size_t length) {
+inline static char* strdup(SQL_Driver_services& services, char* str, size_t length) {
 	char *strm=(char*)services.malloc_atomic(length+1);
 	memcpy(strm, str, length);
 	strm[length]=0;
-	return (const char*)strm;
+	return strm;
 }
 
 struct Connection {
@@ -170,12 +170,16 @@ public:
 		connection.client_charset=0;
 		connection.autocommit=true;
 
-		char *port_cstr=lsplit(host, ':');
-		int port=port_cstr?strtol(port_cstr, &error_pos, 0):0;
+		while(1){
+			char *next_host=lsplit(host, ',');
+			char *host_options=next_host && options ? strdup(services, options, strlen(options)) : options;
 
-		while(options){
-			if(char *key=lsplit(&options, '&')){
-				if(*key){
+			char *port_cstr=lsplit(host, ':');
+			int port=port_cstr?strtol(port_cstr, &error_pos, 0):0;
+
+			while(host_options){
+				char *key=lsplit(&host_options, '&');
+				if(key && *key){
 					if(char *value=lsplit(key, '=')){
 						if(strcmp(key, "ClientCharset")==0){ // transcoding with parser
 							toupper_str(value, value, strlen(value));
@@ -206,14 +210,18 @@ public:
 								client_flag=CLIENT_MULTI_STATEMENTS;
 						} else
 							services._throw("unknown connect option" /*key*/);
-					} else 
+					} else
 						services._throw("connect option without =value" /*key*/);
 				}
 			}
-		}
 
-		if(!mysql_real_connect(connection.handle, host, user, pwd, db, port, unix_socket, CLIENT_MULTI_RESULTS)){
-			services._throw(mysql_error(connection.handle));
+			if(mysql_real_connect(connection.handle, host, user, pwd, db, port, unix_socket, client_flag))
+				break;
+
+			if(!next_host)
+				services._throw(mysql_error(connection.handle));
+
+			host=next_host;
 		}
 
 		if(charset){
