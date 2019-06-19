@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.53 2017/08/01 17:09:02 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.54 2019/06/19 23:00:43 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -208,6 +208,12 @@ public:
 						} else if(strcasecmp(key, "multi_statements")==0){
 							if(atoi(value)!=0)
 								client_flag=CLIENT_MULTI_STATEMENTS;
+						} else if(strcasecmp(key, "config_file")==0){
+							if(mysql_options(connection.handle, MYSQL_READ_DEFAULT_FILE, value)!=0)
+									services._throw(mysql_error(connection.handle));
+						} else if(strcasecmp(key, "config_group")==0){
+							if(mysql_options(connection.handle, MYSQL_READ_DEFAULT_GROUP, value)!=0)
+									services._throw(mysql_error(connection.handle));
 						} else
 							services._throw("unknown connect option" /*key*/);
 					} else
