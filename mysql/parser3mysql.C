@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.54 2019/06/19 23:00:43 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.55 2019/09/03 20:16:55 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -424,7 +424,7 @@ public:
 
 		bool* transcode_column=0;
 		if(transcode_needed) {
-			transcode_column = new bool[column_count];
+			bool transcode_column[column_count];
 			DO_FETCH_FIELDS(
 				transcode_column[i] = is_column_transcode_required(field->type);
 				// transcode column's name from ?ClientCharset to $request:charset
@@ -449,8 +449,6 @@ public:
 			DO_FETCH_ROWS()
 		}
 cleanup:
-		if(transcode_column)
-			delete transcode_column;
 		mysql_free_result(res);
 		if(failed)
 			services._throw(sql_error);
