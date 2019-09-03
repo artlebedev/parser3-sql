@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.55 2019/09/03 20:16:55 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.56 2019/09/03 20:19:34 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -343,10 +343,7 @@ public:
 		if(transcode_needed) {
 			statement_size=strlen(astatement);
 			// transcode query from $request:charset to ?ClientCharset
-			services.transcode(astatement, statement_size,
-				astatement, statement_size,
-				services.request_charset(),
-				connection.client_charset);
+			services.transcode(astatement, statement_size, astatement, statement_size, services.request_charset(), connection.client_charset);
 		}
 
 		const char *statement;
@@ -428,19 +425,13 @@ public:
 			DO_FETCH_FIELDS(
 				transcode_column[i] = is_column_transcode_required(field->type);
 				// transcode column's name from ?ClientCharset to $request:charset
-				services.transcode(str, length,
-					str, length,
-					connection.client_charset,
-					services.request_charset());
+				services.transcode(str, length, str, length, connection.client_charset, services.request_charset());
 			)
 			CHECK(handlers.before_rows(sql_error));
 			DO_FETCH_ROWS(
+				// transcode cell's value from ?ClientCharset to $request:charset
 				if(transcode_column[i])
-					// transcode cell's value from ?ClientCharset to $request:charset
-					services.transcode(str, length,
-						str, length,
-						connection.client_charset,
-						services.request_charset());
+					services.transcode(str, length, str, length, connection.client_charset, services.request_charset());
 			)
 		} else {
 			// without transcoding
@@ -464,10 +455,7 @@ private:
 	void _throw(Connection& connection, const char* aerr_msg) {
 		size_t length=strlen(aerr_msg);
 		if(length && _transcode_required(connection)) {
-			connection.services->transcode(aerr_msg, length,
-				aerr_msg, length,
-				connection.client_charset,
-				connection.services->request_charset());
+			connection.services->transcode(aerr_msg, length, aerr_msg, length, connection.client_charset, connection.services->request_charset());
 		}
 		connection.services->_throw(aerr_msg);
 	}
