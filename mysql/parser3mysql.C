@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.56 2019/09/03 20:19:34 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.57 2019/09/05 15:45:13 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -419,7 +419,6 @@ public:
 			}                                                                                          \
 		}
 
-		bool* transcode_column=0;
 		if(transcode_needed) {
 			bool transcode_column[column_count];
 			DO_FETCH_FIELDS(
