@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.58 2019/09/10 14:25:59 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.59 2019/09/10 14:30:42 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -380,14 +380,13 @@ public:
 					services._throw("result contains no columns");
 				}
 
-				bool failed=false;
 				SQL_Error sql_error;
 
-#define CHECK(afailed)    \
-		if(afailed) {     \
-			failed=true;  \
-			goto cleanup; \
-		}
+#define CHECK(afailed) \
+				if(afailed) {     \
+					mysql_free_result(res); \
+					services._throw(sql_error); \
+				}
 
 #define DO_FETCH_FIELDS(transcode_column_name) {                                                                   \
 			for(size_t i=0; i<column_count; i++) {                                                     \
@@ -439,10 +438,8 @@ public:
 					CHECK(handlers.before_rows(sql_error));
 					DO_FETCH_ROWS()
 				}
-cleanup:
+
 				mysql_free_result(res);
-				if(failed)
-					services._throw(sql_error);
 
 			} else {
 				if(mysql_field_count(connection.handle))
