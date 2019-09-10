@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.57 2019/09/05 15:45:13 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.58 2019/09/10 14:25:59 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -365,22 +365,23 @@ public:
 
 		if(mysql_query(connection.handle, statement)) 
 			_throw(connection, mysql_error(connection.handle));
-		if(!(res=mysql_store_result(connection.handle)) && mysql_field_count(connection.handle))
-			_throw(connection, mysql_error(connection.handle));
-		if(!res) // empty result: insert|delete|update|...
-			return;
 
-		size_t column_count=mysql_num_fields(res);
-		if(!column_count) // old client
-			column_count=mysql_field_count(connection.handle);
+		int next_result;
+		do {
 
-		if(!column_count){
-			mysql_free_result(res);
-			services._throw("result contains no columns");
-		}
+			if(res=mysql_store_result(connection.handle)){
 
-		bool failed=false;
-		SQL_Error sql_error;
+				size_t column_count=mysql_num_fields(res);
+				if(!column_count) // old client
+					column_count=mysql_field_count(connection.handle);
+
+				if(!column_count){
+					mysql_free_result(res);
+					services._throw("result contains no columns");
+				}
+
+				bool failed=false;
+				SQL_Error sql_error;
 
 #define CHECK(afailed)    \
 		if(afailed) {     \
@@ -419,29 +420,40 @@ public:
 			}                                                                                          \
 		}
 
-		if(transcode_needed) {
-			bool transcode_column[column_count];
-			DO_FETCH_FIELDS(
-				transcode_column[i] = is_column_transcode_required(field->type);
-				// transcode column's name from ?ClientCharset to $request:charset
-				services.transcode(str, length, str, length, connection.client_charset, services.request_charset());
-			)
-			CHECK(handlers.before_rows(sql_error));
-			DO_FETCH_ROWS(
-				// transcode cell's value from ?ClientCharset to $request:charset
-				if(transcode_column[i])
-					services.transcode(str, length, str, length, connection.client_charset, services.request_charset());
-			)
-		} else {
-			// without transcoding
-			DO_FETCH_FIELDS()
-			CHECK(handlers.before_rows(sql_error));
-			DO_FETCH_ROWS()
-		}
+				if(transcode_needed) {
+					bool transcode_column[column_count];
+					DO_FETCH_FIELDS(
+						transcode_column[i] = is_column_transcode_required(field->type);
+						// transcode column's name from ?ClientCharset to $request:charset
+						services.transcode(str, length, str, length, connection.client_charset, services.request_charset());
+					)
+					CHECK(handlers.before_rows(sql_error));
+					DO_FETCH_ROWS(
+						// transcode cell's value from ?ClientCharset to $request:charset
+						if(transcode_column[i])
+							services.transcode(str, length, str, length, connection.client_charset, services.request_charset());
+					)
+				} else {
+					// without transcoding
+					DO_FETCH_FIELDS()
+					CHECK(handlers.before_rows(sql_error));
+					DO_FETCH_ROWS()
+				}
 cleanup:
-		mysql_free_result(res);
-		if(failed)
-			services._throw(sql_error);
+				mysql_free_result(res);
+				if(failed)
+					services._throw(sql_error);
+
+			} else {
+				if(mysql_field_count(connection.handle))
+					_throw(connection, mysql_error(connection.handle));
+				// empty result: insert|delete|update|...
+			}
+
+			next_result = mysql_next_result(connection.handle);
+			if (next_result > 0)
+				_throw(connection, mysql_error(connection.handle));
+		} while (next_result == 0);
 	}
 
 private:
@@ -495,9 +507,11 @@ private: // mysql client library funcs
 
 	typedef unsigned int (STDCALL *t_mysql_num_fields)(MYSQL_RES *); t_mysql_num_fields mysql_num_fields;
 	typedef unsigned int (STDCALL *t_mysql_field_count)(MYSQL *); t_mysql_field_count mysql_field_count;
+	typedef unsigned int (STDCALL *t_mysql_next_result)(MYSQL *); t_mysql_next_result mysql_next_result;
 
 	static unsigned int STDCALL subst_mysql_num_fields(MYSQL_RES *res) { return res->field_count; }
 	static unsigned int STDCALL subst_mysql_field_count(MYSQL *mysql) { return mysql->field_count; }
+	static unsigned int STDCALL subst_mysql_next_result(MYSQL *mysql) { return -1; }
 
 private: // mysql client library funcs linking
 
@@ -543,6 +557,7 @@ private: // mysql client library funcs linking
 		DLINK(mysql_fetch_field);
 		SLINK(mysql_num_fields);
 		SLINK(mysql_field_count);
+		SLINK(mysql_next_result);
 		return 0;
 	}
 
