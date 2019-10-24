@@ -3,7 +3,7 @@
 
 	(c) Dmitry "Creator" Bobrik, 2004
 */
-//static const char *RCSId="$Id: parser3sqlite.C,v 1.14 2017/01/13 16:54:37 moko Exp $"; 
+//static const char *RCSId="$Id: parser3sqlite.C,v 1.15 2019/10/24 11:23:36 moko Exp $"; 
 
 #include "config_includes.h"
 
@@ -284,7 +284,7 @@ public:
 			}
 			if(!connection.multi_statements && next_statement_length>0){ // multi statements was not allowed but pzTail point to not empty one
 				//sqlite3_free((char*)pzTail);
-				_throw(connection, "multi statements are not allowed until opption ?multi_statements=1 in connect string is specified.");
+				_throw(connection, "multi statements are not allowed until option ?multi_statements=1 in connect string is specified.");
 			}
 			
 			#define CHECK(afailed) if(afailed){ failed=true; goto cleanup; }
