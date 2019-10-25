@@ -15,7 +15,7 @@
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 
-volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.44 2015/10/26 16:00:51 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.45 2019/10/25 12:27:44 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // from catalog/pg_type.h
 #define BOOLOID			16
@@ -99,7 +99,7 @@ struct Connection {
 	PGconn *conn;
 	const char* client_charset;
 	bool autocommit;
-	bool without_default_transactions;
+	bool with_default_transactions;
 	bool standard_conforming_strings;
 };
 
@@ -134,9 +134,9 @@ public:
 			ClientCharset=charset&	// transcode by parser
 			charset=value&			// transcode by server with 'SET CLIENT_ENCODING=value'
 			datestyle=value&		// 'SET DATESTYLE=value' available values are: ISO|SQL|Postgres|European|US|German [default=ISO]
-			autocommit=1&			// each transaction is commited automatically (default)
-			standard_conforming_strings=1& // 0 -- escape \ char that could be needed for old servers
-			WithoutDefaultTransaction=0	   // 1 -- disable any BEGIN TRAN/COMMIT/ROLLBACK [can NOT be used with autocommit option]
+			autocommit=0&			// 1 -- each statement is commited automatically, only when with_default_transaction enabled
+			standard_conforming_strings=1&	// 0 -- escape \ char that could be needed for old servers
+			with_default_transaction=0	// 1 -- wrap connection into BEGIN TRAN/COMMIT/ROLLBACK
 	*/
 	void connect(
 				char* url, 
@@ -155,11 +155,12 @@ public:
 		char* datestyle=0;
 
 		Connection& connection=*(Connection *)services.malloc(sizeof(Connection));
+
 		*connection_ref=&connection;
 		connection.services=&services;
-		connection.client_charset=0;	
-		connection.autocommit=true;
-		connection.without_default_transactions=false;
+		connection.client_charset=0;
+		connection.autocommit=false;
+		connection.with_default_transactions=false;
 		connection.standard_conforming_strings=true;
 
 		connection.conn=PQsetdbLogin(
@@ -184,17 +185,17 @@ public:
 						} else if(strcasecmp(key, "datestyle")==0){
 							datestyle=value;
 						} else if(strcasecmp(key, "autocommit")==0){
-							if(connection.without_default_transactions)
-								services._throw("options WithoutDefaultTransaction and autocommit can't be used together");
-							if(atoi(value)==0)
-								connection.autocommit=false;
-						} else if(strcmp(key, "WithoutDefaultTransaction")==0){
-							if(!connection.autocommit)
-								services._throw("options WithoutDefaultTransaction and autocommit can't be used together");
 							if(atoi(value)==1){
-								connection.without_default_transactions=true;
-								connection.autocommit=false;
+								if(!connection.with_default_transactions)
+									services._throw("autocommit can be used only with_default_transaction enabled");
+								connection.autocommit=true;
 							}
+						} else if(strcmp(key, "with_default_transaction")==0){
+							if(atoi(value)==1)
+								connection.with_default_transactions=true;
+						} else if(strcmp(key, "WithoutDefaultTransaction")==0){
+							if(atoi(value)==0)
+								connection.with_default_transactions=true;
 						} else if(strcasecmp(key, "standard_conforming_strings")==0){
 							if(atoi(value)==0)
 								connection.standard_conforming_strings=false;
@@ -534,7 +535,7 @@ private:
 	}
 
 	void _execute_transactions_cmd(const Connection& connection, const char *query){
-		if(!connection.without_default_transactions) // with option ?WithoutDefaultTransaction=1 user must execute BEGIN/COMMIT/ROLLBACK by himself
+		if(connection.with_default_transactions) // without ?with_default_transaction=1 user must execute BEGIN/COMMIT/ROLLBACK by himself
 			_execute_cmd(connection, query);
 	}
 
