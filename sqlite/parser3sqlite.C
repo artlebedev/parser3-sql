@@ -3,12 +3,12 @@
 
 	(c) Dmitry "Creator" Bobrik, 2004
 */
-//static const char *RCSId="$Id: parser3sqlite.C,v 1.15 2019/10/24 11:23:36 moko Exp $"; 
 
 #include "config_includes.h"
 
 #include "pa_sql_driver.h"
-//#include "windows.h"  // for messagebox
+
+volatile const char * IDENT_PARSER3SQLITE_C="$Id: parser3sqlite.C,v 1.16 2019/11/30 21:51:35 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "sqlite3.h"
