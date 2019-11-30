@@ -1,11 +1,11 @@
 /** @file
 	Parser PgSQL driver: includes all Configure-d headers
 
-	Copyright (c) 2001-2015 Art. Lebedev Studio (http://www.artlebedev.com)
+	Copyright (c) 2001-2019 Art. Lebedev Studio (http://www.artlebedev.com)
 
 	Author: Alexander Petrosyan <paf@design.ru> (http://design.ru/paf)
 
-	$Id: config_includes.h,v 1.7 2015/10/26 16:00:51 moko Exp $
+	$Id: config_includes.h,v 1.8 2019/11/30 22:11:11 moko Exp $
 
 
 	when used Configure [HAVE_CONFIG_H] it uses defines from Configure,
