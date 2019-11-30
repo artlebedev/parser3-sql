@@ -1,3 +1,50 @@
+2019-12-01  moko
+
+	* config_fixed.h, config_includes.h, parser3mysql.C: Copyright year
+	  updated
+
+2019-09-10  moko
+
+	* parser3mysql.C: whitespace
+
+	* parser3mysql.C: goto removed
+
+	* parser3mysql.C: mysql_next_result used (fixes bug #1195)
+
+2019-09-03  moko
+
+	* parser3mysql.C: whitespace
+
+	* parser3mysql.C: optimizaion: no need for dynamic allocation
+
+2019-06-20  moko
+
+	* parser3mysql.C: + config_file=my.cnf & config_group=parser3
+	  options (implements feature #1194)
+
+2017-12-10  moko
+
+	* README: README actualized
+
+2017-08-01  moko
+
+	* parser3mysql.C: multiple mysql hosts support using host1,host2
+	  syntax (implements feature #1168)
+
+	* parser3mysql.C: old_client option removed, whitespace
+
+2017-06-24  moko
+
+	* configure.ac: 10.7 -> 10.8 due to minor code change
+
+	* parser3mysql.C: port?port:MYSQL_PORT -> port as 0 means default
+	  port and MYSQL_PORT is not defined in MariaDB 10.2 (fixes bug
+	  #1163)
+
+2016-10-11  moko
+
+	* parser3mysql.C: warning war
+
 2015-10-26  moko
 
 	* Makefile.am, config_auto.h.in: warning war: configure.in ->
