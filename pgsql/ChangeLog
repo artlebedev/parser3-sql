@@ -1,3 +1,20 @@
+2019-12-01  moko
+
+	* config_fixed.h, config_includes.h, parser3pgsql.C: Copyright year
+	  updated
+
+	* configure.ac: 10.5 -> 10.6 due to feature #1191
+
+2019-10-25  moko
+
+	* parser3pgsql.C: WithoutDefaultTransaction ->
+	  with_default_transaction, disabled by default (implements feature
+	  #1191)
+
+2017-12-10  moko
+
+	* README: README actualized
+
 2015-10-26  moko
 
 	* Makefile.am, config_auto.h.in: warning war: configure.in ->
