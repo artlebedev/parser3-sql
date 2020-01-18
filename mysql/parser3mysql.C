@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.62 2020/01/18 20:54:42 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.63 2020/01/18 20:59:24 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -439,9 +439,9 @@ public:
 #endif
 				} else {
 					// without transcoding
-					DO_FETCH_FIELDS()
+					DO_FETCH_FIELDS({})
 					CHECK(handlers.before_rows(sql_error));
-					DO_FETCH_ROWS()
+					DO_FETCH_ROWS({})
 				}
 
 				mysql_free_result(res);
