@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.61 2019/11/30 21:44:19 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.62 2020/01/18 20:54:42 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -24,7 +24,7 @@ volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.61 2019/11/3
 #define MAX_STRING 0x400
 #define MAX_NUMBER 20
 
-#if _MSC_VER
+#ifdef _MSC_VER
 #	define snprintf _snprintf
 #	define strcasecmp _stricmp
 #endif
@@ -334,7 +334,7 @@ public:
 		MYSQL_RES *res=NULL;
 
 		if(placeholders_count>0)
-			services._throw("bind variables not supported (yet)");
+			services._throw("bind variables not supported yet");
 
 		bool transcode_needed=_transcode_required(connection);
 
@@ -418,7 +418,11 @@ public:
 				}
 
 				if(transcode_needed) {
+#ifdef _MSC_VER
+					bool* transcode_column = (bool*)services.malloc_atomic(column_count*sizeof(bool));
+#else
 					bool transcode_column[column_count];
+#endif
 					DO_FETCH_FIELDS(
 						transcode_column[i] = is_column_transcode_required(field->type);
 						// transcode column's name from ?ClientCharset to $request:charset
@@ -430,6 +434,9 @@ public:
 						if(transcode_column[i])
 							services.transcode(str, length, str, length, connection.client_charset, services.request_charset());
 					)
+#ifdef _MSC_VER
+					services.realloc(transcode_column,0);
+#endif
 				} else {
 					// without transcoding
 					DO_FETCH_FIELDS()
