@@ -1,6 +1,6 @@
 dnl Autoconf initialisation
 AC_PREREQ(2.59)
-AC_INIT(parser3sqlite, 10.4)
+AC_INIT(parser3sqlite, 10.5)
 AC_CONFIG_SRCDIR(parser3sqlite.C)
 AM_CONFIG_HEADER(config_auto.h)
 
