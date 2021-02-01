@@ -8,7 +8,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3SQLITE_C="$Id: parser3sqlite.C,v 1.16 2019/11/30 21:51:35 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3SQLITE_C="$Id: parser3sqlite.C,v 1.17 2021/02/01 18:44:13 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "sqlite3.h"
@@ -57,7 +57,37 @@ struct Connection {
 	int busy_timeout;
 };
 
+// sqlite client library funcs
 
+typedef int (*t_sqlite3_open)(const char *filename, sqlite3 **ppDb); t_sqlite3_open pa_sqlite3_open;
+
+typedef int (*t_sqlite3_close)(sqlite3 *); t_sqlite3_close pa_sqlite3_close;
+
+typedef int (*t_sqlite3_busy_timeout)(sqlite3*, int ms); t_sqlite3_busy_timeout pa_sqlite3_busy_timeout;
+
+typedef int (*t_sqlite3_exec)(sqlite3*, const char *sql, sqlite3_callback, void *, char **errmsg); t_sqlite3_exec pa_sqlite3_exec;
+
+typedef void (*t_sqlite3_free)(char *z); t_sqlite3_free pa_sqlite3_free;
+
+typedef const char *(* t_sqlite3_errmsg)(sqlite3*); t_sqlite3_errmsg pa_sqlite3_errmsg;
+
+typedef int (* t_sqlite3_prepare)(sqlite3 *db, const char *zSql, int nBytes, sqlite3_stmt **ppStmt, const char **pzTail); t_sqlite3_prepare pa_sqlite3_prepare;
+
+typedef int (* t_sqlite3_column_count)(sqlite3_stmt *pStmt); t_sqlite3_column_count pa_sqlite3_column_count;
+
+typedef int (* t_sqlite3_finalize)(sqlite3_stmt *pStmt); t_sqlite3_finalize pa_sqlite3_finalize;
+
+typedef const char *(* t_sqlite3_column_name)(sqlite3_stmt*,int); t_sqlite3_column_name pa_sqlite3_column_name;
+
+typedef int (* t_sqlite3_step)(sqlite3_stmt*); t_sqlite3_step pa_sqlite3_step;
+
+typedef int (* t_sqlite3_column_type)(sqlite3_stmt*, int iCol); t_sqlite3_column_type pa_sqlite3_column_type;
+
+typedef const unsigned char *(* t_sqlite3_column_text)(sqlite3_stmt*, int iCol); t_sqlite3_column_text pa_sqlite3_column_text;
+
+typedef const unsigned char *(* t_sqlite3_column_blob)(sqlite3_stmt*, int iCol); t_sqlite3_column_blob pa_sqlite3_column_blob;
+
+typedef int (* t_sqlite3_column_bytes)(sqlite3_stmt*, int iCol); t_sqlite3_column_bytes pa_sqlite3_column_bytes;
 
 /**
 	SQLite server driver
@@ -155,21 +185,21 @@ public:
 		}
 		
 
-		int rc=sqlite3_open(db_path, &connection.handle);
+		int rc=pa_sqlite3_open(db_path, &connection.handle);
 		if(rc!=SQLITE_OK){
-			const char* error_msg=sqlite3_errmsg(connection.handle);
-			sqlite3_close(connection.handle);
+			const char* error_msg=pa_sqlite3_errmsg(connection.handle);
+			pa_sqlite3_close(connection.handle);
 			_throw(connection, error_msg);
 		}
 		
-		sqlite3_busy_timeout(connection.handle, connection.busy_timeout);
+		pa_sqlite3_busy_timeout(connection.handle, connection.busy_timeout);
 		
 		_begin_transaction(connection);
 	}
 
 	void disconnect(void *aconnection){
 		Connection& connection=*static_cast<Connection*>(aconnection);
-		sqlite3_close(connection.handle);
+		pa_sqlite3_close(connection.handle);
 		connection.handle=0;
 	}
 
@@ -276,26 +306,26 @@ public:
 		bool failed=false;
 
 		do{ // cycling through SQL commands
-			rc=sqlite3_prepare(connection.handle, statement, -1, &SQL, &pzTail);
+			rc=pa_sqlite3_prepare(connection.handle, statement, -1, &SQL, &pzTail);
 			next_statement_length=strlen(pzTail);
 			if(rc!=SQLITE_OK){
-				//sqlite3_free((char*)pzTail);
-				_throw(connection, sqlite3_errmsg(connection.handle));
+				//pa_sqlite3_free((char*)pzTail);
+				_throw(connection, pa_sqlite3_errmsg(connection.handle));
 			}
 			if(!connection.multi_statements && next_statement_length>0){ // multi statements was not allowed but pzTail point to not empty one
-				//sqlite3_free((char*)pzTail);
+				//pa_sqlite3_free((char*)pzTail);
 				_throw(connection, "multi statements are not allowed until option ?multi_statements=1 in connect string is specified.");
 			}
 			
 			#define CHECK(afailed) if(afailed){ failed=true; goto cleanup; }
 
-			int column_count=sqlite3_column_count(SQL);
+			int column_count=pa_sqlite3_column_count(SQL);
 
 			if(!column_count){ // empty result: insert|delete|update|...
-				rc=sqlite3_step(SQL);
+				rc=pa_sqlite3_step(SQL);
 			} else {
 				for(int i=0; i<column_count; i++){
-					const char *column_name=sqlite3_column_name(SQL, i);
+					const char *column_name=pa_sqlite3_column_name(SQL, i);
 					size_t length=strlen(column_name);
 
 					char* strm=(char*)services.malloc_atomic(length+1);
@@ -317,31 +347,31 @@ public:
 				size_t length=0;
 
 				do{
-					rc=sqlite3_step(SQL);
+					rc=pa_sqlite3_step(SQL);
 					if(rc==SQLITE_ROW){ // new line!!
 
 						CHECK(handlers.add_row(sql_error));
 
 						for(int i=0; i<column_count; i++){
-							// SQLite allow to get value of any type using sqlite3_column_text function
+							// SQLite allow to get value of any type using pa_sqlite3_column_text function
 							bool transcode_value=false;
-							int column_type=sqlite3_column_type(SQL, i);
+							int column_type=pa_sqlite3_column_type(SQL, i);
 							switch(column_type){
 								case SQLITE_NULL:
 									length=0;
 									str=NULL;
 									break;
 								case SQLITE_BLOB:
-									str=(const char*)sqlite3_column_blob(SQL, i);
-									length=(size_t)sqlite3_column_bytes(SQL, i);
+									str=(const char*)pa_sqlite3_column_blob(SQL, i);
+									length=(size_t)pa_sqlite3_column_bytes(SQL, i);
 									break;
 								case SQLITE_TEXT: // for text transcoding can be required
 								default: // anything else?
 									transcode_value=transcode_needed;
 								case SQLITE_INTEGER:
 								case SQLITE_FLOAT:
-									str=(const char*)sqlite3_column_text(SQL, i);
-									length=(size_t)sqlite3_column_bytes(SQL, i);
+									str=(const char*)pa_sqlite3_column_text(SQL, i);
+									length=(size_t)pa_sqlite3_column_bytes(SQL, i);
 									break;
 							}
 
@@ -370,11 +400,11 @@ public:
 			}
 
 			if(rc==SQLITE_ERROR || rc==SQLITE_MISUSE){
-				_throw(connection, sqlite3_errmsg(connection.handle));
+				_throw(connection, pa_sqlite3_errmsg(connection.handle));
 			}
 
 	cleanup:
-			sqlite3_finalize(SQL);
+			pa_sqlite3_finalize(SQL);
 			statement=pzTail;
 		} while (next_statement_length>0);
 
@@ -391,13 +421,13 @@ private:
 
 	void _execute_cmd(Connection& connection, const char* statement){
 		char* zErr;
-		int rc=sqlite3_exec(connection.handle, statement, 0, 0, &zErr);
+		int rc=pa_sqlite3_exec(connection.handle, statement, 0, 0, &zErr);
 		if(rc!=SQLITE_OK){
 			size_t length=strlen(zErr);
 			char* err_msg=(char *)connection.services->malloc_atomic(length+1);
 			memcpy(err_msg, zErr, length);
 
-			sqlite3_free(zErr);
+			pa_sqlite3_free(zErr);
 			_throw(connection, err_msg);
 		}
 
@@ -420,39 +450,6 @@ private:
 	}
 
 
-private: // sqlite client library funcs
-
-	typedef int (*t_sqlite3_open)(const char *filename, sqlite3 **ppDb); t_sqlite3_open sqlite3_open;
-
-	typedef int (*t_sqlite3_close)(sqlite3 *); t_sqlite3_close sqlite3_close;
-
-	typedef int (*t_sqlite3_busy_timeout)(sqlite3*, int ms); t_sqlite3_busy_timeout sqlite3_busy_timeout;
-
-	typedef int (*t_sqlite3_exec)(sqlite3*, const char *sql, sqlite3_callback, void *, char **errmsg); t_sqlite3_exec sqlite3_exec;
-
-	typedef void (*t_sqlite3_free)(char *z); t_sqlite3_free sqlite3_free;
-
-	typedef const char *(* t_sqlite3_errmsg)(sqlite3*); t_sqlite3_errmsg sqlite3_errmsg;
-
-	typedef int (* t_sqlite3_prepare)(sqlite3 *db, const char *zSql, int nBytes, sqlite3_stmt **ppStmt, const char **pzTail); t_sqlite3_prepare sqlite3_prepare;
-
-	typedef int (* t_sqlite3_column_count)(sqlite3_stmt *pStmt); t_sqlite3_column_count sqlite3_column_count;
-
-	typedef int (* t_sqlite3_finalize)(sqlite3_stmt *pStmt); t_sqlite3_finalize sqlite3_finalize;
-
-	typedef const char *(* t_sqlite3_column_name)(sqlite3_stmt*,int); t_sqlite3_column_name sqlite3_column_name;
-
-	typedef int (* t_sqlite3_step)(sqlite3_stmt*); t_sqlite3_step sqlite3_step;
-
-	typedef int (* t_sqlite3_column_type)(sqlite3_stmt*, int iCol); t_sqlite3_column_type sqlite3_column_type;
-
-	typedef const unsigned char *(* t_sqlite3_column_text)(sqlite3_stmt*, int iCol); t_sqlite3_column_text sqlite3_column_text;
-
-	typedef const unsigned char *(* t_sqlite3_column_blob)(sqlite3_stmt*, int iCol); t_sqlite3_column_blob sqlite3_column_blob;
-
-	typedef int (* t_sqlite3_column_bytes)(sqlite3_stmt*, int iCol); t_sqlite3_column_bytes sqlite3_column_bytes;
-
-
 private: // sqlite client library funcs linking
 
 	const char *dlink(const char *dlopen_file_spec) {
@@ -471,7 +468,7 @@ private: // sqlite client library funcs linking
 		}
 
 		#define DSLINK(name, action) \
-			name=(t_##name)lt_dlsym(handle, #name); \
+			pa_##name=(t_##name)lt_dlsym(handle, #name); \
 				if(!name) \
 					action;
 
