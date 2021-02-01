@@ -5,7 +5,7 @@ AM_CPPFLAGS = -I../../parser3/src/sql $(INCLTDL) -I$(SQLITE_INC)
 
 noinst_HEADERS = config_includes.h
 lib_LTLIBRARIES = libparser3sqlite.la
-libparser3sqlite_la_SOURCES = parser3sqlite.C
+libparser3sqlite_la_SOURCES = parser3sqlite.C regexp.C
 libparser3sqlite_la_LDFLAGS = -module -avoid-version
 libparser3sqlite_la_LIBADD = $(LIBLTDL)
 
