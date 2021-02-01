@@ -8,7 +8,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3SQLITE_C="$Id: parser3sqlite.C,v 1.17 2021/02/01 18:44:13 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3SQLITE_C="$Id: parser3sqlite.C,v 1.18 2021/02/01 18:56:45 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "sqlite3.h"
@@ -18,6 +18,7 @@ volatile const char * IDENT_PARSER3SQLITE_C="$Id: parser3sqlite.C,v 1.17 2021/02
 #define MAX_NUMBER 20
 
 #define SQLITE_DEFAULT_CHARSET "UTF-8"
+#define PA_REGEXP
 
 #if _MSC_VER
 #	define snprintf _snprintf
@@ -89,6 +90,59 @@ typedef const unsigned char *(* t_sqlite3_column_blob)(sqlite3_stmt*, int iCol);
 
 typedef int (* t_sqlite3_column_bytes)(sqlite3_stmt*, int iCol); t_sqlite3_column_bytes pa_sqlite3_column_bytes;
 
+#ifdef PA_REGEXP
+typedef int (* t_sqlite3_create_function)(sqlite3 *, const char *, int, int, void *, void (*)(sqlite3_context*,int,sqlite3_value**), void *, void *);  t_sqlite3_create_function pa_sqlite3_create_function;
+
+typedef const unsigned char *(* t_sqlite3_value_text)(sqlite3_value*); static t_sqlite3_value_text pa_sqlite3_value_text;
+
+typedef void *(* t_sqlite3_get_auxdata)(sqlite3_context*, int N); static t_sqlite3_get_auxdata pa_sqlite3_get_auxdata;
+
+typedef void (* t_sqlite3_set_auxdata)(sqlite3_context*, int N, void*, void (*)(void*)); static t_sqlite3_set_auxdata pa_sqlite3_set_auxdata;
+
+typedef void (* t_sqlite3_result_error)(sqlite3_context*, const char*, int); static t_sqlite3_result_error pa_sqlite3_result_error;
+
+typedef void (* t_sqlite3_result_error_nomem)(sqlite3_context*); static t_sqlite3_result_error_nomem pa_sqlite3_result_error_nomem;
+
+typedef void (* t_sqlite3_result_int)(sqlite3_context*, int); static t_sqlite3_result_int pa_sqlite3_result_int;
+
+
+// "regexp.h" hardcoded
+struct ReCompiled;
+const char *pa_re_compile(ReCompiled **ppRe, const char *zIn, int noCase);
+void pa_re_free(ReCompiled *pRe);
+int pa_re_match(ReCompiled *pRe, const unsigned char *zIn, int nIn);
+
+// regexp(pattern, string) sqlite3 function implementation
+static void regexp_sql_func(sqlite3_context *context, int argc, sqlite3_value **argv){
+	ReCompiled *pRe = (ReCompiled *)pa_sqlite3_get_auxdata(context, 0);
+	int setAux = 0; /* True to invoke sqlite3_set_auxdata() */
+
+	if( pRe==0 ){
+		const char *zPattern = (const char*)pa_sqlite3_value_text(argv[0]);
+		if( zPattern==0 ) return;
+		const char *zErr = pa_re_compile(&pRe, zPattern, 0);
+		if( zErr ){
+			pa_re_free(pRe);
+			pa_sqlite3_result_error(context, zErr, -1);
+			return;
+		}
+		if( pRe==0 ){
+			pa_sqlite3_result_error_nomem(context);
+			return;
+		}
+		setAux = 1;
+	}
+	const unsigned char *zStr = (const unsigned char*)pa_sqlite3_value_text(argv[1]);
+	if( zStr!=0 ){
+		pa_sqlite3_result_int(context, pa_re_match(pRe, zStr, -1));
+	}
+	if( setAux ){
+		pa_sqlite3_set_auxdata(context, 0, pRe, (void(*)(void*))pa_re_free);
+	}
+}
+#endif
+
+
 /**
 	SQLite server driver
 */
@@ -103,8 +157,7 @@ public:
 
 	/// initialize driver by loading sql dynamic link library
 	const char *initialize(char *dlopen_file_spec) {
-		return dlopen_file_spec?
-			dlink(dlopen_file_spec):"client library column is empty";
+		return dlopen_file_spec ? dlink(dlopen_file_spec) : "client library column is empty";
 	}
 
 	/**	connect
@@ -186,6 +239,10 @@ public:
 		
 
 		int rc=pa_sqlite3_open(db_path, &connection.handle);
+#ifdef PA_REGEXP
+		if(rc==SQLITE_OK)
+			rc=pa_sqlite3_create_function(connection.handle, "regexp", 2, SQLITE_UTF8, 0, regexp_sql_func, 0, 0);
+#endif
 		if(rc!=SQLITE_OK){
 			const char* error_msg=pa_sqlite3_errmsg(connection.handle);
 			pa_sqlite3_close(connection.handle);
@@ -490,6 +547,15 @@ private: // sqlite client library funcs linking
 		DLINK(sqlite3_column_text);
 		DLINK(sqlite3_column_blob);
 		DLINK(sqlite3_column_bytes);
+#ifdef PA_REGEXP
+		DLINK(sqlite3_create_function);
+		DLINK(sqlite3_value_text);
+		DLINK(sqlite3_get_auxdata);
+		DLINK(sqlite3_set_auxdata);
+		DLINK(sqlite3_result_error);
+		DLINK(sqlite3_result_error_nomem);
+		DLINK(sqlite3_result_int);
+#endif
 		return 0;
 	}
 
