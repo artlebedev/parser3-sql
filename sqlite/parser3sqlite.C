@@ -8,7 +8,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3SQLITE_C="$Id: parser3sqlite.C,v 1.18 2021/02/01 18:56:45 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3SQLITE_C="$Id: parser3sqlite.C,v 1.19 2021/02/01 19:27:32 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "sqlite3.h"
@@ -526,7 +526,7 @@ private: // sqlite client library funcs linking
 
 		#define DSLINK(name, action) \
 			pa_##name=(t_##name)lt_dlsym(handle, #name); \
-				if(!name) \
+				if(!pa_##name) \
 					action;
 
 		#define DLINK(name) DSLINK(name, return "function " #name " was not found")
