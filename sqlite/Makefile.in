@@ -140,7 +140,7 @@ am__installdirs = "$(DESTDIR)$(libdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 libparser3sqlite_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am_libparser3sqlite_la_OBJECTS = parser3sqlite.lo
+am_libparser3sqlite_la_OBJECTS = parser3sqlite.lo regexp.lo
 libparser3sqlite_la_OBJECTS = $(am_libparser3sqlite_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -165,7 +165,8 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/parser3sqlite.Plo
+am__depfiles_remade = ./$(DEPDIR)/parser3sqlite.Plo \
+	./$(DEPDIR)/regexp.Plo
 am__mv = mv -f
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
@@ -420,7 +421,7 @@ ACLOCAL_AMFLAGS = -I libltdl/m4
 AM_CPPFLAGS = -I../../parser3/src/sql $(INCLTDL) -I$(SQLITE_INC)
 noinst_HEADERS = config_includes.h
 lib_LTLIBRARIES = libparser3sqlite.la
-libparser3sqlite_la_SOURCES = parser3sqlite.C
+libparser3sqlite_la_SOURCES = parser3sqlite.C regexp.C
 libparser3sqlite_la_LDFLAGS = -module -avoid-version
 libparser3sqlite_la_LIBADD = $(LIBLTDL)
 EXTRA_DIST = config_fixed.h parser3sqlite.sln parser3sqlite.vcproj
@@ -523,6 +524,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parser3sqlite.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/regexp.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -903,6 +905,7 @@ clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
 distclean: distclean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 		-rm -f ./$(DEPDIR)/parser3sqlite.Plo
+	-rm -f ./$(DEPDIR)/regexp.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-hdr distclean-libtool distclean-tags
@@ -951,6 +954,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
 		-rm -f ./$(DEPDIR)/parser3sqlite.Plo
+	-rm -f ./$(DEPDIR)/regexp.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
