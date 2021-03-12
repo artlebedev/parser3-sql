@@ -297,6 +297,8 @@ int re_match(ReCompiled *pRe, const unsigned char *zIn, int nIn){
         }
         case RE_OP_CC_INC:
         case RE_OP_CC_EXC: {
+          if(!c)
+            break;
           int j = 1;
           int n = pRe->aArg[x];
           int hit = 0;
@@ -317,7 +319,7 @@ int re_match(ReCompiled *pRe, const unsigned char *zIn, int nIn){
           }
           if( pRe->aOp[x]==RE_OP_CC_EXC ) hit = !hit;
           if( hit ) re_add_state(pNext, x+n);
-          break;            
+          break;
         }
       }
     }
