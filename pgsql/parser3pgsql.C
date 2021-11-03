@@ -15,7 +15,7 @@
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 
-volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.46 2019/11/30 22:11:11 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.47 2021/11/03 14:51:51 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // from catalog/pg_type.h
 #define BOOLOID			16
@@ -99,7 +99,6 @@ struct Connection {
 	PGconn *conn;
 	const char* client_charset;
 	bool autocommit;
-	bool with_default_transactions;
 	bool standard_conforming_strings;
 };
 
@@ -136,7 +135,6 @@ public:
 			datestyle=value&		// 'SET DATESTYLE=value' available values are: ISO|SQL|Postgres|European|US|German [default=ISO]
 			autocommit=0&			// 1 -- each statement is commited automatically, only when with_default_transaction enabled
 			standard_conforming_strings=1&	// 0 -- escape \ char that could be needed for old servers
-			with_default_transaction=0	// 1 -- wrap connection into BEGIN TRAN/COMMIT/ROLLBACK
 	*/
 	void connect(
 				char* url, 
@@ -159,8 +157,7 @@ public:
 		*connection_ref=&connection;
 		connection.services=&services;
 		connection.client_charset=0;
-		connection.autocommit=false;
-		connection.with_default_transactions=false;
+		connection.autocommit=true;
 		connection.standard_conforming_strings=true;
 
 		connection.conn=PQsetdbLogin(
@@ -185,17 +182,8 @@ public:
 						} else if(strcasecmp(key, "datestyle")==0){
 							datestyle=value;
 						} else if(strcasecmp(key, "autocommit")==0){
-							if(atoi(value)==1){
-								if(!connection.with_default_transactions)
-									services._throw("autocommit can be used only with_default_transaction enabled");
-								connection.autocommit=true;
-							}
-						} else if(strcmp(key, "with_default_transaction")==0){
-							if(atoi(value)==1)
-								connection.with_default_transactions=true;
-						} else if(strcmp(key, "WithoutDefaultTransaction")==0){
 							if(atoi(value)==0)
-								connection.with_default_transactions=true;
+								connection.autocommit=false;
 						} else if(strcasecmp(key, "standard_conforming_strings")==0){
 							if(atoi(value)==0)
 								connection.standard_conforming_strings=false;
@@ -221,7 +209,8 @@ public:
 			_execute_cmd(connection, statement);
 		}
 
-		_transaction_begin(connection);
+		if(!connection.autocommit)
+			_execute_cmd(connection, "set AUTOCOMMIT off");
 	}
 
 	void disconnect(void *aconnection){
@@ -232,14 +221,14 @@ public:
 
 	void commit(void *aconnection){
 		Connection& connection=*static_cast<Connection*>(aconnection);
-		_transaction_commit(connection);
-		_transaction_begin(connection);
+		if(!connection.autocommit)
+			_execute_cmd(connection, "COMMIT");
 	}
 
 	void rollback(void *aconnection){
 		Connection& connection=*static_cast<Connection*>(aconnection);
-		_transaction_rollback(connection);
-		_transaction_begin(connection);
+		if(!connection.autocommit)
+			_execute_cmd(connection, "ROLLBACK");
 	}
 
 	bool ping(void *aconnection) {
@@ -355,11 +344,9 @@ public:
 				break;
 			case PGRES_COMMAND_OK: // empty result: insert|delete|update|...
 				PQclear(res);
-				if(connection.autocommit)
-					commit(aconnection);
 				return;
 			case PGRES_TUPLES_OK: 
-				break;	
+				break;
 			default:
 				PQclear_throwPQerror;
 				break;
@@ -483,9 +470,6 @@ cleanup:
 		PQclear(res);
 		if(failed)
 			services._throw(sql_error);
-
-		if(connection.autocommit)
-			commit(aconnection);
 	}
 
 private:
@@ -521,24 +505,6 @@ private:
 		}
 	}
 	
-	
-	void _transaction_begin(Connection& connection){
-		_execute_transactions_cmd(connection, "BEGIN");
-	}
-
-	void _transaction_commit(Connection& connection){
-		_execute_transactions_cmd(connection, "COMMIT");
-	}
-
-	void _transaction_rollback(Connection& connection){
-		_execute_transactions_cmd(connection, "ROLLBACK");
-	}
-
-	void _execute_transactions_cmd(const Connection& connection, const char *query){
-		if(connection.with_default_transactions) // without ?with_default_transaction=1 user must execute BEGIN/COMMIT/ROLLBACK by himself
-			_execute_cmd(connection, query);
-	}
-
 	// executes a query and throw away the result.
 	void _execute_cmd(const Connection& connection, const char *query){
 		if(PGresult *res=PQexec(connection.conn, query))
