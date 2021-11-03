@@ -15,7 +15,7 @@
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 
-volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.47 2021/11/03 14:51:51 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.48 2021/11/03 15:14:05 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // from catalog/pg_type.h
 #define BOOLOID			16
@@ -78,7 +78,7 @@ static char* rsplit(char* string, char delim){
 			return v+1;
 		}
 	}
-	return NULL;	
+	return NULL;
 }
 
 static void toupper_str(char *out, const char *in, size_t size){
@@ -116,15 +116,14 @@ public:
 
 	/// initialize driver by loading sql dynamic link library
 	const char *initialize(char *dlopen_file_spec){
-		return dlopen_file_spec?
-			dlink(dlopen_file_spec):"client library column is empty";
+		return dlopen_file_spec ? dlink(dlopen_file_spec) : "client library column is empty";
 	}
 
 	#define throwPQerror connection.services->_throw(PQerrorMessage(connection.conn))
 	#define PQclear_throw(msg) { \
 			PQclear(res); \
 			connection.services->_throw(msg); \
-		}						
+		}
 	#define PQclear_throwPQerror PQclear_throw(PQerrorMessage(connection.conn))
 
 	/**	connect
@@ -136,11 +135,7 @@ public:
 			autocommit=0&			// 1 -- each statement is commited automatically, only when with_default_transaction enabled
 			standard_conforming_strings=1&	// 0 -- escape \ char that could be needed for old servers
 	*/
-	void connect(
-				char* url, 
-				SQL_Driver_services& services, 
-				void** connection_ref ///< output: Connection*
-	){
+	void connect(char* url, SQL_Driver_services& services, void** connection_ref /* < output: Connection* */){
 		char* user=url;
 		char* host=rsplit(user, '@');
 		char* db=lsplit(host, '/');
@@ -160,9 +155,7 @@ public:
 		connection.autocommit=true;
 		connection.standard_conforming_strings=true;
 
-		connection.conn=PQsetdbLogin(
-			(host&&strcasecmp(host, "local")==0)?NULL/* local Unix domain socket */:host, port, 
-			NULL, NULL, db, user, pwd);
+		connection.conn=PQsetdbLogin( (host && strcasecmp(host, "local") == 0) ? NULL /* local Unix domain socket */ : host, port, NULL, NULL, db, user, pwd);
 
 		if(!connection.conn)
 			services._throw("PQsetdbLogin failed");
@@ -238,8 +231,7 @@ public:
 
 	// charset here is services.request_charset(), not connection.client_charset
 	// thus we can't use the sql server quoting support
-	const char* quote(void *aconnection, const char *str, unsigned int length) 
-	{
+	const char* quote(void *aconnection, const char *str, unsigned int length){
 		Connection& connection=*static_cast<Connection*>(aconnection);
 
 		const char* from;
@@ -292,12 +284,7 @@ public:
 		return result;
 	}
 
-	void query(void *aconnection, 
-				const char *astatement, 
-				size_t placeholders_count, Placeholder* placeholders, 
-				unsigned long offset, unsigned long limit,
-				SQL_Driver_query_event_handlers& handlers
-	){
+	void query(void *aconnection, const char *astatement, size_t placeholders_count, Placeholder* placeholders, unsigned long offset, unsigned long limit, SQL_Driver_query_event_handlers& handlers ){
 		Connection& connection=*static_cast<Connection*>(aconnection);
 		SQL_Driver_services& services=*connection.services;
 		PGconn *conn=connection.conn;
@@ -317,10 +304,7 @@ public:
 		if(transcode_needed){
 			// transcode query from $request:charset to ?ClientCharset
 			statement_size=strlen(astatement);
-			services.transcode(astatement, statement_size,
-				astatement, statement_size,
-				request_charset,
-				client_charset);
+			services.transcode(astatement, statement_size, astatement, statement_size, request_charset, client_charset);
 		}
 
 		const char *statement=_preprocess_statement(connection, astatement, statement_size, offset, limit);
@@ -339,7 +323,7 @@ public:
 		SQL_Error sql_error;
 
 		switch(PQresultStatus(res)) {
-			case PGRES_EMPTY_QUERY: 
+			case PGRES_EMPTY_QUERY:
 				PQclear_throw("no query");
 				break;
 			case PGRES_COMMAND_OK: // empty result: insert|delete|update|...
@@ -376,10 +360,7 @@ public:
 
 			if(transcode_needed)
 				// transcode column name from ?ClientCharset to $request:charset
-				services.transcode(str, length,
-					str, length,
-					client_charset,
-					request_charset);
+				services.transcode(str, length, str, length, client_charset, request_charset);
 
 			CHECK(handlers.add_column(sql_error, str, length));
 		}
@@ -473,28 +454,16 @@ cleanup:
 	}
 
 private:
-	void _bind_parameters(
-				size_t placeholders_count, 
-				Placeholder* placeholders, 
-				const char** paramValues,
-				Connection& connection,
-				bool transcode_needed
-	){
+	void _bind_parameters( size_t placeholders_count, Placeholder* placeholders, const char** paramValues, Connection& connection, bool transcode_needed){
 		for(size_t i=0; i<placeholders_count; i++){
 			Placeholder& ph=placeholders[i];
 			if(transcode_needed){
 				size_t name_length;
-				connection.services->transcode(ph.name, strlen(ph.name),
-					ph.name, name_length,
-					connection.services->request_charset(),
-					connection.client_charset);
+				connection.services->transcode(ph.name, strlen(ph.name), ph.name, name_length, connection.services->request_charset(), connection.client_charset);
 
 				if(ph.value) {
 					size_t value_length;
-					connection.services->transcode(ph.value, strlen(ph.value),
-						ph.value, value_length,
-						connection.services->request_charset(),
-						connection.client_charset);
+					connection.services->transcode(ph.value, strlen(ph.value), ph.value, value_length, connection.services->request_charset(), connection.client_charset);
 				}
 			}
 			int name_number=atoi(ph.name);
@@ -513,13 +482,7 @@ private:
 			throwPQerror;
 	}
 
-	const char *_preprocess_statement(
-					Connection& connection,
-					const char *astatement,
-					size_t statement_size,
-					unsigned long offset,
-					unsigned long limit
-	){
+	const char *_preprocess_statement(Connection& connection, const char *astatement, size_t statement_size, unsigned long offset, unsigned long limit){
 		PGconn *conn=connection.conn;
 
 		if(!statement_size)
@@ -552,11 +515,7 @@ private:
 				const char* saved_o=o;
 				o+=3;
 				while(*o)
-					if(
-						o[0]=='*' &&
-						o[1]=='*' &&
-						o[2]=='/' &&
-						o[3]=='\'') { // name end
+					if(o[0]=='*' && 	o[1]=='*' && o[2]=='/' && o[3]=='\'') { // name end
 						saved_o=0; // found, marking that
 						o+=4;
 						Oid oid=lo_creat(conn, INV_READ|INV_WRITE);
@@ -714,11 +673,11 @@ private: // conn client library funcs linking
 		DLINK(PQexecParams);
 		DLINK(PQftype);
 		DLINK(PQescapeStringConn);
-		DLINK(lo_open);		DLINK(lo_close);
-		DLINK(lo_read);		DLINK(lo_write);
-		DLINK(lo_lseek);		DLINK(lo_creat);
-		DLINK(lo_tell);		DLINK(lo_unlink);
-		DLINK(lo_import);		DLINK(lo_export);
+		DLINK(lo_open);   DLINK(lo_close);
+		DLINK(lo_read);   DLINK(lo_write);
+		DLINK(lo_lseek);  DLINK(lo_creat);
+		DLINK(lo_tell);   DLINK(lo_unlink);
+		DLINK(lo_import); DLINK(lo_export);
 
 		return 0;
 	}
