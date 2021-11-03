@@ -15,7 +15,7 @@
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 
-volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.48 2021/11/03 15:14:05 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.49 2021/11/03 16:27:15 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // from catalog/pg_type.h
 #define BOOLOID			16
@@ -155,14 +155,6 @@ public:
 		connection.autocommit=true;
 		connection.standard_conforming_strings=true;
 
-		connection.conn=PQsetdbLogin( (host && strcasecmp(host, "local") == 0) ? NULL /* local Unix domain socket */ : host, port, NULL, NULL, db, user, pwd);
-
-		if(!connection.conn)
-			services._throw("PQsetdbLogin failed");
-
-		if(PQstatus(connection.conn)!=CONNECTION_OK)
-			throwPQerror;
-
 		while(options){
 			if(char *key=lsplit(&options, '&')){
 				if(*key){
@@ -187,6 +179,14 @@ public:
 				}
 			}
 		}
+
+		connection.conn=PQsetdbLogin( (host && strcasecmp(host, "local") == 0) ? NULL /* local Unix domain socket */ : host, port, NULL, NULL, db, user, pwd);
+
+		if(!connection.conn)
+			services._throw("PQsetdbLogin failed");
+
+		if(PQstatus(connection.conn)!=CONNECTION_OK)
+			throwPQerror;
 
 		if(charset){
 			char statement[MAX_STRING+1]="SET CLIENT_ENCODING=";
