@@ -15,7 +15,7 @@
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 
-volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.49 2021/11/03 16:27:15 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.50 2021/11/07 22:16:54 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // from catalog/pg_type.h
 #define BOOLOID			16
@@ -140,12 +140,14 @@ public:
 		char* host=rsplit(user, '@');
 		char* db=lsplit(host, '/');
 		char* pwd=lsplit(user, ':');
-		char* port=lsplit(host, ':');
 
 		char *options=lsplit(db, '?');
 
 		char* charset=0;
 		char* datestyle=0;
+
+		char* pq_options=0;
+		size_t  pq_options_len=options ? strlen(options) : 0;
 
 		Connection& connection=*(Connection *)services.malloc(sizeof(Connection));
 
@@ -172,15 +174,31 @@ public:
 						} else if(strcasecmp(key, "standard_conforming_strings")==0){
 							if(atoi(value)==0)
 								connection.standard_conforming_strings=false;
-						} else
-							services._throw("unknown connect option" /*key*/);
+						} else {
+							if(!pq_options) {
+								pq_options=(char*)services.malloc_atomic(pq_options_len+2);
+								strcpy(pq_options, "?");
+							} else {
+								strcat(pq_options, "&");
+							}
+							strcat(pq_options, key);
+							strcat(pq_options, "=");
+							strcat(pq_options, value);
+						}
 					} else 
 						services._throw("connect option without =value" /*key*/);
 				}
 			}
 		}
 
-		connection.conn=PQsetdbLogin( (host && strcasecmp(host, "local") == 0) ? NULL /* local Unix domain socket */ : host, port, NULL, NULL, db, user, pwd);
+		if(host && (strchr(host, ',') || pq_options)){ // pq_options can exist only if host and db are not null
+			char pq_url[MAX_STRING+1];
+			snprintf(pq_url, MAX_STRING, "postgresql://%s/%s%s", host, db ? db : "", pq_options ? pq_options : "");
+			connection.conn=PQsetdbLogin(NULL, NULL, NULL, NULL, pq_url, user, pwd);
+		} else {
+			char* port=lsplit(host, ':');
+			connection.conn=PQsetdbLogin( (host && strcasecmp(host, "local") == 0) ? NULL /* local Unix domain socket */ : host, port, NULL, NULL, db, user, pwd);
+		}
 
 		if(!connection.conn)
 			services._throw("PQsetdbLogin failed");
@@ -203,7 +221,7 @@ public:
 		}
 
 		if(!connection.autocommit)
-			_execute_cmd(connection, "set AUTOCOMMIT off");
+			_execute_cmd(connection, "BEGIN");
 	}
 
 	void disconnect(void *aconnection){
