@@ -25,6 +25,7 @@ AC_ARG_WITH(mysql-inc,[  --with-mysql-inc=DIR        DIR is the MySQL includes d
 	AC_MSG_CHECKING(for MYSQL_INC directory)
 	for d in \
 		/usr/local/include/mysql \
+		/usr/include/mariadb \
 		/usr/include/mysql ; do
 		MYSQL_INC_CHK($d)
 	done
