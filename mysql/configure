@@ -2990,6 +2990,7 @@ else
 $as_echo_n "checking for MYSQL_INC directory... " >&6; }
 	for d in \
 		/usr/local/include/mysql \
+		/usr/include/mariadb \
 		/usr/include/mysql ; do
 
 	if test -r "$d/mysql.h"; then

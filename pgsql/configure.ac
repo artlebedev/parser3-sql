@@ -1,6 +1,6 @@
 dnl Autoconf initialisation
 AC_PREREQ(2.59)
-AC_INIT(parser3pgsql, 10.6)
+AC_INIT(parser3pgsql, 10.7)
 AC_CONFIG_SRCDIR(parser3pgsql.C)
 AM_CONFIG_HEADER(config_auto.h)
 
