@@ -15,7 +15,7 @@
 #include <libpq-fe.h>
 #include <libpq/libpq-fs.h>
 
-volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.50 2021/11/07 22:16:54 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3PGSQL_C="$Id: parser3pgsql.C,v 1.51 2021/11/08 08:57:16 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 // from catalog/pg_type.h
 #define BOOLOID			16
@@ -161,10 +161,10 @@ public:
 			if(char *key=lsplit(&options, '&')){
 				if(*key){
 					if(char *value=lsplit(key, '=')){
-						if(strcmp(key, "ClientCharset")==0){
+						if(strcmp(key, "ClientCharset")==0){ // transcoding with parser
 							toupper_str(value, value, strlen(value));
 							connection.client_charset=value;
-						} else if(strcasecmp(key, "charset")==0){
+						} else if(strcasecmp(key, "charset")==0){ // transcoding with server
 							charset=value;
 						} else if(strcasecmp(key, "datestyle")==0){
 							datestyle=value;
@@ -192,7 +192,7 @@ public:
 		}
 
 		if(host && (strchr(host, ',') || pq_options)){ // pq_options can exist only if host and db are not null
-			char pq_url[MAX_STRING+1];
+			char pq_url[MAX_STRING];
 			snprintf(pq_url, MAX_STRING, "postgresql://%s/%s%s", host, db ? db : "", pq_options ? pq_options : "");
 			connection.conn=PQsetdbLogin(NULL, NULL, NULL, NULL, pq_url, user, pwd);
 		} else {
@@ -207,16 +207,14 @@ public:
 			throwPQerror;
 
 		if(charset){
-			char statement[MAX_STRING+1]="SET CLIENT_ENCODING=";
-			strncat(statement, charset, MAX_STRING);
-
+			char statement[MAX_STRING];
+			snprintf(statement, MAX_STRING, "SET CLIENT_ENCODING=%s", charset);
 			_execute_cmd(connection, statement);
 		}
 
 		if(datestyle){
-			char statement[MAX_STRING+1]="SET DATESTYLE=";
-			strncat(statement, datestyle, MAX_STRING);
-
+			char statement[MAX_STRING];
+			snprintf(statement, MAX_STRING, "SET DATESTYLE=%s", datestyle);
 			_execute_cmd(connection, statement);
 		}
 
@@ -654,14 +652,19 @@ private: // conn client library funcs
 
 private: // conn client library funcs linking
 
-	const char *dlink(const char *dlopen_file_spec) {
+	const char *dlink(char *dlopen_file_spec) {
 		if(lt_dlinit()){
 			if(const char* result=lt_dlerror())
 				return result;
 			return "can not prepare to dynamic loading";
 		}
 
-		lt_dlhandle handle=lt_dlopen(dlopen_file_spec);
+		lt_dlhandle handle;
+		do {
+			char *next=lsplit(dlopen_file_spec, ',');
+			handle=lt_dlopen(dlopen_file_spec);
+			dlopen_file_spec=next;
+		} while (!handle && dlopen_file_spec);
 
 		if(!handle){
 			if(const char* result=lt_dlerror())
@@ -675,7 +678,7 @@ private: // conn client library funcs linking
 					action;
 
 		#define DLINK(name) DSLINK(name, return "function " #name " was not found")
-		
+
 		DLINK(PQsetdbLogin);
 		DLINK(PQerrorMessage);
 		DLINK(PQstatus);
