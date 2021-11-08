@@ -1,3 +1,27 @@
+2021-11-08  moko
+
+	* parser3pgsql.C: support for multiple client libraries
+	  specification, comma separated
+
+	* configure.ac: 10.6 -> 10.7 due to feature #1214
+
+	* parser3pgsql.C: postgresql:// scheme connect options are now
+	  supported (implements feature #1214)
+
+2021-11-03  moko
+
+	* parser3pgsql.C: PQsetdbLogin moved after options parsing
+
+	* parser3pgsql.C: minor whitespace
+
+	* parser3pgsql.C: with_default_transaction removed, autocommit
+	  implemented similar to mysql (related to feature #1214)
+
+2020-02-18  moko
+
+	* parser3pgsql.vcproj, libltdl/libltdl.vcproj: -MD -> -MT to remove
+	  msvcp71.dll/etc dependency (related to feature #1200)
+
 2019-12-01  moko
 
 	* config_fixed.h, config_includes.h, parser3pgsql.C: Copyright year

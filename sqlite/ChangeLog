@@ -1,3 +1,42 @@
+2021-11-08  moko
+
+	* parser3sqlite.C: support for multiple client libraries
+	  specification, comma separated
+
+2021-03-12  moko
+
+	* regexp.C: bugfix: regexp('[^^a-z]','b') was true due to trailing
+	  zero was processed, skipping it.
+
+2021-02-01  moko
+
+	* parser3sqlite.vcproj: +regexp.C
+
+	* Makefile.am, regexp.C: regexp.C from
+	  https://www.sqlite.org/src/file?name=ext/misc/regexp.c added to
+	  implement regexp(pattern, string) in sqlite3 parser driver
+
+	* parser3sqlite.C: PA_REGEXP feature added to implement
+	  regexp(pattern, string) in sqlite3
+
+	* parser3sqlite.C: sqlite3_* -> pa_sqlite3_* as we need functions
+	  static for regexp
+
+2021-01-29  moko
+
+	* compile: +compile
+
+	* aclocal.m4, configure, configure.ac: automake 1.11.1 -> automake
+	  1.16.1 version 10.4 -> 10.5
+
+2020-02-18  moko
+
+	* parser3sqlite.vcproj: -MD -> -MT to remove msvcp71.dll/etc
+	  dependency (related to feature #1200)
+
+	* libltdl/libltdl.vcproj: -MD -> -MT to remove msvcp71.dll/etc
+	  dependency (related to feature #1200)
+
 2019-12-01  moko
 
 	* config_fixed.h, config_includes.h: Copyright year updated

@@ -1,3 +1,23 @@
+2021-11-08  moko
+
+	* configure.ac: + /usr/include/mariadb
+
+	* configure.ac: 10.8 -> 10.9 due to minor code change
+
+	* parser3mysql.C: support for multiple client libraries
+	  specification, comma separated
+
+2020-02-18  moko
+
+	* parser3mysql.vcproj, libltdl/libltdl.vcproj: -MD -> -MT to remove
+	  msvcp71.dll/etc dependency (related to feature #1200)
+
+2020-01-18  moko
+
+	* parser3mysql.C: warning war
+
+	* parser3mysql.C: msvc does not support dymamic array sizing
+
 2019-12-01  moko
 
 	* config_fixed.h, config_includes.h, parser3mysql.C: Copyright year
