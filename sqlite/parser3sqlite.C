@@ -8,7 +8,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3SQLITE_C="$Id: parser3sqlite.C,v 1.19 2021/02/01 19:27:32 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3SQLITE_C="$Id: parser3sqlite.C,v 1.20 2021/11/08 09:03:09 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "sqlite3.h"
@@ -509,14 +509,19 @@ private:
 
 private: // sqlite client library funcs linking
 
-	const char *dlink(const char *dlopen_file_spec) {
+	const char *dlink(char *dlopen_file_spec) {
 		if(lt_dlinit()){
 			if(const char* result=lt_dlerror())
 				return result;
 			return "can not prepare to dynamic loading";
 		}
 
-		lt_dlhandle handle=lt_dlopen(dlopen_file_spec);
+		lt_dlhandle handle;
+		do {
+			char *next=lsplit(dlopen_file_spec, ',');
+			handle=lt_dlopen(dlopen_file_spec);
+			dlopen_file_spec=next;
+		} while (!handle && dlopen_file_spec);
 
 		if(!handle){
 			if(const char* result=lt_dlerror())
