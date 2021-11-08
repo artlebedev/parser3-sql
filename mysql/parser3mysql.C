@@ -15,7 +15,7 @@
 
 #include "pa_sql_driver.h"
 
-volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.63 2020/01/18 20:59:24 moko Exp $" IDENT_PA_SQL_DRIVER_H;
+volatile const char * IDENT_PARSER3MYSQL_C="$Id: parser3mysql.C,v 1.64 2021/11/08 08:21:09 moko Exp $" IDENT_PA_SQL_DRIVER_H;
 
 #define NO_CLIENT_LONG_LONG
 #include "mysql.h"
@@ -128,8 +128,7 @@ public:
 
 	/// initialize driver by loading sql dynamic link library
 	const char *initialize(char *dlopen_file_spec) {
-		return dlopen_file_spec?
-			dlink(dlopen_file_spec):"client library column is empty";
+		return dlopen_file_spec ? dlink(dlopen_file_spec) : "client library column is empty";
 	}
 
 	/**	connect
@@ -231,8 +230,8 @@ public:
 		}
 
 		if(charset){
-			char statement[MAX_STRING+1]="SET NAMES ";
-			strncat(statement, charset, MAX_STRING);
+			char statement[MAX_STRING];
+			snprintf(statement, MAX_STRING, "SET NAMES %s", charset);
 			_exec(connection, statement);
 		}
 
@@ -517,14 +516,19 @@ private: // mysql client library funcs
 
 private: // mysql client library funcs linking
 
-	const char *dlink(const char *dlopen_file_spec) {
+	const char *dlink(char *dlopen_file_spec) {
 		if(lt_dlinit()){
 			if(const char* result=lt_dlerror())
 				return result;
 			return "can not prepare to dynamic loading";
 		}
 
-		lt_dlhandle handle=lt_dlopen(dlopen_file_spec);
+		lt_dlhandle handle;
+		do {
+			char *next=lsplit(dlopen_file_spec, ',');
+			handle=lt_dlopen(dlopen_file_spec);
+			dlopen_file_spec=next;
+		} while (!handle && dlopen_file_spec);
 
 		if(!handle){
 			if(const char* result=lt_dlerror())
